@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.4" tiledversion="1.4.1" orientation="orthogonal" renderorder="right-down" width="4" height="4" tilewidth="32" tileheight="32" infinite="0" nextlayerid="2" nextobjectid="1">
+ <tileset firstgid="1" name="automaptiles" tilewidth="32" tileheight="32" tilecount="36" columns="18">
+  <image source="automaptiles.png" width="576" height="64"/>
+  <tile id="18">
+   <animation>
+    <frame tileid="18" duration="100"/>
+    <frame tileid="19" duration="100"/>
+    <frame tileid="20" duration="100"/>
+    <frame tileid="21" duration="100"/>
+    <frame tileid="22" duration="100"/>
+    <frame tileid="23" duration="100"/>
+    <frame tileid="24" duration="100"/>
+    <frame tileid="25" duration="100"/>
+   </animation>
+  </tile>
+ </tileset>
+ <layer id="1" name="Tile Layer 1" width="4" height="4">
+  <data encoding="csv">
+12,2684354572,3221225484,1610612748,
+2147483660,3758096396,1073741836,536870924,
+2147483660,3758096396,1073741836,536870924,
+3221225484,1610612748,12,2684354572
+</data>
+ </layer>
+</map>

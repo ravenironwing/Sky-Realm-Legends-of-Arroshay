@@ -78,6 +78,8 @@ def set_tile_props(sprite): # sets a variable that keeps track of the important 
                 sprite.game.message_text = False
                 sprite.game.e_down = False
 
+    print(sprite.tile_props)
+
 def harvest_plant(sprite):
     x = int(sprite.pos.x / sprite.game.map.tile_size)
     y = int(sprite.pos.y / sprite.game.map.tile_size)
@@ -1503,11 +1505,14 @@ class Player(pg.sprite.Sprite):
         self.talk_rect.center = self.rect.center
         self.talk_counter = 0 # Used to keep track of how many times you talk to someone. So you can changed the dialogue based on it.
         self.name = 'Adventurer' # Change this later so the player can name their character.
+        if self.npc:
+            self.ai = AI(self)
+        else:
+            self.ai = None
 
         if self.npc:
             self.dialogue = self.kind['dialogue']
             self.name = self.kind['name']
-
         set_elevation(self)
 
     @property
@@ -1852,7 +1857,9 @@ class Player(pg.sprite.Sprite):
         if self.is_reloading:
             self.reload()
 
-        if not self.npc:
+        if self.npc:
+            self.ai.update()
+        else:
             self.update_player_only()
 
         self.rot = (self.rot + self.rot_speed * self.game.dt) % 360
@@ -3026,6 +3033,25 @@ class Player(pg.sprite.Sprite):
                 self.stats['magica'] -= 5
                 if self.stats['magica'] < 0:
                     self.stats['magica'] = 0
+
+class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
+    def __init__(self, sprite):
+        self.sprite = sprite
+        self.target = sprite.game.player
+        self.avoid_radius = 32
+
+    def avoid_mobs(self):
+        for mob in self.sprite.game.mobs_on_screen:
+            if mob != self.sprite:
+                dist = self.sprite.pos - mob.pos
+                if 0 < dist.length() < self.avoid_radius:
+                    self.sprite.acc += dist.normalize()
+
+    def update(self):
+        self.sprite.rotate_to(self.target.pos - self.sprite.pos)
+        self.sprite.accelerate()
+        self.avoid_mobs()
+
 
 class Animal(pg.sprite.Sprite):
     def __init__(self, game, x, y, map, species, health = None):
@@ -4500,9 +4526,7 @@ class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animate
     def __init__(self, game, obj_center, w, h, name, map, fixed_rot = None, size = None):
         self.game = game
         under = False
-        if 'palm tree' in name:
-            self._layer = self.game.effects_layer
-        elif 'tree' in name:
+        if 'tree' in name:
             self._layer = self.game.roof_layer
         elif 'block' in name or name == 'dirt':
             for i in UNDERWORLD:

@@ -492,10 +492,10 @@ class Game:
         self.lava_tiles = []
         self.long_grass_tiles = []
         # Layers
-        self.base_layer = 0
-        self.ocean_plants_layer = 0
-        self.water_layer = 0
-        self.river_layer = 0
+        self.base_layer = BASE_LAYER
+        self.ocean_plants_layer = CORNERS_LAYER
+        self.water_layer = WATER_LAYER
+        self.river_layer = PLAYER_LAYER
         self.lava_layer = 0
         self.wall_layer = 0
         self.items_layer = 0
@@ -503,8 +503,7 @@ class Game:
         self.player_layer = PLAYER_LAYER
         self.vehicle_layer = PLAYER_LAYER + 1
         self.bullet_layer = PLAYER_LAYER + 2
-        self.roof_layer = PLAYER_LAYER + 3
-        self.tree_layer = PLAYER_LAYER + 4
+        self.roof_layer = TREE_LAYER
         self.effects_layer = PLAYER_LAYER + 5
         self.sky_layer = PLAYER_LAYER + 6
 
@@ -1673,16 +1672,16 @@ class Game:
         #self.sky_layer = self.effects_layer + 1
 
 
-        #Generates trees
-        if len(self.breakable) < 1:
-            for y in range(0, self.map.tiles_high):
-                for x in range(0, self.map.tiles_wide):
-                    props = self.map.tmxdata.get_tile_properties(x, y, self.river_layer)
-                    if props == None:
-                        pass
-                    elif 'stump' in props:
-                        tree = props['stump']
-                        Breakable(self, vec(x * TILESIZE + TILESIZE / 2, y * TILESIZE + TILESIZE / 2), TILESIZE, TILESIZE, tree, map)
+        # Generates trees
+        # if len(self.breakable) < 1:
+        #    for y in range(0, self.map.tiles_high):
+        #        for x in range(0, self.map.tiles_wide):
+        #            props = self.map.tmxdata.get_tile_properties(x, y, self.river_layer)
+        #            if props == None:
+        #                pass
+        #            elif 'stump' in props:
+        #                tree = props['stump']
+        #                Breakable(self, vec(x * TILESIZE + TILESIZE / 2, y * TILESIZE + TILESIZE / 2), TILESIZE, TILESIZE, tree, map)
 
             #gids = []
             #for gid, props in self.map.tmxdata.tile_properties.items():

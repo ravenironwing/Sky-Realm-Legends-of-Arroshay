@@ -444,10 +444,14 @@ for x in WEAPONS:
             NON_GUN_LIGHTS.append(x)
 
 # Layers
+BASE_LAYER = 0
+CORNERS_LAYER = 1
+WATER_LAYER = 2
+PLAYER_LAYER = 3
+TREE_LAYER = 4
 #WALL_LAYER = 4
 #ITEMS_LAYER = 5
 #MOB_LAYER = 6
-PLAYER_LAYER = 3
 #VEHICLE_LAYER = 8
 #BULLET_LAYER = 9
 #ROOF_LAYER = 10
@@ -498,7 +502,7 @@ GENDER['male'] = {'armor': 1,
 GENDER['other'] = {'armor': 1,
                               'image': 2}
 RACE = {}
-RACE['osidine'] = {'armor': 1, 'image': 0, 'start map': (1, 2), 'start pos': (396, 668),
+RACE['osidine'] = {'armor': 1, 'image': 0, 'start map': (1, 2), 'start pos': (570, 655),
                    'start_stats': {'health': 100, 'max health': 100, 'stamina': 100, 'max stamina': 100, 'magica': 100, 'max magica': 100, 'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 2, 'agility': 1.5, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0, 'casting': 0, 'lock picking': 0, 'smithing': 0},
                    'description': 'The Osidines are descendants of the ancients who fought along side the dragons of Zhara for the liberation of Arroshay during the great war. They specialize in the construction of armor and melee weapons.'}
 RACE['shaktele'] = {'armor': 1, 'image': 9, 'start map': (3, 1), 'start pos': (500, 500),

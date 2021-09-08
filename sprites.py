@@ -71,12 +71,14 @@ def set_tile_props(sprite): # sets a variable that keeps track of the important 
     # Checks for plants to harvest
     if 'harvest' in sprite.tile_props:
         if sprite not in sprite.game.flying_vehicles:
-            sprite.game.message_text = True
-            sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to harvest ' + sprite.tile_props['plant']
-            if sprite.game.e_down:
+            if sprite in sprite.game.players:
+                sprite.game.message_text = True
+                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to harvest ' + sprite.tile_props['plant']
+            if sprite.e_down:
                 harvest_plant(sprite)
-                sprite.game.message_text = False
-                sprite.game.e_down = False
+                if sprite in sprite.game.players:
+                    sprite.game.message_text = False
+                    sprite.e_down = False
 
 def harvest_plant(sprite):
     x = int(sprite.pos.x / sprite.game.map.tile_size)
@@ -1437,6 +1439,7 @@ class Player(pg.sprite.Sprite):
         self.last_throw = 0
         self.last_climb = 0
         # Player state variables
+        self.e_down = False # Used for the interact button.
         self.dragon = False
         self.temp_equipped = None # Used for switching your body to a mech suit or for Wraith possession.
         self.possessing = None

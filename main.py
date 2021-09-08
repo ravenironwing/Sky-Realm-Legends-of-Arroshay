@@ -1009,7 +1009,6 @@ class Game:
         self.hud_hunger = 1
         self.hud_ammo1 = ''
         self.hud_ammo2 = ''
-        self.e_down = False
         self.draw_debug = False
         self.paused = False
         self.effects_sounds['level_start'].play()
@@ -1993,20 +1992,20 @@ class Game:
                     if hits[0].cost > 0:
                         if self.player.inventory['gold'] >= hits[0].cost:
                             self.message = 'Press ' + pg.key.name(self.key_map['interact']).upper() + ' to pay ' + str(hits[0].cost) + ' gold to sleep in bed.'
-                            if self.e_down:
+                            if self.player.e_down:
                                 self.player.inventory['gold'] -= hits[0].cost
                                 self.effects_sounds['cashregister'].play()
                                 self.sleep_in_bed()
                                 self.message_text = False
-                                self.e_down = False
+                                self.player.e_down = False
                         else:
                             self.message = 'You cannot afford this bed.'
                     else:
                         self.message = 'Press ' + pg.key.name(self.key_map['interact']).upper() + ' to sleep in bed.'
-                        if self.e_down:
+                        if self.player.e_down:
                             self.sleep_in_bed()
                             self.message_text = False
-                            self.e_down = False
+                            self.player.e_down = False
                 else:
                     self.message = 'You can not sleep in ' + hits[0].name + '.'
 
@@ -2015,17 +2014,17 @@ class Game:
             if hits:
                 self.message_text = True
                 self.message = pg.key.name(self.key_map['interact']).upper() + ' to use toilet'
-                if self.e_down:
+                if self.player.e_down:
                     self.use_toilet()
                     self.message_text = False
-                    self.e_down = False
+                    self.player.e_down = False
 
             # player hit corps
             hits = pg.sprite.spritecollide(self.player, self.corpses_on_screen, False)
             if hits:
                 self.message_text = True
                 self.message = pg.key.name(self.key_map['interact']).upper() + " to loot"
-                if self.e_down:
+                if self.player.e_down:
                     if not self.in_loot_menu:
                         self.in_loot_menu = True
                         self.in_menu = True
@@ -2047,26 +2046,26 @@ class Game:
                 self.message_text = True
                 if hits[0].locked:
                     self.message = hits[0].name + ' is locked. ' + pg.key.name(self.key_map['interact']).upper() + ' to unlock'
-                    if self.e_down:
+                    if self.player.e_down:
                         if not self.in_lock_menu:
                             self.in_lock_menu = self.in_menu = True
                             self.lock_menu = Lock_Menu(self, hits[0])
                             self.message_text = False
-                        self.e_down = False
+                        self.player.e_down = False
                 elif not hits[0].opened:
                     self.message = pg.key.name(self.key_map['interact']).upper() + ' to open'
-                    if self.e_down:
+                    if self.player.e_down:
                         hits[0].open = True
                         hits[0].close = False
                         self.message_text = False
-                        self.e_down = False
+                        self.player.e_down = False
                 elif hits[0].opened:
                     self.message = pg.key.name(self.key_map['interact']).upper() + ' to close'
-                    if self.e_down:
+                    if self.player.e_down:
                         hits[0].close = True
                         hits[0].open = False
                         self.message_text = False
-                        self.e_down = False
+                        self.player.e_down = False
 
             # player hit container
             hits = pg.sprite.spritecollide(self.player, self.containers, False)
@@ -2074,23 +2073,23 @@ class Game:
                 if not hits[0].inventory['locked']:
                     self.message_text = True
                     self.message = pg.key.name(self.key_map['interact']).upper() + ' to open'
-                    if self.e_down:
+                    if self.player.e_down:
                         if not self.in_loot_menu:
                             if hits[0] in self.chest_containers:
                                 self.effects_sounds['door open'].play()
                             self.in_loot_menu = True
                             self.loot_menu = Loot_Menu(self, hits[0])
                         self.message_text = False
-                        self.e_down = False
+                        self.player.e_down = False
                 else:
                     self.message_text = True
                     self.message = pg.key.name(self.key_map['interact']).upper() + ' to unlock'
-                    if self.e_down:
+                    if self.player.e_down:
                         if not self.in_lock_menu:
                             self.in_lock_menu = self.in_menu = True
                             self.lock_menu = Lock_Menu(self, hits[0])
                         self.message_text = False
-                        self.e_down = False
+                        self.player.e_down = False
 
 
             # Player is in talking range of NPC
@@ -2103,11 +2102,11 @@ class Game:
                             if now - self.last_dialogue > 2000:
                                 self.message_text = True
                                 self.message = pg.key.name(self.key_map['interact']).upper() + ' to talk'
-                                if self.e_down:
+                                if self.player.e_down:
                                     hits[0].target = self.player
                                     hits[0].talk_attempt = True
                                     self.message_text = False
-                                    self.e_down = False
+                                    self.player.e_down = False
             if self.dialogue_menu_npc:
                 self.dialogue_menu = Dialogue_Menu(self, self.dialogue_menu_npc)
 
@@ -2117,12 +2116,12 @@ class Game:
                 self.station_type = hits[0].kind
                 self.message_text = True
                 self.message = pg.key.name(self.key_map['interact']).upper() + ' to use ' + self.station_type
-                if self.e_down:
+                if self.player.e_down:
                     self.in_station_menu = True
                     self.in_menu = True
                     self.station_menu = Work_Station_Menu(self, hits[0].kind)
                     self.message_text = False
-                    self.e_down = False
+                    self.player.e_down = False
 
             # player hits elevation change
             hits = pg.sprite.spritecollide(self.player, self.elevations_on_screen, False)
@@ -2152,10 +2151,10 @@ class Game:
                     self.message_text = True
                     if self.message != "You are carrying too much weight.":
                         self.message = pg.key.name(self.key_map['interact']).upper() + 'to pick up'
-                    if self.e_down:
+                    if self.player.e_down:
                         if self.player.add_inventory(hit.item, 1):
                             #self.player.calculate_weight()
-                            self.e_down = False
+                            self.player.e_down = False
                             self.message_text = False
                             hit.kill()
                         else:
@@ -2224,30 +2223,30 @@ class Game:
                         if (hits[0].driver == None) and hits[0].living:
                             self.message_text = True
                             self.message = pg.key.name(self.key_map['interact']).upper() + " to enter, T to exit"
-                        if self.e_down:
+                        if self.player.e_down:
                             if hits[0].living:
                                 hits[0].possess(self.player)
                             self.message_text = False
-                            self.e_down = False
+                            self.player.e_down = False
 
                 hits = pg.sprite.spritecollide(self.player, self.vehicles_on_screen, False, pg.sprite.collide_circle_ratio(0.95))
                 if hits:
                     if not hits[0].occupied and hits[0].living:
                         self.message_text = True
                         self.message = pg.key.name(self.key_map['interact']).upper() + ' to enter, ' + pg.key.name(self.key_map['dismount']).upper() + ' to exit'
-                    if self.e_down:
+                    if self.player.e_down:
                         if hits[0].living:
                             hits[0].enter_vehicle(self.player)
                         self.message_text = False
-                        self.e_down = False
+                        self.player.e_down = False
                 hits = pg.sprite.spritecollide(self.player, self.flying_vehicles, False)
                 if hits:
                     if not hits[0].occupied and hits[0].living:
                         self.message_text = True
                         if self.message != "You need a key to operate this vehicle.":
                             self.message = pg.key.name(self.key_map['interact']).upper() + ' to enter, ' + pg.key.name(self.key_map['dismount']).upper() + ' to exit'
-                    if self.e_down:
-                        self.e_down = False
+                    if self.player.e_down:
+                        self.player.e_down = False
                         if hits[0].living:
                             if hits[0].kind == 'airship':
                                 if 'airship key' in self.player.inventory['items']:
@@ -2281,18 +2280,18 @@ class Game:
                     if hit in self.grabable_animals:
                         self.message_text = True
                         self.message = pg.key.name(self.key_map['interact']).upper() + ' to catch'
-                        if self.e_down:
+                        if self.player.e_down:
                             self.player.add_inventory(hit.item)
                             hit.kill()
                             self.message_text = False
-                            self.e_down = False
+                            self.player.e_down = False
                     elif hit.mountable:
                         self.message_text = True
                         self.message = pg.key.name(self.key_map['interact']).upper() + ' to mount, ' + pg.key.name(self.key_map['dismount']).upper() + ' to dismount'
-                        if self.e_down:
+                        if self.player.e_down:
                             hit.mount(self.player)
                             self.message_text = False
-                            self.e_down = False
+                            self.player.e_down = False
                     elif hit.touch_damage:
                          hit.does_melee_damage(self.player)
                     else:
@@ -2305,18 +2304,18 @@ class Game:
                         if hit in self.grabable_animals:
                             self.message_text = True
                             self.message = pg.key.name(self.key_map['interact']).upper() + ' to catch'
-                            if self.e_down:
+                            if self.player.e_down:
                                 self.player.inventory[hit.item_type].append(hit.item)
                                 hit.kill()
                                 self.message_text = False
-                                self.e_down = False
+                                self.player.e_down = False
                         elif hit.mountable:
                             self.message_text = True
                             self.message = pg.key.name(self.key_map['interact']).upper() + ' to mount, ' + pg.key.name(self.key_map['dismount']).upper() + ' to dismount'
-                            if self.e_down:
+                            if self.player.e_down:
                                 hit.mount(self.player)
                                 self.message_text = False
-                                self.e_down = False
+                                self.player.e_down = False
                         if hit.touch_damage:
                             hit.does_melee_damage(self.player)
                         else:
@@ -2811,14 +2810,14 @@ class Game:
                     self.player.weapon_hand = 'weapons2'
                     self.player.shoot()
                 else: # Prevents e_down from getting stuck on true
-                    self.e_down = False
+                    self.player.e_down = False
             if event.type == pg.MOUSEBUTTONUP: # Updates which hand should be attacking when mouse buttons change.
                 if pg.mouse.get_pressed() == (0, 0, 1) or pg.mouse.get_pressed() == (0, 1, 1):
                     self.player.weapon_hand = 'weapons'
                 elif pg.mouse.get_pressed() == (1, 0, 0) or pg.mouse.get_pressed() == (1, 1, 0):
                     self.player.weapon_hand = 'weapons2'
                 else: # Prevents e_down from getting stuck on true
-                    self.e_down = False
+                    self.player.e_down = False
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     self.in_settings_menu = True
@@ -2828,9 +2827,9 @@ class Game:
                     self.in_inventory_menu = True
                     self.in_menu = True
                 if event.key == self.key_map['interact']:
-                    self.e_down = True
+                    self.player.e_down = True
                 else:
-                    self.e_down = False
+                    self.player.e_down = False
                 #if event.key == pg.K_BACKQUOTE:  # Switches to last weapon
                 #    self.player.toggle_previous_weapons()
                 if event.key == self.key_map['skill']:

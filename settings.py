@@ -154,6 +154,8 @@ DAY_PERIOD = DAY_LENGTH + NIGHT_LENGTH
 NIGHTFALL_SPEED = 100 # The higher the slower. In ms.
 GAME_HOUR = DAY_PERIOD/24
 
+WORK_STATION_LIST = ['work bench', 'forge', 'enchanter', 'smelter', 'tanning rack', 'grinder', 'cooking fire', 'alchemy lab']
+
 # Player settings
 PLAYER_HEALTH = 100
 PLAYER_STAMINA = 100
@@ -447,10 +449,10 @@ for x in WEAPONS:
 BASE_LAYER = 0
 CORNERS_LAYER = 1
 WATER_LAYER = 2
+ITEMS_LAYER = 2
 PLAYER_LAYER = 3
 TREE_LAYER = 4
 #WALL_LAYER = 4
-#ITEMS_LAYER = 5
 #MOB_LAYER = 6
 #VEHICLE_LAYER = 8
 #BULLET_LAYER = 9

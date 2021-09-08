@@ -92,6 +92,44 @@ def harvest_plant(sprite):
         sprite.game.map.redraw()
         set_tile_props(sprite)
 
+def get_next_tile_props(sprite, layer, x_off = 0, y_off = 0):  # Gets the properties of the tile the sprite is on.
+    try:
+        pdir = sprite.acc.normalize()
+    except:
+        pdir = vec(1, 0).rotate(-sprite.rot)
+    x = int(sprite.pos.x / sprite.game.map.tile_size + pdir.x) + x_off
+    y = int(sprite.pos.y / sprite.game.map.tile_size + pdir.y) + y_off
+    if x >= sprite.game.map.tiles_wide: x = sprite.game.map.tiles_wide - 1
+    if y >= sprite.game.map.tiles_high: y = sprite.game.map.tiles_high - 1
+    return sprite.game.map.tmxdata.get_tile_properties(x, y, layer)
+
+def set_next_tile_props(sprite): # sets a variable that keeps track of the important properties a sprite is on in order of their priority.
+    sprite.next_tile_props = {}
+    sprite.next_tile_props['material'] = ''
+    sprite.next_tile_props['wall'] = ''
+    plant_layer = None
+    layers = [sprite.game.river_layer, sprite.game.ocean_plants_layer, sprite.game.water_layer, sprite.game.base_layer]
+    for layer in layers:
+        if get_next_tile_props(sprite, layer) != None:
+            if 'wall' in get_next_tile_props(sprite, layer):
+                sprite.next_tile_props['wall'] = get_next_tile_props(sprite, layer)['wall']
+                sprite.next_tile_props['material'] = 'wall'
+                break
+            else:
+                sprite.next_tile_props['wall'] = ''
+            if 'material' in get_next_tile_props(sprite, layer):
+                sprite.next_tile_props['material'] = get_next_tile_props(sprite, layer)['material']
+                break
+            else:
+                sprite.next_tile_props['material'] = ''
+            if 'plant' in get_next_tile_props(sprite, layer):
+                sprite.next_tile_props['plant'] = get_next_tile_props(sprite, layer)['plant']
+                sprite.next_tile_props['plant layer'] = layer
+                if 'harvest' in get_next_tile_props(sprite, layer):
+                    sprite.next_tile_props['harvest'] = get_next_tile_props(sprite, layer)['harvest']
+            else:
+                sprite.next_tile_props['plant layer'] = None
+
 def gid_with_property(tmxdata, key, value):
     for gid, props in tmxdata.tile_properties.items():
         if props.get(key) == value:
@@ -1460,6 +1498,7 @@ class Player(pg.sprite.Sprite):
         self.moving_melee = False
         self.living = True
         self.tile_props = {'material' : '', 'wall': ''}
+        self.next_tile_props = {'material': '', 'wall': ''}
         self.provoked = False
         self.offensive = False
         # player stats. You gain skill according to the activities the player does.
@@ -1543,7 +1582,7 @@ class Player(pg.sprite.Sprite):
             self.immaterial = False
             self.magical_being = False
             self.acceleration = PLAYER_ACC
-            self.inventory = DEFAULT_INVENTORIES['female osidine']
+            self.inventory = copy.deepcopy(DEFAULT_INVENTORIES['female osidine'])
             self.equipped['hair'] = 'medium messy'
             self.colors = {'hair': DEFAULT_HAIR_COLOR, 'skin': DEFAULT_SKIN_COLOR}
             self.race = self.equipped['race']
@@ -1903,6 +1942,7 @@ class Player(pg.sprite.Sprite):
         self.check_map_pos() # Used for changing to a new map when you get pass over the edge.
 
         set_tile_props(self)
+        set_next_tile_props(self)
 
     def transform(self):
         self.invisible = False
@@ -4948,6 +4988,7 @@ class Chest(pg.sprite.Sprite):
         else:
             self.orient = 'v'
 
+"""
 class Work_Station(pg.sprite.Sprite): # Used for work benches, tanning racks, grinders, forges, enchanting tables, etc.
     def __init__(self, game, x, y, w, h, kind):
         self.groups = game.work_stations, game.all_static_sprites
@@ -5005,6 +5046,7 @@ class Toilet(pg.sprite.Sprite): # Used to rest in
             self.orient = 'h'
         else:
             self.orient = 'v'
+"""
 
 class Detector(pg.sprite.Sprite): # Used to rest in
     def __init__(self, game, x, y, w, h, name):

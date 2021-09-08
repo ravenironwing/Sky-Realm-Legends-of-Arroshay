@@ -1479,16 +1479,16 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
             task_accomplished = False
             if self.kind == 'tanning rack':
                 sound = 'scrape'
-                for i, item in enumerate(self.game.player.inventory['items']):
-                    if not task_accomplished:
-                        if item:
-                            if 'skin' in item:
-                                if self.game.player.add_inventory(self.selected_item.text, 1):
+                if not task_accomplished:
+                    if 'skin' in list(self.game.player.inventory['items'].keys()):
+                        print("You've got skin.")
+                        if self.game.player.add_inventory(self.selected_item.text, 1):
+                            for item in self.game.player.inventory['items']:
+                                if 'skin' in item:
                                     self.game.player.add_inventory(item, -1)
                                     self.game.player.stats['smithing'] += 1
                                     task_accomplished = True
-                        else:
-                            break
+                                    break
                 if not task_accomplished:
                     self.not_enough_text = True
 
@@ -1783,9 +1783,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
 
     def remove_materials(self):
         for material in self.materials_list:
-            for x in self.game.player.inventory['items']:
-                if x == material:
-                    self.game.player.add_inventory(x, -self.materials_list[material])
+            self.game.player.add_inventory(material, -self.materials_list[material])
 
     def check_materials(self, chosen_item, upgrade = False):
         if not upgrade:
@@ -1810,8 +1808,8 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
         else:
             self.materials_list = eval(self.item_type.upper())[chosen_item][makeorupgrade]
         for material in self.materials_list:
-            if material in self.player.inventory['items']:  # Sees if you have any of the required material
-                if self.materials_list[material] > self.player.inventory['items'][material]:  # Sees if you have enough of the required material
+            if material in self.game.player.inventory['items']:  # Sees if you have any of the required material
+                if self.materials_list[material] > self.game.player.inventory['items'][material]:  # Sees if you have enough of the required material
                     enough = False
             else:
                 enough = False
@@ -2017,8 +2015,6 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                     temp_item = item
                 if 'armor' in eval(temp_item.upper())[self.game.player.equipped[item]]:
                     self.game.player.stats['armor'] += eval(temp_item.upper())[self.game.player.equipped[item]]['armor']
-
-        self.count_resources()
 
     def display_item_info(self, item):
         item_dictionary = globals()[self.item_type.upper()]  # converts the item_type string into the correct dictionary to get the item stats from

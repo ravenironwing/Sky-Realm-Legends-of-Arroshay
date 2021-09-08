@@ -498,7 +498,7 @@ class Game:
         self.river_layer = PLAYER_LAYER
         self.lava_layer = 0
         self.wall_layer = 0
-        self.items_layer = 0
+        self.items_layer = ITEMS_LAYER
         self.mob_layer = PLAYER_LAYER
         self.player_layer = PLAYER_LAYER
         self.vehicle_layer = PLAYER_LAYER + 1
@@ -932,7 +932,6 @@ class Game:
         self.door_walls = pg.sprite.Group()
         self.nospawn = pg.sprite.Group()
         self.doors = pg.sprite.Group()
-        self.toilets = pg.sprite.Group()
         self.player_group = pg.sprite.Group()
         self.players = pg.sprite.Group()
         self.grabable_animals = pg.sprite.Group()
@@ -1587,8 +1586,6 @@ class Game:
                 if tile_object.name == 'lava':
                     Lava(self, tile_object.x, tile_object.y,
                              tile_object.width, tile_object.height)
-                if tile_object.name in ['grinder', 'forge', 'workbench', 'tanning rack', 'cooking fire', 'enchanter', 'alchemy lab', 'smelter']:
-                    Work_Station(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height, tile_object.name)
                 if 'chest' in tile_object.name:
                     spawn_chest = True
                     for container in self.containers:
@@ -1599,9 +1596,6 @@ class Game:
                 if 'bed' in tile_object.name:
                     Bed(self, tile_object.x, tile_object.y,
                              tile_object.width, tile_object.height, tile_object.name)
-                if 'toilet' in tile_object.name:
-                    Toilet(self, tile_object.x, tile_object.y,
-                             tile_object.width, tile_object.height)
                 if tile_object.name == 'electric entry':
                     ElectricDoor(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
                 if 'entryway' in tile_object.name:  # Used for animated doors that can be opened, closed or locked.
@@ -2010,8 +2004,7 @@ class Game:
                     self.message = 'You can not sleep in ' + hits[0].name + '.'
 
             # player hits toilet
-            hits = pg.sprite.spritecollide(self.player, self.toilets, False, pg.sprite.collide_rect_ratio(0.40))
-            if hits:
+            if 'toilet' in self.player.tile_props['material']:
                 self.message_text = True
                 self.message = pg.key.name(self.key_map['interact']).upper() + ' to use toilet'
                 if self.player.e_down:
@@ -2111,15 +2104,17 @@ class Game:
                 self.dialogue_menu = Dialogue_Menu(self, self.dialogue_menu_npc)
 
             # player hits work station (forge, grinder, work bench, etc)
-            hits = pg.sprite.spritecollide(self.player, self.work_stations, False)
-            if hits:
-                self.station_type = hits[0].kind
+            if (self.player.next_tile_props['material'] in WORK_STATION_LIST) or (self.player.tile_props['material'] in WORK_STATION_LIST):
+                if self.player.next_tile_props['material'] in WORK_STATION_LIST:
+                    self.station_type = self.player.next_tile_props['material']
+                else:
+                    self.station_type = self.player.tile_props['material']
                 self.message_text = True
                 self.message = pg.key.name(self.key_map['interact']).upper() + ' to use ' + self.station_type
                 if self.player.e_down:
                     self.in_station_menu = True
                     self.in_menu = True
-                    self.station_menu = Work_Station_Menu(self, hits[0].kind)
+                    self.station_menu = Work_Station_Menu(self, self.station_type)
                     self.message_text = False
                     self.player.e_down = False
 
@@ -2491,7 +2486,7 @@ class Game:
                     item.lit = True
                     center = vec(item.rect.center)
                     Stationary_Animated(self, center, 'fire')
-                    Work_Station(self, center.x - self.map.tile_size/2, center.y - self.map.tile_size/2, self.map.tile_size, self.map.tile_size, 'cooking fire')
+                    #Work_Station(self, center.x - self.map.tile_size/2, center.y - self.map.tile_size/2, self.map.tile_size, self.map.tile_size, 'cooking fire')
         # fire hits firepit
         hits = pg.sprite.groupcollide(self.firepits, self.fires_on_screen, False, False, pg.sprite.collide_circle_ratio(0.5))
         for item in hits:
@@ -2499,7 +2494,7 @@ class Game:
                 item.lit = True
                 center = vec(item.rect.center)
                 Stationary_Animated(self, center, 'fire')
-                Work_Station(self, center.x - self.map.tile_size/2, center.y - self.map.tile_size/2, self.map.tile_size, self.map.tile_size, 'cooking fire')
+                #Work_Station(self, center.x - self.map.tile_size/2, center.y - self.map.tile_size/2, self.map.tile_size, self.map.tile_size, 'cooking fire')
 
 
         # bullets hit moving_target

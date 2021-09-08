@@ -803,7 +803,7 @@ class Game:
             title_image.set_alpha(i)
             self.screen.blit(title_image, (0, 0))
             if i > 240:
-                self.draw_text('Press any key to begin or C to continue', self.script_font, 12, WHITE, self.screen_width / 2, self.screen_height - 60,
+                self.draw_text('Press any key to begin or C to continue', self.script_font, 18, WHITE, self.screen_width / 2, int(self.screen_height * 0.85),
                                align="center")
 
             for event in pg.event.get():
@@ -2153,7 +2153,7 @@ class Game:
                     if self.message != "You are carrying too much weight.":
                         self.message = pg.key.name(self.key_map['interact']).upper() + 'to pick up'
                     if self.e_down:
-                        if self.player.add_equipment(hit.item, 1):
+                        if self.player.add_inventory(hit.item, 1):
                             #self.player.calculate_weight()
                             self.e_down = False
                             self.message_text = False
@@ -2282,7 +2282,7 @@ class Game:
                         self.message_text = True
                         self.message = pg.key.name(self.key_map['interact']).upper() + ' to catch'
                         if self.e_down:
-                            self.player.add_equipment(hit.item)
+                            self.player.add_inventory(hit.item)
                             hit.kill()
                             self.message_text = False
                             self.e_down = False

@@ -78,12 +78,10 @@ def set_tile_props(sprite): # sets a variable that keeps track of the important 
                 sprite.game.message_text = False
                 sprite.game.e_down = False
 
-    print(sprite.tile_props)
-
 def harvest_plant(sprite):
     x = int(sprite.pos.x / sprite.game.map.tile_size)
     y = int(sprite.pos.y / sprite.game.map.tile_size)
-    if sprite.add_equipment(sprite.tile_props['plant'], 1):
+    if sprite.add_inventory(sprite.tile_props['plant'], 1):
         if sprite.tile_props['harvest'] != 'none':
             sprite.game.map.tmxdata.layers[sprite.tile_props['plant layer']].data[y][x] = gid_with_property(sprite.game.map.tmxdata, 'plant', sprite.tile_props['harvest'])
 
@@ -406,43 +404,69 @@ def fire_collide(one, two):
     else:
         return False
 
+def add_inventory(inventory, item, count = 1):
+    for item_type in inventory:
+        if item in eval(item_type.upper()):
+            if item in inventory[item_type]:
+                inventory[item_type][item] += count
+            else:
+                inventory[item_type][item] = count
+            if inventory[item_type][item] < 0:  # Doesn't let you remove more than you have
+                inventory[item_type][item] -= count
+                return False
+            if inventory[item_type][item] == 0:
+                del inventory[item_type][item]
+            return True
+    return False
 
-def random_inventory(character):
+def check_inventory(inventory, item, count = 1):
+    for item_type in inventory:
+        if item in eval(item_type.upper()):
+            if item in inventory[item_type]:
+                if inventory[item_type][item] >= count:
+                    return True
+    return False
+
+def random_hair(character):
+    # Separates out items to match character's gender
+    if character.equipped['gender'] == 'male':
+        random_hair = choice(SHORT_HAIR_LIST)
+    else:
+        random_hair = choice(LONG_HAIR_LIST)
+    if random_hair not in character.expanded_inventory['hair']:
+        character.expanded_inventory['hair'].append(random_hair)
+    character.equipped['hair'] = random_hair
+
+def random_inventory(gender = choice(['male', 'female'])):
     tops = []
     bottoms = []
-    character.inventory = {'gender': list(GENDER.keys()), 'race': list(RACE.keys()), 'weapons': [None], 'hats': [None], 'hair': [None], 'tops': [None], 'bottoms': [None], 'gloves': [None], 'shoes': [None], 'items': [None], 'gold': 0}
-
+    inventory = {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}}
     # Separates out items to match character's gender
-    if character.gender == 'male':
-        random_hair = choice(SHORT_HAIR_LIST)
+    if gender == 'male':
         tops = MALE_TOPS
         bottoms = MALE_BOTTOMS
     else:
-        random_hair = choice(LONG_HAIR_LIST)
         tops = FEMALE_TOPS
         bottoms = FEMALE_BOTTOMS
     # Adds random items to inventory
-    if character.armed:
-        character.inventory['weapons'].append(choice(list(WEAPONS.keys())))
-    character.inventory['tops'].append(choice(tops))
-    character.inventory['bottoms'].append(choice(bottoms))
-    character.inventory['gloves'].append(choice(list(GLOVES.keys())))
-    character.inventory['shoes'].append(choice(list(SHOES.keys())))
-    character.inventory['items'].append(choice(list(ITEMS.keys())))
-    character.inventory['hair'].append(random_hair)
-    change_clothing(character)
+    add_inventory(inventory, choice(list(WEAPONS.keys())))
+    add_inventory(inventory, choice(tops))
+    add_inventory(inventory, choice(bottoms))
+    add_inventory(inventory, choice(list(GLOVES.keys())))
+    add_inventory(inventory, choice(list(SHOES.keys())))
+    add_inventory(inventory, choice(list(ITEMS.keys())))
 
-def random_inventory_item(container, temp_inventory):
-    try:
-        gender = container.gender
-    except:
-        gender = None
-
+def random_inventory_item(orig_inventory, gender = None):
+    inventory = copy.deepcopy(orig_inventory)
+    orig_gender = gender
     for item_type in ITEM_TYPE_LIST:
-        for i, value in enumerate(temp_inventory[item_type]):
+        for value in orig_inventory[item_type]:
+            if orig_gender == None:
+                gender = choice(['male', 'female'])
             if value:
                 if 'random ' in value:
                     temp_value = value.replace('random ', '')
+                    del inventory[item_type][value]
                     temp_list = eval(temp_value + item_type.upper())
                     if 'gender' in (list(eval(item_type.upper()).values())[0]).keys():
                         female_list = []
@@ -460,68 +484,59 @@ def random_inventory_item(container, temp_inventory):
                                 male_list.append(x)
                         if gender == 'female':
                             if len(female_list) > 0:
-                                container.inventory[item_type][i] = choice(female_list)
+                                add_inventory(inventory, choice(female_list))
                             else:
-                                container.inventory[item_type][i] = choice(temp_list)
+                                add_inventory(inventory, choice(temp_list))
                         else:
                             if len(male_list) > 0:
-                                container.inventory[item_type][i] = choice(male_list)
+                                add_inventory(inventory, choice(male_list))
                             else:
-                                container.inventory[item_type][i] = choice(temp_list)
+                                add_inventory(inventory, choice(temp_list))
                     else:
-                        container.inventory[item_type][i] = choice(temp_list)
+                        add_inventory(inventory, choice(temp_list))
                 elif value == 'random':
+                    del inventory[item_type][value]
                     if item_type == 'tops':
                         if gender == 'female':
-                            container.inventory[item_type][i] = choice(FEMALE_TOPS)
+                            add_inventory(inventory, choice(FEMALE_TOPS))
                         elif gender in ['male', 'other']:
-                            container.inventory[item_type][i] = choice(MALE_TOPS)
+                            add_inventory(inventory, choice((MALE_TOPS)))
                         else:
-                            container.inventory[item_type][i] = choice(list(TOPS.keys()))
+                            add_inventory(inventory, choice((list(TOPS.keys()))))
                     elif item_type == 'bottoms':
                         if gender == 'male':
-                            container.inventory[item_type][i] = choice(MALE_BOTTOMS)
+                            add_inventory(inventory, choice(MALE_BOTTOMS))
                         elif gender in ['female', 'other']:
-                            container.inventory[item_type][i] = choice(FEMALE_BOTTOMS)
+                            add_inventory(inventory, choice(FEMALE_BOTTOMS))
                         else:
-                            container.inventory[item_type][i] = choice(list(BOTTOMS.keys()))
-                    elif item_type == 'hair':
-                        if gender == 'male':
-                            container.inventory[item_type][i] = choice(SHORT_HAIR_LIST)
-                        elif gender in ['female', 'other']:
-                            container.inventory[item_type][i] = choice(LONG_HAIR_LIST)
-                        else:
-                            container.inventory[item_type][i] = choice(list(HAIR.keys()))
+                            add_inventory(inventory, choice(list(BOTTOMS.keys())))
                     else:
-                        container.inventory[item_type][i] = choice(list(eval(item_type.upper()).keys()))
-                else:
-                    container.inventory[item_type][i] = temp_inventory[item_type][i]
+                        add_inventory(inventory, choice(list(eval(item_type.upper()).keys())))
+    return inventory
 
 def drop_all_items(sprite, delete_items = False):
     for item_type in ITEM_TYPE_LIST:
-        if item_type != 'magic':
-            if not delete_items:
-                for item in sprite.inventory[item_type]:
-                    if item:
-                        Dropped_Item(sprite.game, sprite.pos + vec(randrange(-50, 50), randrange(-100, 100)), item_type, item)
-            sprite.inventory[item_type] = [None]
-            sprite.equipped[item_type] = None
+        if not delete_items:
+            for item in sprite.inventory[item_type]:
+                for x in range(0, sprite.inventory[item_type][item]):
+                    Dropped_Item(sprite.game, sprite.pos + vec(randrange(-50, 50), randrange(-100, 100)), item_type, item)
+        sprite.inventory[item_type] = {}
+        sprite.equipped[item_type] = None
 
 def change_clothing(character, best = False, naked = False):
     # Adds items to equipped list
-    remove_nones(character.inventory['tops'], character.inventory['bottoms'], character.inventory['hair'], character.inventory['weapons'], character.inventory['shoes'], character.inventory['gloves'], character.inventory['hats'])
     for item_type in ITEM_TYPE_LIST:
         if naked:
             character.equipped[item_type] = None
         elif not best:
             if item_type == 'weapons':
-                not_lamps = list(set(character.inventory[item_type]) - set(NON_GUN_LIGHTS))
+                not_lamps = list(set(list(character.inventory[item_type].keys())) - set(NON_GUN_LIGHTS))
                 if len(not_lamps) == 0:
                     not_lamps = [None]
                 character.equipped[item_type] = choice(not_lamps)
             else:
-                character.equipped[item_type] = choice(character.inventory[item_type])
-        if best: # Changest into clothes with best ratings
+                character.equipped[item_type] = choice(list(character.inventory[item_type].keys()))
+        if best: # Changes into clothes with best ratings
             stat = 0
             best_item = None
             for item in character.inventory[item_type]:
@@ -539,11 +554,10 @@ def change_clothing(character, best = False, naked = False):
                             stat = eval(item_type.upper())[item]['armor']
                             best_item = item
                     else:
-                        best_item = choice(character.inventory[item_type])
+                        best_item = choice(list(character.inventory[item_type].keys()))
                 else:
                     best_item = None
             character.equipped[item_type] = best_item
-    character.set_gun_vars()
 
 def lamp_check(character):
     if character.game.night:
@@ -1396,7 +1410,6 @@ class Player(pg.sprite.Sprite):
         self.direction = vec(1, 0) # A unit vector that represents the direction the player is facing.
         self.mouse_direction = vec(0, 0)
         self.mouse_pos = vec(0, 0)
-        self.acceleration = PLAYER_ACC
         self.friction = PLAYER_FRIC
         self.rot = 0
         self.rot_speed = 0
@@ -1444,6 +1457,8 @@ class Player(pg.sprite.Sprite):
         self.moving_melee = False
         self.living = True
         self.tile_props = {'material' : '', 'wall': ''}
+        self.provoked = False
+        self.offensive = False
         # player stats. You gain skill according to the activities the player does.
         self.stats = {'health': 100, 'max health': 100, 'stamina': 100, 'max stamina': 100, 'magica': 100, 'max magica': 100, 'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 1, 'agility': 1, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0, 'casting': 0, 'lock picking': 0, 'level': 0}
         self.fire_damage = self.start_fire_damage = 20
@@ -1467,11 +1482,69 @@ class Player(pg.sprite.Sprite):
         self.last_casting = 0
         self.last_magica_regen = 0
         self.last_cast = 0
-        # Player Body Customizations/Equipped
-        self.inventory = {'gender': list(GENDER.keys()), 'hair': list(HAIR.keys()), 'race': list(RACE.keys()), 'equipment':{'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}}, 'magic': [None]}
-        self.equipped = {'gender': 'female', 'race': 'osidine', 'weapons': None, 'weapons2': None, 'hair': None, 'hats': None, 'tops': None, 'bottoms': None, 'shoes': None, 'gloves': None, 'items': None, 'magic': None}
-        self.race = self.equipped['race']
-        self.colors = {'hair': DEFAULT_HAIR_COLOR, 'skin': DEFAULT_SKIN_COLOR}
+        self.expanded_inventory = {'gender': list(GENDER.keys()), 'hair': list(HAIR.keys()), 'race': list(RACE.keys()), 'magic': [None]}
+        self.equipped = {'gender': 'female', 'race': 'osidine', 'hair': None, 'magic': None, 'weapons': None, 'weapons2': None,
+                         'hats': None, 'tops': None, 'bottoms': None, 'shoes': None, 'gloves': None, 'items': None}
+        # Differences between player and NPC. Loads in NPCs data from the kind dictionary from npcs.py
+        if self.npc:
+            self.name = self.kind['name']
+            self.ai = AI(self)
+            self.dialogue = self.kind['dialogue']
+            self.touch_damage = self.kind['touch damage']
+            self.aggression = self.kind['aggression']
+            self.protected = self.kind['protected']
+            if 'Guard' in self.kind['name']:
+                self.guard = True
+            else:
+                self.guard = False
+            self.race = self.equipped['race'] = self.kind['race']
+            self.equipped['gender'] = self.kind['gender']
+            if self.equipped['gender'] == 'random':
+                self.equipped['gender'] = choice(['male', 'female'])
+            if self.equipped['race'] in ['blackwraith', 'whitewraith', 'skeleton', 'mechanima']:
+                self.hungers = False
+            else:
+                self.hungers = True
+            if self.race in ['blackwraith', 'whitewraith']:
+                self.immaterial = True
+            else:
+                self.immaterial = False
+            if self.equipped['race'] in ['blackwraith', 'whitewraith', 'skeleton']:
+                self.magical_being = True
+            else:
+                self.magical_being = False
+            self.acceleration = self.kind['acceleration']
+            self.expanded_inventory['magic'] = self.kind['magic']
+            if 'random' in self.kind['hair']:
+                random_hair(self)
+            self.inventory = self.kind['inventory']
+            self.inventory = random_inventory_item(self.inventory, self.equipped['gender']) # assignes random items where it says 'random' in the inventory.
+            change_clothing(self, True)
+            self.colors = copy.deepcopy(self.kind['colors'])
+            if 'random' in self.colors['skin']:
+                skin_list = eval(self.colors['skin'].replace('random', ''))
+                self.colors['skin'] = choice(skin_list)
+            if 'random' in self.colors['hair']:
+                hair_list = eval(self.colors['hair'].replace('random', ''))
+                self.colors['hair'] = choice(hair_list)
+            lamp_check(self)
+        else:
+            self.name = 'Adventurer'  # Change this later so the player can name their character.
+            self.ai = None
+            self.dialogue = ['Hi there.', 'What do you need?', 'We had better get a move on.']
+            self.touch_damage = 0
+            self.aggression = 'player'
+            self.protected = False
+            self.guard = False
+            self.hungers = True
+            self.immaterial = False
+            self.magical_being = False
+            self.acceleration = PLAYER_ACC
+            self.inventory = DEFAULT_INVENTORIES['female osidine']
+            self.equipped['hair'] = 'medium messy'
+            self.colors = {'hair': DEFAULT_HAIR_COLOR, 'skin': DEFAULT_SKIN_COLOR}
+            self.race = self.equipped['race']
+
         self.ammo = {'pistol': 100, 'submachine gun': 100, 'shotgun': 100, 'rifle': 100, 'sniper rifle': 100, 'rocket launcher': 100, 'grenades': 100, 'turret': 1000, 'laser': 100, 'crystals': 100, 'bow': 100}
         self.mag1 = 0
         self.mag2 = 0
@@ -1488,31 +1561,9 @@ class Player(pg.sprite.Sprite):
             self.dragon_body.remove(self.game.all_sprites)
         self.body = self.human_body
         self.animation_playing = self.body.stand_anim
-        # Redefined in character menu
-        self.hungers = True
-        self.immaterial = False
-        self.magical_being = False
-        # Needed for congruency with other Npc sprites, but only used to avoid errors.
-        self.provoked = False
-        self.offensive = False
-        self.aggression = 'player'
-
-        self.dialogue = ['Hi there.', 'What do you need?', 'We had better get a move on.']
-
-        # Stuff added for Npcs
-        self.touch_damage = 0
         self.talk_rect = XLARGE_HIT_RECT.copy()
         self.talk_rect.center = self.rect.center
-        self.talk_counter = 0 # Used to keep track of how many times you talk to someone. So you can changed the dialogue based on it.
-        self.name = 'Adventurer' # Change this later so the player can name their character.
-        if self.npc:
-            self.ai = AI(self)
-        else:
-            self.ai = None
-
-        if self.npc:
-            self.dialogue = self.kind['dialogue']
-            self.name = self.kind['name']
+        self.talk_counter = 0  # Used to keep track of how many times you talk to someone. So you can changed the dialogue based on it.
         set_elevation(self)
 
     @property
@@ -1541,28 +1592,11 @@ class Player(pg.sprite.Sprite):
         else:
             pass
 
-    def add_equipment(self, item, count = 1):
-        for item_type in self.inventory['equipment']:
-            if item in eval(item_type.upper()):
-                if item in self.inventory['equipment'][item_type]:
-                    self.inventory['equipment'][item_type][item] += count
-                else:
-                    self.inventory['equipment'][item_type][item] = count
-                if self.inventory['equipment'][item_type][item] < 0:  # Doesn't let you remove more than you have
-                    self.inventory['equipment'][item_type][item] -= count
-                    return False
-                if self.inventory['equipment'][item_type][item] == 0:
-                    del self.inventory['equipment'][item_type][item]
-                return True
-        return False
+    def add_inventory(self, item, count = 1):
+        return add_inventory(self.inventory, item, count)
 
-    def check_inventory(self, item, count):
-        for item_type in self.inventory['equipment']:
-            if item in eval(item_type.upper()):
-                if item in self.inventory['equipment'][item_type]:
-                    if self.inventory['equipment'][item_type][item] >= count:
-                        return True
-        return False
+    def check_inventory(self, item, count = 1):
+        return check_inventory(self.inventory)
 
     def get_keys(self):
         self.rot_speed = 0
@@ -1641,25 +1675,6 @@ class Player(pg.sprite.Sprite):
         else:
             self.acceleration = PLAYER_ACC
 
-        #Arrow keys auto rotate and move the player in the right/left, up/down directions
-        #if keys[pg.K_UP] and keys[pg.K_RIGHT]:
-        #    self.rotate_and_move(vec(1, -1))
-        #elif keys[pg.K_DOWN] and keys[pg.K_LEFT]:
-        #    self.rotate_and_move(vec(-1, 1))
-        #elif keys[pg.K_UP] and keys[pg.K_LEFT]:
-        #    self.rotate_and_move(vec(-1, -1))
-        #elif keys[pg.K_DOWN] and keys[pg.K_RIGHT]:
-        #    self.rotate_and_move(vec(1, 1))
-        #else:
-        #    if keys[pg.K_LEFT]:
-        #        self.rotate_and_move(vec(-1, 0))
-        #    if keys[pg.K_RIGHT]:
-        #        self.rotate_and_move(vec(1, 0))
-        #    if keys[pg.K_UP]:
-        #        self.rotate_and_move(vec(0, -1))
-        #    if keys[pg.K_DOWN]:
-        #        self.rotate_and_move(vec(0, 1))
-
         #Mouse aiming
         mouse_movement = vec(pg.mouse.get_rel()).length()
         if mouse_movement > 0:
@@ -1681,20 +1696,6 @@ class Player(pg.sprite.Sprite):
             self.rot_speed = -rot_speed * 10 * abs(angle) / 180
         else:
             self.rot_speed = rot_speed * 10 * abs(angle) / 180
-
-    #def rotate_and_move(self, vec):
-    #    if self.in_vehicle:
-    #        rot_speed = self.vehicle.rot_speed
-    #    else:
-    #        rot_speed = PLAYER_ROT_SPEED
-    #    vector = vec
-    #    angle = fix_angle(vector.angle_to(self.direction))
-    #    if abs(angle) < 1:
-    #        self.accelerate()
-    #    elif angle < 0:
-    #        self.rot_speed = -rot_speed * 10 * abs(angle) / 180
-    #    else:
-    #        self.rot_speed = rot_speed * 10 * abs(angle) / 180
 
     def accelerate(self, power = 1, direction = "forward"):
         perp = 0
@@ -4932,9 +4933,8 @@ class Chest(pg.sprite.Sprite):
         self.h = h
         self.rect.x = x
         self.rect.y = y
-        self.temp_inventory = self.game.chests[self.name] # Creates a temporary reference to the chest contents dictionary.
         self.inventory = copy.deepcopy(self.game.chests[self.name]) # Creates an independent copy of the chest contents to later use and replace 'random' entries with actual items.
-        random_inventory_item(self, self.temp_inventory)
+        random_inventory_item(self.inventory)
         CHESTS[self.name] = self.inventory
         self.locked = self.inventory['locked']
         self.elevation = 0

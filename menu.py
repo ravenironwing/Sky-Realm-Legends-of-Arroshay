@@ -1,5 +1,5 @@
 import pygame as pg
-from sprites import Dropped_Item, toggle_equip, remove_nones, change_clothing, color_image
+from sprites import Dropped_Item, toggle_equip, remove_nones, change_clothing, color_image, add_inventory
 from random import uniform, choice, randint, random, randrange
 from settings import *
 from npcs import *
@@ -29,28 +29,13 @@ default_font = MENU_FONT
 #        if x not in ['race', 'gender']
 #            d[x] = [None]
 
-def add_equipment(inventory, item, count):
-    for item_type in inventory:
-        if item in eval(item_type.upper()):
-            if item in inventory[item_type]:
-                inventory[item_type][item] += count
-            else:
-                inventory[item_type][item] = count
-            if inventory[item_type][item] < 0:  # Doesn't let you remove more than you have
-                inventory[item_type][item] -= count
-                return False
-            if inventory[item_type][item] == 0:
-                del inventory[item_type][item]
-            return True
-    return False
-
 # This makes sure the player or any other sprite is not equipping items they don't have. Also makes sure players aren't equipping armor in mechsuits
 def check_equip(sprite):
     for item_type in ITEM_TYPE_LIST:
-        if sprite.equipped[item_type] not in sprite.inventory['equipment'][item_type]:
+        if sprite.equipped[item_type] not in sprite.inventory[item_type]:
             sprite.equipped[item_type] = None
         if item_type == 'weapons':
-            if sprite.equipped['weapons2'] not in sprite.inventory['equipment'][item_type]:
+            if sprite.equipped['weapons2'] not in sprite.inventory[item_type]:
                 sprite.equipped['weapons2'] = None
     if sprite.equipped['race'] in NO_CLOTHES_RACES:
         for item_type in ['hair', 'tops', 'bottoms', 'shoes', 'hats', 'gloves']:
@@ -321,7 +306,7 @@ class Character_Design_Menu(Menu):
                         self.character.inventory = copy.deepcopy(DEFAULT_INVENTORIES[self.character.equipped['gender'] + ' ' + self.character.equipped['race']])
                     for kind in ITEM_TYPE_LIST:
                         try:
-                            self.character.equipped[kind] = next(iter(self.character.inventory['equipment'][kind]))
+                            self.character.equipped[kind] = next(iter(self.character.inventory[kind]))
                         except:
                             self.character.equipped[kind] = None
                 else:
@@ -341,13 +326,13 @@ class Character_Design_Menu(Menu):
                     self.character.equipped['hair'] = None
                 self.character.body.update_animations()  # Updates animations for newly equipped or removed weapons etc.
                 character_image = self.character.body.body_surface
-                character_preview = Picture(self.game, self, character_image, int(self.game.screen_width * (3 / 4)), self.game.screen_height - 200)
+                character_preview = Picture(self.game, self, character_image, int(self.game.screen_width * (7 / 8)), int(self.game.screen_height * 0.68))
 
 
     def list_items(self):
         self.clear_menu()
         i = 0
-        for item in self.character.inventory[self.item_type]:
+        for item in self.character.expanded_inventory[self.item_type]:
             if (self.item_type == 'race') and ('dragon' in item):
                 pass
             elif (self.item_type == 'hair') and (item in RACE_HAIR[self.character.equipped['race']]):
@@ -368,7 +353,7 @@ class Character_Design_Menu(Menu):
             picture = Picture(self.game, self, item_image, int(self.game.screen_width * (3/4)), 150)
         if self.item_type == 'race':
             # This part wraps the descriptions of the character races. So they are displayed in paragraph form.
-            description = wrap(RACE[item.text]['description'], 80)
+            description = wrap(RACE[item.text]['description'], 60)
             for line in description:
                 self.printable_stat_list.append(line)
                 self.printable_stat_vals.append("")
@@ -395,7 +380,7 @@ class Character_Design_Menu(Menu):
         pg.draw.rect(self.game.screen, BLACK, list_rect_fill)
         pg.draw.rect(self.game.screen, BLACK, description_rect_fill)
         if self.item_type == 'hair':
-            self.draw_text("Pick Your Hair Color:", default_font, 24, WHITE, int(self.game.screen_width * (3 / 4)) - 70, 90, "topleft")
+            self.draw_text("Pick Your Hair Color:", default_font, 24, WHITE, int(self.game.screen_width * 0.27), 90, "topleft")
             if self.palette:
                 self.palette.kill()
             try:
@@ -404,7 +389,7 @@ class Character_Design_Menu(Menu):
                 self.palette = Picture(self.game, self, self.game.color_swatch_images[0], int(self.game.screen_width * (1 / 4)), 300)
 
         elif self.item_type == 'race':
-            self.draw_text("Pick Your Skin Tone:", default_font, 24, WHITE, int(self.game.screen_width * (1 / 4) + 30), 90, "topleft")
+            self.draw_text("Pick Your Skin Tone:", default_font, 24, WHITE, int(self.game.screen_width * 0.27), 90, "topleft")
             if self.palette:
                 self.palette.kill()
             try:
@@ -419,17 +404,19 @@ class Character_Design_Menu(Menu):
         selected_heading_rect = pg.Rect(self.selected_heading.rect.x - 4, self.selected_heading.rect.y, self.selected_heading.rect.width + 8, self.selected_heading.size + 2)
         pg.draw.rect(self.game.screen, YELLOW, selected_heading_rect, 2)
         self.menu_sprites.draw(self.game.screen)
+        spacing = 15
+        initialy = self.game.screen_height * (2/5)
         if self.item_selected:
             for i, item_stat in enumerate(self.printable_stat_list):
-                self.draw_text(item_stat, default_font, 20, WHITE, self.game.screen_width / 2 + 50, self.game.screen_height / 3 + 30 * i, "topleft")
-                self.draw_text(self.printable_stat_vals[i], default_font, 20, WHITE, self.game.screen_width / 2 + 225, self.game.screen_height / 3 + 30 * i, "topleft")
-        self.draw_text("Preview:", default_font, 20, WHITE, int(self.game.screen_width * (3 / 4)), self.game.screen_height - 350, "topleft")
+                self.draw_text(item_stat, default_font, 15, WHITE, self.game.screen_width / 2 + 50, initialy + spacing * i, "topleft")
+                self.draw_text(self.printable_stat_vals[i], default_font, 15, WHITE, self.game.screen_width / 2 + 225, initialy + spacing * i, "topleft")
+        self.draw_text("Preview:", default_font, 20, WHITE, int(self.game.screen_width * 0.85), int(self.game.screen_height * 0.55), "topleft")
         self.draw_text("Click to Choose Item. Press E when finished.", default_font, 20, WHITE, 10, self.game.screen_height - 40, "topleft")
         pg.display.flip()
 
     def update_external_variables(self):
         # This code calculates the player's armor rating
-        self.character.inventory['hair'] = [self.character.equipped['hair']] # Removes all other hairstyles from inventory.
+        self.character.expanded_inventory['hair'] = [self.character.equipped['hair']] # Removes all other hairstyles from inventory.
         for item in self.character.equipped:
             if self.character.equipped[item]:
                 if '2' in item:
@@ -676,7 +663,7 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
         elif self.character.equipped['weapons2'] == self.selected_item.text: # Unequips dropped secondary weapon.
             self.character.equipped['weapons2'] = None
         # Removes dropped item from inventory
-        if self.character.add_equipment(self.selected_item.text, -1):
+        if self.character.add_inventory(self.selected_item.text, -1):
             if place:
                 dropped_item = Dropped_Item(self.game, self.character.pos + vec(50, 0).rotate(-self.character.rot), self.item_type, self.selected_item.text, self.character.rot - 90)
             else:
@@ -692,7 +679,7 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
         else:
             if self.item_type == 'weapons':  # Equipping
                 if self.character.equipped['weapons2'] == item.text:
-                    if self.character.inventory['equipment']['weapons'][item.text] > 1:
+                    if self.character.inventory['weapons'][item.text] > 1:
                         self.character.last_weapon = self.character.equipped['weapons']  # Used to keep track of bullets fired from unequipped weapons
                         self.character.equipped[self.item_type] = item.text
                 else:
@@ -705,7 +692,7 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
     def left_equip(self, item):
         if self.item_type == 'weapons':
             if self.character.equipped['weapons'] == item.text:
-                if self.character.inventory['equipment']['weapons'][item.text] > 1:
+                if self.character.inventory['weapons'][item.text] > 1:
                     if self.character.equipped['weapons2'] == item.text:
                         self.character.last_weapon2 = item.text  # Used to keep track of bullets fired from unequipped weapons
                         self.character.equipped['weapons2'] = None
@@ -737,7 +724,7 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
         row = 0
         x_row = 50
         max_width = 0
-        for item in self.character.inventory['equipment'][self.item_type]:
+        for item in self.character.inventory[self.item_type]:
             if item not in displayed_list:
                 if 30 * row + 75 > (self.game.screen_height - 195):
                     row = 0
@@ -754,7 +741,7 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
                 if self.character.equipped['weapons2'] and self.character.equipped['weapons2'] == item:
                     left_equipped_text = Text(self, "(L)", default_font, 20, WHITE, item_name.rect.left - 32, 30 * row + 75, "topleft")
                     self.item_tags_sprites.add(left_equipped_text)
-                item_count = Text(self, str(self.character.inventory['equipment'][self.item_type][item]), default_font, 20, WHITE, item_name.rect.right + 10, 30 * row + 75, "topleft")
+                item_count = Text(self, str(self.character.inventory[self.item_type][item]), default_font, 20, WHITE, item_name.rect.right + 10, 30 * row + 75, "topleft")
                 self.item_tags_sprites.add(item_count)
                 if item_name.rect.right > max_width:
                     max_width = item_name.rect.right
@@ -833,7 +820,7 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
         if self.character.equipped[self.character.lamp_hand]:
             if 'plasma' in self.character.equipped[self.character.lamp_hand] or 'elven' in self.character.equipped[self.character.lamp_hand]:
                 self.character.light_on = True
-        if 'Zhara Talisman' in self.game.player.inventory['equipment']['items']: # Only lets you transform into a dragon if you have the Zhara Talisman
+        if 'Zhara Talisman' in self.game.player.inventory['items']: # Only lets you transform into a dragon if you have the Zhara Talisman
             self.game.player.transformable = True
         else:
             self.game.player.transformable = False
@@ -947,9 +934,9 @@ class Loot_Menu(Inventory_Menu):
                                     item = item.replace(' F', ' M')
                                 else:
                                     item = item.replace(' M', ' F')
-                                if self.game.player.add_equipment(item):
+                                if self.game.player.add_inventory(item):
                                     self.game.player.stats['looting'] += 1
-                                    add_equipment(self.container.inventory, item, -1)
+                                    add_inventory(self.container.inventory, item, -1)
 
                 if event.key == self.action_keys[1]: # S key Stores items in containers
                     if self.selected_heading.text != 'Loot':
@@ -958,10 +945,10 @@ class Loot_Menu(Inventory_Menu):
                             if self.game.player.equipped[self.item_type] == self.selected_item.text:
                                 self.game.player.equipped[self.item_type] = None
                             # Stores item in container and removes from inventory
-                            for i, item in enumerate(self.game.player.inventory['equipment'][self.item_type]):
+                            for i, item in enumerate(self.game.player.inventory[self.item_type]):
                                 if item == self.selected_item.text:
-                                    add_equipment(self.container.inventory, item, 1)
-                                    self.game.player.add_equipment(item, -1)
+                                    add_inventory(self.container.inventory, item, 1)
+                                    self.game.player.add_inventory(item, -1)
                                     self.selected_item.text = 'None'
                             self.list_items()
                     self.clear_item_info()
@@ -1009,9 +996,9 @@ class Loot_Menu(Inventory_Menu):
                                     item.text = item.text.replace(' F', ' M')
                                 else:
                                     item.text = item.text.replace(' M', ' F')
-                                if self.game.player.add_equipment(item.text, 1):
+                                if self.game.player.add_inventory(item.text, 1):
                                     self.game.player.stats['looting'] += 1
-                                    add_equipment(self.container.inventory, item.text, -1)
+                                    add_inventory(self.container.inventory, item.text, -1)
                         self.list_loot()
 
     def list_loot(self):
@@ -1246,7 +1233,7 @@ class Lock_Pick(pg.sprite.Sprite):
                 self.mother.keyway.rot += self.toggle
                 choice(self.game.lock_picking_sounds).play()
                 if self.hp < 0:
-                    self.game.player.add_equipment(self.selected_pick, -1)
+                    self.game.player.add_inventory(self.selected_pick, -1)
                     self.mother.broken = True
                     choice(self.game.lock_picking_sounds).play()
                     self.mother.keyway.kill()
@@ -1492,12 +1479,12 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
             task_accomplished = False
             if self.kind == 'tanning rack':
                 sound = 'scrape'
-                for i, item in enumerate(self.game.player.inventory['equipment']['items']):
+                for i, item in enumerate(self.game.player.inventory['items']):
                     if not task_accomplished:
                         if item:
                             if 'skin' in item:
-                                if self.game.player.add_equipment(self.selected_item.text, 1):
-                                    self.game.player.add_equipment(item, -1)
+                                if self.game.player.add_inventory(self.selected_item.text, 1):
+                                    self.game.player.add_inventory(item, -1)
                                     self.game.player.stats['smithing'] += 1
                                     task_accomplished = True
                         else:
@@ -1520,8 +1507,8 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                     new_item_name = self.rename_item()
                     UPGRADED_WEAPONS[new_item_name] = upgraded_item
                     WEAPONS[new_item_name] = upgraded_item
-                    self.game.player.add_equipment(self.selected_item.text, -1) # removes old item from inventory
-                    self.game.player.add_equipment(new_item_name, 1) # adds upgraded item to inventory
+                    self.game.player.add_inventory(self.selected_item.text, -1) # removes old item from inventory
+                    self.game.player.add_inventory(new_item_name, 1) # adds upgraded item to inventory
                     # Unequips old item and equips upgraded one if you were equipping it.
                     if self.game.player.equipped['weapons'] == self.selected_item.text:
                         self.game.player.equipped['weapons'] = new_item_name
@@ -1540,7 +1527,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                 if enough:
                     # Subtracts used materials from inventory
                     self.remove_materials()
-                    self.game.player.add_equipment(self.selected_item.text, 1) # adds forged item to inventory
+                    self.game.player.add_inventory(self.selected_item.text, 1) # adds forged item to inventory
                     self.game.player.stats['smithing'] += 1
                     task_accomplished = True
                 else:
@@ -1553,7 +1540,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                 if enough:
                     # Subtracts used materials from inventory
                     self.remove_materials()
-                    self.game.player.add_equipment(self.selected_item.text, 1) # adds forged item to inventory
+                    self.game.player.add_inventory(self.selected_item.text, 1) # adds forged item to inventory
                     self.game.player.stats['smithing'] += 1
                     task_accomplished = True
                 else:
@@ -1586,8 +1573,8 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                     elif self.item_type == 'shoes':
                         UPGRADED_SHOES[new_item_name] = upgraded_item
                         SHOES[new_item_name] = upgraded_item
-                    self.game.player.add_equipment(self.selected_item.text, -1) # removes non-upgraded item
-                    self.game.player.add_equipment(new_item_name, 1)  # adds upgraded item to inventory
+                    self.game.player.add_inventory(self.selected_item.text, -1) # removes non-upgraded item
+                    self.game.player.add_inventory(new_item_name, 1)  # adds upgraded item to inventory
                     # Unequips old item and equips upgraded one if you were equipping it.
                     if self.game.player.equipped[self.item_type] == self.selected_item.text:
                         self.game.player.equipped[self.item_type] = new_item_name
@@ -1735,8 +1722,8 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                     elif self.item_type == 'shoes':
                         UPGRADED_SHOES[new_item_name] = upgraded_item
                         SHOES[new_item_name] = upgraded_item
-                    self.game.player.add_equipment(self.selected_item.text, -1) # removes non-upgraded item
-                    self.game.player.add_equipment(new_item_name, 1) # adds upgraded item to inventory
+                    self.game.player.add_inventory(self.selected_item.text, -1) # removes non-upgraded item
+                    self.game.player.add_inventory(new_item_name, 1) # adds upgraded item to inventory
                     # Unequips old item and equips upgraded one if you were equipping it.
                     if self.item_type == 'weapons':
                         if self.game.player.equipped['weapons'] == self.selected_item.text:
@@ -1774,7 +1761,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
         if enough:
             # Subtracts used materials from inventory
             self.remove_materials()
-            self.game.player.add_equipment(self.selected_item.text, 1)  # adds forged item to inventory
+            self.game.player.add_inventory(self.selected_item.text, 1)  # adds forged item to inventory
             task_accomplished = True
         else:
             self.not_enough_text = True
@@ -1796,9 +1783,9 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
 
     def remove_materials(self):
         for material in self.materials_list:
-            for x in self.game.player.inventory['equipment']['items']:
+            for x in self.game.player.inventory['items']:
                 if x == material:
-                    self.game.player.add_equipment(x, -self.materials_list[material])
+                    self.game.player.add_inventory(x, -self.materials_list[material])
 
     def check_materials(self, chosen_item, upgrade = False):
         if not upgrade:
@@ -1823,8 +1810,8 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
         else:
             self.materials_list = eval(self.item_type.upper())[chosen_item][makeorupgrade]
         for material in self.materials_list:
-            if material in self.player.inventory['equipment']['items']:  # Sees if you have any of the required material
-                if self.materials_list[material] > self.player.inventory['equipment']['items'][material]:  # Sees if you have enough of the required material
+            if material in self.player.inventory['items']:  # Sees if you have any of the required material
+                if self.materials_list[material] > self.player.inventory['items'][material]:  # Sees if you have enough of the required material
                     enough = False
             else:
                 enough = False
@@ -1972,11 +1959,11 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                     # Only shows items that you can enchant with selected enchantment
                     else:
                         self.clear_menu()
-                        self.counter = Counter(self.game.player.inventory['equipment'][self.item_type])
+                        self.counter = Counter(self.game.player.inventory[self.item_type])
                         displayed_list = []  # Keeps track of which items have been displayed
 
                         row = 0
-                        for item in self.game.player.inventory['equipment'][self.item_type]:
+                        for item in self.game.player.inventory[self.item_type]:
                             if item not in displayed_list:
                                 if item and self.selected_enchantment:
                                     if self.item_type in ENCHANTMENTS[self.selected_enchantment]['equip kind']:
@@ -1996,11 +1983,11 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                                             row += 1
 
         else:
-            self.counter = Counter(self.game.player.inventory['equipment'][self.item_type])
+            self.counter = Counter(self.game.player.inventory[self.item_type])
             displayed_list = []  # Keeps track of which items have been displayed
 
             row = 0
-            for item in self.game.player.inventory['equipment'][self.item_type]:
+            for item in self.game.player.inventory[self.item_type]:
                 if item not in displayed_list:
                     if item:
                         if item[-1:] != '4':
@@ -2099,8 +2086,8 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
 
         previous_line_location = 0
         for x in FORGEITEMS:
-            if x in self.game.player.inventory['equipment']['items']:
-                self.draw_text(x + " " + str(self.game.player.inventory['equipment']['items'][x]), default_font, 14, WHITE, 30 + previous_line_location, self.game.screen_height - 120, "topleft")
+            if x in self.game.player.inventory['items']:
+                self.draw_text(x + " " + str(self.game.player.inventory['items'][x]), default_font, 14, WHITE, 30 + previous_line_location, self.game.screen_height - 120, "topleft")
                 previous_line_location += (len(x) * 10)
 
         if self.kind == 'enchanter' and self.selected_enchantment:
@@ -2234,7 +2221,7 @@ class Dialogue_Menu():
         for item in reward:
             for kind in ITEM_TYPE_LIST:
                 if item in eval(kind.upper()):
-                    self.game.player.add_equipment(item, 1)
+                    self.game.player.add_inventory(item, 1)
 
     def accept_quest(self):
         if self.quest:
@@ -2297,8 +2284,8 @@ class Dialogue_Menu():
         self.player_has_item = False
         self.inventory_check = False
         count = 0
-        self.game.player.add_equipment(self.needed_item, -self.needed_item_count)
-        self.hit.add_equipment(self.needed_item, self.needed_item_count)
+        self.game.player.add_inventory(self.needed_item, -self.needed_item_count)
+        self.hit.add_inventory(self.needed_item, self.needed_item_count)
         change_clothing(self.hit, True)
         self.hit.body.update_animations()
 
@@ -2310,9 +2297,9 @@ class Dialogue_Menu():
 
     def check_inventory(self):
         for item_type in ITEM_TYPE_LIST:
-            for item in self.game.player.inventory['equipment'][item_type]:
+            for item in self.game.player.inventory[item_type]:
                 if self.needed_item in item:
-                    if self.game.player.inventory['equipment'][item_type][item] >= self.needed_item_count:
+                    if self.game.player.inventory[item_type][item] >= self.needed_item_count:
                         self.player_has_item = True
                         return True
 
@@ -2559,10 +2546,10 @@ class Store_Menu(Inventory_Menu): # Inventory Menu, also used as the parent clas
 
     def buy_item(self):
         if self.cost != 0:
-            if self.game.player.add_equipment('gold', -self.cost):
-                self.game.player.add_equipment(self.selected_item.text, 1)
+            if self.game.player.add_inventory('gold', -self.cost):
+                self.game.player.add_inventory(self.selected_item.text, 1)
                 self.game.effects_sounds['cashregister'].play()
-                add_equipment(self.store_inventory, self.selected_item.text, -1)
+                add_inventory(self.store_inventory, self.selected_item.text, -1)
 
     def sell_item(self):
         if self.worth != 0:
@@ -2572,10 +2559,10 @@ class Store_Menu(Inventory_Menu): # Inventory Menu, also used as the parent clas
             elif self.game.player.equipped['weapons2'] == self.selected_item.text: # Unequips dropped secondary weapon.
                 self.game.player.equipped['weapons2'] = None
             # Removes sold item from inventory
-            self.game.player.add_equipment(self.selected_item.text, -1)
-            add_equipment(self.store_inventory, self.selected_item.text, 1) #Adds item to store inventory
+            self.game.player.add_inventory(self.selected_item.text, -1)
+            add_inventory(self.store_inventory, self.selected_item.text, 1) #Adds item to store inventory
             self.selected_item.text = 'None'  # Makes it so it doesn't drop more than one of the same item.
-            self.game.player.add_equipment('gold', self.worth) # Gives you gold for item
+            self.game.player.add_inventory('gold', self.worth) # Gives you gold for item
             self.game.effects_sounds['cashregister'].play()
             self.selected_item = None
             self.cost = 0

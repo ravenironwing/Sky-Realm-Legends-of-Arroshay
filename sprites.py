@@ -1635,6 +1635,10 @@ class Player(pg.sprite.Sprite):
             pass
 
     def add_inventory(self, item, count = 1):
+        if self.equipped['gender'] == 'male':  # Makes it so looted clothes fit you based on gender by swapping the gender of items before they enter your inventory.
+            item = item.replace(' F', ' M')
+        else:
+            item = item.replace(' M', ' F')
         return add_inventory(self.inventory, item, count)
 
     def check_inventory(self, item, count = 1):
@@ -1886,63 +1890,85 @@ class Player(pg.sprite.Sprite):
         # Process key events and move character
         self.get_keys()
 
-    def update(self):
-        # This parts synchs the body sprite with the player's soul.
-        self.body.rot = self.rot
-        self.body.image = pg.transform.rotate(self.body.body_surface, self.rot)
-        self.body.rect = self.body.image.get_rect()
-        self.body.rect.center = self.rect.center
-
-        if self.melee_playing:
-            self.melee()
-        if self.jumping:
-            self.jump()
-        if self.is_reloading:
-            self.reload()
-
-        if self.npc:
-            self.ai.update()
-        else:
-            self.update_player_only()
-
-        self.rot = (self.rot + self.rot_speed * self.game.dt) % 360
-        self.direction = vec(1, 0).rotate(-self.rot)
-        self.rect.center = self.pos
-        self.acc += self.vel * self.friction
-        self.vel += self.acc
-        self.pos += (self.vel +0.5 * self.acc) * self.game.dt
-        if not self.in_vehicle:
-            if ('wraith' not in self.race) or self.stats['weight'] !=0:
-                if self.vel.magnitude() > 0:
-                    self.hit_rect.centerx = self.pos.x
-                    collide_with_tile_walls(self, 'x')
-                    collide_with_elevations(self, 'x')
-                    collide_with_vehicles(self, 'x')
-                    self.hit_rect.centery = self.pos.y
-                    collide_with_tile_walls(self, 'y')
-                    collide_with_elevations(self, 'y')
-                    collide_with_vehicles(self, 'y')
-                    self.rect.center = self.hit_rect.center
-        if self.light_on:
-            if self in self.game.lights:
-                if self.race == 'mechanima':
-                    self.light_mask_rect.center = self.rect.center
-                elif self.lamp_hand == 'weapons':
-                    self.light_mask_rect.center = self.body.melee_rect.center
+    def update_hud_stats(self, stat = False):
+        if not self.npc:
+            if stat == 'health':
+                if self.game.hud_health_stats == self.stats:
+                    self.game.hud_health = self.stats['health'] / self.stats['max health']
+            elif stat == 'stamina':
+                self.game.hud_stamina = self.stats['stamina'] / self.stats['max stamina']
+            elif stat == 'magica':
+                self.game.hud_magica = self.stats['magica'] / self.stats['max magica']
+            elif stat == 'hunger':
+                self.game.hud_hunger = self.stats['hunger'] / self.stats['max hunger']
+            elif stat == 'ammo':
+                if self.ammo_cap1 + self.mag1 != 0:
+                    self.game.hud_ammo1 = "Right Ammo: " + str(self.mag1) + '/' + str(self.ammo_cap1)
                 else:
-                    self.light_mask_rect.center = self.body.melee2_rect.center
-                if self.mask_kind in DIRECTIONAL_LIGHTS:
-                    new_image = self.game.flashlight_masks[int(self.rot/3)] # Uses preloaded rotated images to save on CPU usage.
-                    old_center = self.light_mask_rect.center
-                    self.light_mask = new_image
-                    self.light_mask_rect = self.light_mask.get_rect()
-                    self.light_mask_rect.center = old_center
-        else:
-            self.light_mask_rect.center = (-2000, -2000) # Moves light off screen when off
-        self.check_map_pos() # Used for changing to a new map when you get pass over the edge.
+                    self.game.hud_ammo1 = ""
+                if self.ammo_cap2 + self.mag2 != 0:
+                    self.game.hud_ammo2 = "Left Ammo: " + str(self.mag2) + '/' + str(self.ammo_cap2)
+                else:
+                    self.game.hud_ammo2 = ""
 
-        set_tile_props(self)
-        set_next_tile_props(self)
+    def update(self):
+        if self.living:
+            # This parts synchs the body sprite with the player's soul.
+            self.body.rot = self.rot
+            self.body.image = pg.transform.rotate(self.body.body_surface, self.rot)
+            self.body.rect = self.body.image.get_rect()
+            self.body.rect.center = self.rect.center
+
+            if self.melee_playing:
+                self.melee()
+            if self.jumping:
+                self.jump()
+            if self.is_reloading:
+                self.reload()
+
+            if self.npc and self.living:
+                self.ai.update()
+            else:
+                self.update_player_only()
+
+            self.rot = (self.rot + self.rot_speed * self.game.dt) % 360
+            self.direction = vec(1, 0).rotate(-self.rot)
+            self.rect.center = self.pos
+            self.acc += self.vel * self.friction
+            self.vel += self.acc
+            self.pos += (self.vel +0.5 * self.acc) * self.game.dt
+            if not self.in_vehicle:
+                if ('wraith' not in self.race) or self.stats['weight'] !=0:
+                    if self.vel.magnitude() > 0:
+                        self.hit_rect.centerx = self.pos.x
+                        collide_with_tile_walls(self, 'x')
+                        collide_with_elevations(self, 'x')
+                        collide_with_vehicles(self, 'x')
+                        self.hit_rect.centery = self.pos.y
+                        collide_with_tile_walls(self, 'y')
+                        collide_with_elevations(self, 'y')
+                        collide_with_vehicles(self, 'y')
+                        self.rect.center = self.hit_rect.center
+            if self.light_on:
+                if self in self.game.lights:
+                    if self.race == 'mechanima':
+                        self.light_mask_rect.center = self.rect.center
+                    elif self.lamp_hand == 'weapons':
+                        self.light_mask_rect.center = self.body.melee_rect.center
+                    else:
+                        self.light_mask_rect.center = self.body.melee2_rect.center
+                    if self.mask_kind in DIRECTIONAL_LIGHTS:
+                        new_image = self.game.flashlight_masks[int(self.rot/3)] # Uses preloaded rotated images to save on CPU usage.
+                        old_center = self.light_mask_rect.center
+                        self.light_mask = new_image
+                        self.light_mask_rect = self.light_mask.get_rect()
+                        self.light_mask_rect.center = old_center
+            else:
+                self.light_mask_rect.center = (-2000, -2000) # Moves light off screen when off
+            self.check_map_pos() # Used for changing to a new map when you get pass over the edge.
+
+            set_tile_props(self)
+            set_next_tile_props(self)
 
     def transform(self):
         self.invisible = False
@@ -2016,12 +2042,8 @@ class Player(pg.sprite.Sprite):
                         self.last_shot = now
                         self.fire_bullets()
             else:
-                self.game.hud_ammo1 = ""
-                self.game.hud_ammo2 = ""
                 self.pre_melee()
         else:
-            self.game.hud_ammo1 = ""
-            self.game.hud_ammo2 = ""
             self.pre_melee()
 
     def dual_shoot(self, auto = False):
@@ -2100,17 +2122,7 @@ class Player(pg.sprite.Sprite):
             self.mag2 -= 1
             if self.mag2 < 0:
                 self.mag2 = 0
-        self.update_hud_amo()
-
-    def update_hud_amo(self):
-        if self.ammo_cap1 + self.mag1 != 0:
-            self.game.hud_ammo1 = "Right Ammo: " + str(self.mag1) + '/' + str(self.ammo_cap1)
-        else:
-            self.game.hud_ammo1 = ""
-        if self.ammo_cap2 + self.mag2 != 0:
-            self.game.hud_ammo2 = "Left Ammo: " + str(self.mag2) + '/' + str(self.ammo_cap2)
-        else:
-            self.game.hud_ammo2 = ""
+        self.update_hud_stats('ammo')
 
     def out_of_ammo(self):
         now = pg.time.get_ticks()
@@ -2268,7 +2280,7 @@ class Player(pg.sprite.Sprite):
                         self.mag2 = self.ammo_cap2 = 0
                     self.is_reloading = False
                     self.last_shot = pg.time.get_ticks()
-        self.update_hud_amo()
+        self.update_hud_stats('ammo')
 
     def empty_mags(self):
         # Empties previous weapon mags back into ammo inventory:
@@ -2288,7 +2300,7 @@ class Player(pg.sprite.Sprite):
         if self.equipped['weapons2'] and WEAPONS[self.equipped['weapons2']]['gun']:
                 self.ammo[WEAPONS[self.equipped['weapons2']]['type']] += self.mag2
                 self.mag2 = 0
-        self.update_hud_amo()
+        self.update_hud_stats('stats')
 
     def play_weapon_sound(self, default = None):
         if default == None:
@@ -2909,9 +2921,45 @@ class Player(pg.sprite.Sprite):
         if self.stats['health'] > self.stats['max health']:
             self.stats['health'] = self.stats['max health']
         if self.stats['health'] < 0:
+            self.death()
+        self.update_hud_stats('health')
+
+    def death(self):
+        self.depossess()
+        if self in self.game.companions:
+            self.unfollow()
+        choice(self.game.zombie_hit_sounds).play()
+        self.living = False
+        self.body.kill()
+        if self.npc:
+            self.remove(self.game.mobs)
+            self.remove(self.game.npcs)
+        else:
+            self.remove(self.game.players)
             self.game.playing = False
-        if self.game.hud_health_stats == self.stats:
-            self.game.hud_health = self.stats['health'] / self.stats['max health']
+        self.remove(self.game.moving_targets)
+        self.add(self.game.corpses)
+        self.game.group.add(self)
+        if self.equipped['race'] == 'demon':
+            Player(self.game, self.pos.x, self.pos.y, 'blackwraith')
+        if self.equipped['race'] in RACE_CORPSE_DICT:
+            self.image = pg.transform.rotate(self.game.corpse_images[RACE_CORPSE_DICT[self.equipped['race']]], self.rot)
+        else:
+            self.image = pg.transform.rotate(self.game.corpse_images[0], self.rot)
+        self.rect = self.image.get_rect()
+        self.rect.center = self.pos
+        if 'dead' in self.game.people[self.name.lower()]:
+            self.game.people[self.name.lower()]['dead'] = True
+
+    def possess(self):
+        pass
+    def depossess(self):
+        pass
+    def make_companion(self):
+        pass
+    def unfollow(self):
+        pass
+
 
     def add_stamina(self, amount, percent = 0):
         if percent != 0:
@@ -2928,7 +2976,7 @@ class Player(pg.sprite.Sprite):
         elif self.stats['stamina'] < 0:
             self.add_health(self.stats['stamina']) # Subtracts from your health if your stamina is too low.
             self.stats['stamina'] = 0
-        self.game.hud_stamina = self.stats['stamina'] / self.stats['max stamina']
+        self.update_hud_stats('stamina')
 
     def add_magica(self, amount):
         if amount > 20:
@@ -2940,7 +2988,7 @@ class Player(pg.sprite.Sprite):
             self.stats['magica'] = self.stats['max magica']
         elif self.stats['magica'] < 0:
             self.stats['magica'] = 0
-        self.game.hud_magica = self.stats['magica'] / self.stats['max magica']
+        self.update_hud_stats('magica')
 
     def add_hunger(self, amount):
         self.stats['hunger'] += amount
@@ -2949,8 +2997,8 @@ class Player(pg.sprite.Sprite):
         elif self.stats['hunger'] < 0:
             self.add_stamina(self.stats['hunger']) # Subtracts from your stamina if you're too hungry.
             self.stats['hunger'] = 0
-        self.game.hud_hunger = self.stats['hunger'] / self.stats['max hunger']
-
+        self.update_hud_stats('hunger')
+        
     def calculate_weight(self):
         # Calculates the weight the player is carrying
         self.stats['weight'] = 0
@@ -3081,7 +3129,7 @@ class Player(pg.sprite.Sprite):
 class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
     def __init__(self, sprite):
         self.sprite = sprite
-        self.target = sprite.game.player
+        self.target = choice(sprite.game.moving_targets.sprites())
         self.avoid_radius = 32
 
     def avoid_mobs(self):
@@ -3175,6 +3223,7 @@ class Animal(pg.sprite.Sprite):
             if not self.flying:
                 self.hideable = True # Used for animals that can hide in long grass
         self.tile_props = {'material': '', 'wall': ''}
+        self.e_down = False
         self._in_grass = False
         self.hit_rect = self.kind['hit rect'].copy()
         self.width = self.hit_rect.width

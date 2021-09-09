@@ -2,6 +2,9 @@ from chests import *
 
 # Items
 ITEMS = {}
+# Currency
+ITEMS['gold'] = {'image':161, 'value': 1}
+
 # First aid
 ITEMS['first aid kit'] = {'health': 50, 'stamina': 50, 'image': 1, 'weight': 1.5, 'value': 150}
 

@@ -902,7 +902,7 @@ class Loot_Menu(Inventory_Menu):
         self.loot_sprites = pg.sprite.Group()
         self.action_keys = [pg.K_a, pg.K_s]
         self.exit_keys = [pg.K_e, pg.K_ESCAPE]  # The keys used to enter/exit the menu.
-        self.heading_list = ['Loot', 'Weapons', 'Hats', 'Hair', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items']  # This is the list of headings
+        self.heading_list = ['Loot', 'Weapons', 'Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items']  # This is the list of headings
         self.item_type = None
         self.container = container
 
@@ -927,16 +927,12 @@ class Loot_Menu(Inventory_Menu):
                     self.game.e_down = False
                     self.running = False
                 if event.key == self.action_keys[0]: # A key Takes all loot
-                    for item_type in range(0, 8):
-                        for item in self.container.inventory[ITEM_TYPE_LIST[item_type]]:
+                    for item_type in ITEM_TYPE_LIST:
+                        for item in self.container.inventory[item_type]:
                             if item:
-                                if self.game.player.equipped['gender'] == 'male':  # Makes it so looted clothes fit you based on gender.
-                                    item = item.replace(' F', ' M')
-                                else:
-                                    item = item.replace(' M', ' F')
                                 if self.game.player.add_inventory(item):
                                     self.game.player.stats['looting'] += 1
-                                    add_inventory(self.container.inventory, item, -1)
+                    self.container.inventory = copy.deepcopy(EMPTY_INVENTORY)
 
                 if event.key == self.action_keys[1]: # S key Stores items in containers
                     if self.selected_heading.text != 'Loot':
@@ -992,10 +988,6 @@ class Loot_Menu(Inventory_Menu):
                         if self.mouse_click == (0, 0, 1):
                             counter = Counter(self.container.inventory[self.item_type])
                             for x in range(0, counter[item.text]):
-                                if self.game.player.equipped['gender'] == 'male':  # Makes it so looted clothes fit you based on gender.
-                                    item.text = item.text.replace(' F', ' M')
-                                else:
-                                    item.text = item.text.replace(' M', ' F')
                                 if self.game.player.add_inventory(item.text, 1):
                                     self.game.player.stats['looting'] += 1
                                     add_inventory(self.container.inventory, item.text, -1)
@@ -1005,11 +997,11 @@ class Loot_Menu(Inventory_Menu):
         self.clear_menu()
         displayed_list = [] # Keeps track of which items have been displayed
         row = 0
-        for item_type in range(0, 8):
+        for item_type in ITEM_TYPE_LIST:
             for item in self.container.inventory[item_type]:
                 if item not in displayed_list:
                     if item:
-                        item_name = Text(self, item, default_font, 20, WHITE, 50, 30 * row + 75, "topleft", ITEM_TYPE_LIST[item_type])
+                        item_name = Text(self, item, default_font, 20, WHITE, 50, 30 * row + 75, "topleft", item_type)
                         if self.container.inventory[item_type][item] > 1:
                             item_count = Text(self, str(self.container.inventory[item_type][item]), default_font, 20, WHITE, item_name.rect.right + 10, 30 * row + 75, "topleft")
                             self.item_tags_sprites.add(item_count)
@@ -1444,7 +1436,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
             self.heading_list = ['Items']  # This is the list of headings
         elif self.kind == 'tanning rack':
             self.heading_list = ['Items']  # This is the list of headings
-        elif self.kind == 'workbench':
+        elif self.kind == 'work bench':
             self.heading_list = ['Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves']  # This is the list of headings
         elif self.kind == 'grinder':
             self.heading_list = ['Weapons']  # This is the list of headings
@@ -1480,17 +1472,14 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
             if self.kind == 'tanning rack':
                 sound = 'scrape'
                 if not task_accomplished:
-                    if 'skin' in list(self.game.player.inventory['items'].keys()):
-                        print("You've got skin.")
+                    skins = [s for s in list(self.game.player.inventory['items'].keys()) if "skin" in s]
+                    if skins:
                         if self.game.player.add_inventory(self.selected_item.text, 1):
-                            for item in self.game.player.inventory['items']:
-                                if 'skin' in item:
-                                    self.game.player.add_inventory(item, -1)
-                                    self.game.player.stats['smithing'] += 1
-                                    task_accomplished = True
-                                    break
-                if not task_accomplished:
-                    self.not_enough_text = True
+                            self.game.player.add_inventory(skins[0], -1)
+                            self.game.player.stats['smithing'] += 1
+                            task_accomplished = True
+                    elif not task_accomplished:
+                        self.not_enough_text = True
 
             elif self.kind == 'grinder':
                 sound = 'grindstone'
@@ -1546,7 +1535,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                 else:
                     self.not_enough_text = True
 
-            elif self.kind == 'workbench':
+            elif self.kind == 'work bench':
                 sound = 'hammering'
                 enough = self.check_materials(self.selected_item.text, True)
                 if enough:

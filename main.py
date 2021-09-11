@@ -2553,7 +2553,6 @@ class Game:
         self.screen.blit(self.fog, (0, 0), special_flags=pg.BLEND_SUB)
 
     def rot_center(self, image, angle):
-        #rotate an image while keeping its center and size
         orig_rect = image.get_rect()
         rot_image = pg.transform.rotate(image, angle)
         rot_rect = orig_rect.copy()
@@ -2595,6 +2594,9 @@ class Game:
         pg.display.set_caption("Legends of Zhara")
         #self.group.draw(self.screen, self) # Used with my monkey patched version of the old pyscroll.
         self.group.draw(self.screen)
+        if self.player.block_gid:
+            x, y = get_next_tile_pos(self.player)
+            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(pg.Rect(x * self.map.tile_size, y * self.map.tile_size,  self.map.tile_size,  self.map.tile_size)), 1)
         if self.draw_debug:
             #for wall_rect in self.map.walls_list:
             #    pg.draw.rect(self.screen, CYAN, self.camera.apply_rect(wall_rect), 1)
@@ -2711,8 +2713,11 @@ class Game:
                     self.player.weapon_hand = 'weapons'
                     self.player.shoot()
                 elif pg.mouse.get_pressed() == (1, 0, 0) or pg.mouse.get_pressed() == (1, 1, 0):
-                    self.player.weapon_hand = 'weapons2'
-                    self.player.shoot()
+                    if self.player.block_gid:
+                        self.player.place_block()
+                    else:
+                        self.player.weapon_hand = 'weapons2'
+                        self.player.shoot()
                 else: # Prevents e_down from getting stuck on true
                     self.player.e_down = False
             if event.type == pg.MOUSEBUTTONUP: # Updates which hand should be attacking when mouse buttons change.
@@ -2762,6 +2767,8 @@ class Game:
                         self.player.use_item()
                 if event.key == self.key_map['place']:
                     self.player.place_item()
+                if event.key == self.key_map['block']:
+                    self.player.place_block()
                 if event.key == self.key_map['grenade']:
                     self.player.throw_grenade()
                 if event.key == self.key_map['transform']:

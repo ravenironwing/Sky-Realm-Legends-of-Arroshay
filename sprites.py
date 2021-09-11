@@ -13,7 +13,15 @@ from time import perf_counter
 vec = pg.math.Vector2
 
 def get_tile_pos(sprite):
-    return (int(sprite.pos.x / sprite.game.map.tile_size), int(sprite.pos.y / sprite.game.map.tile_size))
+    return int(sprite.pos.x / sprite.game.map.tile_size), int(sprite.pos.y / sprite.game.map.tile_size)
+
+def get_next_tile_pos(sprite):
+    pdir = vec(1, 0).rotate(-sprite.rot)
+    next_x = int(sprite.pos.x / sprite.game.map.tile_size + pdir.x)
+    next_y = int(sprite.pos.y / sprite.game.map.tile_size + pdir.y)
+    if next_x >= sprite.game.map.tiles_wide: next_x = sprite.game.map.tiles_wide - 1
+    if next_y >= sprite.game.map.tiles_high: next_y = sprite.game.map.tiles_high - 1
+    return next_x, next_y
 
 #def get_tile_props(sprite, layer, x = None, y = None):  # Gets the properties of the tile the sprite is on.
 #    if x == None:
@@ -27,9 +35,7 @@ def get_tile_pos(sprite):
 #    return sprite.game.map.tmxdata.get_tile_properties(x, y, layer)
 
 def set_tile_props(sprite): # sets a variable that keeps track of the important properties a sprite is on in order of their priority.
-    pos = get_tile_pos(sprite)
-    x = pos[0]
-    y = pos[1]
+    x, y = get_tile_pos(sprite)
     sprite.tile_props = sprite.game.map.tile_props[y][x]
 
     # Sets sprite environmental state variables
@@ -47,11 +53,7 @@ def set_tile_props(sprite): # sets a variable that keeps track of the important 
         sprite.in_grass = False
 
     # sets tile props for next tile. This is used for interacting with things that are in front of sprites like workstations or plants.
-    pdir = vec(1, 0).rotate(-sprite.rot)
-    next_x = int(sprite.pos.x / sprite.game.map.tile_size + pdir.x)
-    next_y = int(sprite.pos.y / sprite.game.map.tile_size + pdir.y)
-    if next_x >= sprite.game.map.tiles_wide: next_x = sprite.game.map.tiles_wide - 1
-    if next_y >= sprite.game.map.tiles_high: next_y = sprite.game.map.tiles_high - 1
+    next_x, next_y = get_next_tile_pos(sprite)
     sprite.next_tile_props = sprite.game.map.tile_props[next_y][next_x]
     check_harvest(sprite, x, y, next_x, next_y)
     check_tree(sprite, next_x, next_y)
@@ -481,7 +483,7 @@ def random_hair(character):
 def random_inventory(gender = choice(['male', 'female'])):
     tops = []
     bottoms = []
-    inventory = {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}}
+    inventory = {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}, 'blocks':{}}
     # Separates out items to match character's gender
     if gender == 'male':
         tops = MALE_TOPS
@@ -1209,7 +1211,13 @@ class Body(pg.sprite.Sprite):
                 elif i == 10:
                     weapon2_pos = vec(part[0], part[1])
                     weapon2_angle = part[2]
-                    if self.mother.equipped['weapons2']:
+                    if self.mother.equipped['blocks']:
+                        temp_img = self.game.map.tmxdata.get_tile_image_by_gid(self.mother.block_gid).copy()
+                        temp_img = pg.transform.scale(temp_img, (20, 20))
+                        image = pg.transform.rotate(temp_img, self.mother.rot)
+                        temp_rect = image.get_rect()
+                        body_surface.blit(image, (rect.centerx - (temp_rect.centerx - part[0]), rect.centery - (temp_rect.centery - part[1])))
+                    elif self.mother.equipped['weapons2']:
                         temp_img = self.game.weapon_images[WEAPONS[self.mother.equipped['weapons2']]['image']]
                         if 'color' in WEAPONS[self.mother.equipped['weapons2']]:
                             temp_img = color_image(temp_img, WEAPONS[self.mother.equipped['weapons2']]['color'])
@@ -1500,6 +1508,7 @@ class Player(pg.sprite.Sprite):
         self.living = True
         self.tile_props = {'material' : '', 'wall': ''}
         self.next_tile_props = {'material': '', 'wall': ''}
+        self.block_gid = None
         self.provoked = False
         self.offensive = False
         # player stats. You gain skill according to the activities the player does.
@@ -1527,7 +1536,7 @@ class Player(pg.sprite.Sprite):
         self.last_cast = 0
         self.expanded_inventory = {'gender': list(GENDER.keys()), 'hair': list(HAIR.keys()), 'race': list(RACE.keys()), 'magic': [None]}
         self.equipped = {'gender': 'female', 'race': 'osidine', 'hair': None, 'magic': None, 'weapons': None, 'weapons2': None,
-                         'hats': None, 'tops': None, 'bottoms': None, 'shoes': None, 'gloves': None, 'items': None}
+                         'hats': None, 'tops': None, 'bottoms': None, 'shoes': None, 'gloves': None, 'items': None, 'blocks': None}
         # Differences between player and NPC. Loads in NPCs data from the kind dictionary from npcs.py
         if self.npc:
             self.name = self.kind['name']
@@ -2829,8 +2838,42 @@ class Player(pg.sprite.Sprite):
     def place_item(self):
         if self.equipped['items']:
             dropped_item = Dropped_Item(self.game, self.pos + vec(50, 0).rotate(-self.rot), 'items', self.equipped['items'], self.rot - 90)
-            self.inventory['items'].remove(self.equipped['items'])
-            self.equipped['items'] = None
+            if self.inventory[self.equipped['items']] == 1:
+                self.add_inventory(self.equipped['items'])
+                self.equipped['items'] = None
+            else:
+                self.add_inventory(self.equipped['items'])
+                self.equipped['items'] = None
+
+    def get_equipped_block_gid(self):
+        if self.equipped['blocks']:
+            self.block_gid = gid_with_property(self.game.map.tmxdata,'material', self.equipped['blocks'])
+            if not self.block_gid:
+                self.block_gid = gid_with_property(self.game.map.tmxdata, 'plant', self.equipped['blocks'])
+
+    def place_block(self):
+        if self.block_gid:
+            x, y = get_next_tile_pos(self)
+            if True not in [self.game.map.tmxdata.layers[self.game.map.water_layer].data[y][x], self.game.map.tmxdata.layers[self.game.map.trees_layer].data[y][x]]: # Prevents you from building on water and trees.
+                if (self.next_tile_props['material'] != self.equipped['blocks']) and (self.next_tile_props['plant'] != self.equipped['blocks']): # Makes sure you're not placing the same block.
+                    self.game.effects_sounds['click'].play()
+                    props = self.game.map.tmxdata.get_tile_properties_by_gid(self.block_gid)
+                    if 'plant' in props:
+                        self.game.map.tmxdata.layers[self.game.map.river_layer].data[y][x] = self.block_gid
+                    else:
+                        self.game.map.tmxdata.layers[self.game.map.base_layer].data[y][x] = self.block_gid
+                        self.game.map.tmxdata.layers[self.game.map.ocean_plants_layer].data[y][x] = 0
+                        self.game.map.tmxdata.layers[self.game.map.river_layer].data[y][x] = 0
+                    self.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
+                    self.game.map.redraw()
+                    set_tile_props(self)
+                    if self.inventory['blocks'][self.equipped['blocks']] == 1:
+                        self.add_inventory(self.equipped['blocks'], -1)
+                        self.equipped['blocks'] = None
+                        self.block_gid = None
+                        self.body.update_animations()
+                    else:
+                        self.add_inventory(self.equipped['blocks'], -1)
 
     def is_moving(self):
         keys = pg.key.get_pressed()
@@ -3662,8 +3705,15 @@ class Animal(pg.sprite.Sprite):
 
         if self.kind['corpse']:
             self.living = False
-            self.inventory = {'locked': False, 'combo': None, 'difficulty': 0,'weapons': [None], 'hats': [None], 'hair': [None], 'tops': [None], 'bottoms': [None], 'shoes': [None], 'gloves': [None],
-                  'items': self.kind['dropped items'].copy(), 'magic': [None], 'gold': 0}
+            # Converts drop list to dictionary for corpses.
+            items_dic = {}
+            items = self.kind['dropped items'].copy()
+            for item in items:
+                if item not in items_dic:
+                    items_dic[item] = 1
+                else:
+                    items_dic[item] += 1
+            self.inventory = {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': items_dic, 'blocks': {}}
             self.remove(self.game.mobs)
             self.remove(self.game.animals)
             self.remove(self.game.moving_targets)
@@ -3845,9 +3895,7 @@ class Dropped_Item(pg.sprite.Sprite):
         self.game = game
         self.brightness = 0
         self._layer = self.game.map.items_layer
-        if 'fire pit' in item:
-            self.groups = game.all_sprites, game.dropped_items, game.detectables, game.firepits
-        elif item in LIGHTS_LIST:
+        if item in LIGHTS_LIST:
             if 'flashlight' not in item:
                 self.groups = game.all_sprites, game.dropped_items, game.detectables, game.lights
                 self.light = True
@@ -4577,6 +4625,8 @@ class Falling_Tree(pg.sprite.Sprite): # animation of trees falling when you chop
         self._layer = self.game.map.trees_layer
         self.name = name
         self.size = size
+        self.x = x
+        self.y = y
         self.xi = xi
         self.xf = xf
         self.yf = yf
@@ -4618,7 +4668,8 @@ class Falling_Tree(pg.sprite.Sprite): # animation of trees falling when you chop
         for j in range(self.yi, self.yf + 1):
             for i in range(self.xi, self.xf + 1):
                 if randrange(0, 10) < 4:
-                    self.game.map.tmxdata.layers[self.game.map.river_layer].data[j][i] = gid_with_property(self.game.map.tmxdata, 'plant', 'logs')
+                    if (i != self.x) and (j != self.y): # Makes sure it doesn't replace tree trunks.
+                        self.game.map.tmxdata.layers[self.game.map.river_layer].data[j][i] = gid_with_property(self.game.map.tmxdata, 'plant', 'logs')
                 self.game.map.update_tile_props(i, j)  # Updates properties for tiles that have changed.
         self.game.map.redraw()
         set_tile_props(self.sprite)

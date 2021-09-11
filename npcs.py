@@ -33,14 +33,14 @@ PEOPLE['generic'] = {'name': 'Villager', 'protected': True, 'health': 100, 'touc
     'collide': ['walls', 'lava'],
     'gender': 'random', 'race': 'osidine', 'hair': ['random'], 'magic': [None],
     'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'}, 'dialogue': 'random VILLAGER_DLG', 'store': None,
-    'inventory':{'weapons': {'lantern':1}, 'hats': {}, 'tops': {'random VILLAGER_':1}, 'bottoms': {'random VILLAGER_':1}, 'gloves': {}, 'shoes': {'brown boots': 1}, 'items': {'gold': 100}},
+    'inventory':{'weapons': {'lantern':1}, 'hats': {}, 'tops': {'random VILLAGER_':1}, 'bottoms': {'random VILLAGER_':1}, 'gloves': {}, 'shoes': {'brown boots': 1}, 'items': {'gold': 100}, 'blocks': {}},
     'animations': {None}}
 
 PEOPLE['villager'] = {'name': 'Villager', 'protected': True, 'health': 100, 'touch damage': False, 'damage': 5, 'knockback': 2, 'acceleration': 5, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'fwp', 'armed': False, 'dual wield': False,
     'collide': ['walls', 'lava'],
     'gender': 'random', 'race': 'osidine', 'hair': ['random'], 'magic': [None],
     'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'}, 'dialogue': 'random VILLAGER_DLG', 'store': None,
-    'inventory':{'weapons': {'lantern':1}, 'hats': {}, 'tops': {'random VILLAGER_':1}, 'bottoms': {'random VILLAGER_':1}, 'gloves': {}, 'shoes': {'brown boots': 1}, 'items': {'gold': 100}},
+    'inventory':{'weapons': {'lantern':1}, 'hats': {}, 'tops': {'random VILLAGER_':1}, 'bottoms': {'random VILLAGER_':1}, 'gloves': {}, 'shoes': {'brown boots': 1}, 'items': {'gold': 100}, 'blocks': {}},
     'animations': {None}}
 VILLAGER_TOPS = CASUAL_TOPS_LIST
 VILLAGER_BOTTOMS = CASUAL_BOTTOMS_LIST

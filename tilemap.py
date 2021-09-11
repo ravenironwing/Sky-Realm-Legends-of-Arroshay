@@ -104,7 +104,6 @@ class TiledMap:
                     tile_rect = pg.Rect(x * self.tile_size, y * self.tile_size, self.tile_size, self.tile_size)
                 if 'material' in props:
                     tile_props['material'] = props['material']
-                    break
                 if 'plant' in props:
                     tile_props['plant'] = props['plant']
                     tile_props['plant layer'] = layer

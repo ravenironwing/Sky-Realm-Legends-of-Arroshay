@@ -1,5 +1,5 @@
 import pygame as pg
-from sprites import Dropped_Item, toggle_equip, remove_nones, change_clothing, color_image, add_inventory
+from sprites import Dropped_Item, toggle_equip, remove_nones, change_clothing, color_image, add_inventory, gid_with_property
 from random import uniform, choice, randint, random, randrange
 from settings import *
 from npcs import *
@@ -511,7 +511,7 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
         # These items are changed for inherrited menus.
         self.exit_keys = [pg.K_i, pg.K_e, pg.K_ESCAPE] # The keys used to enter/exit the menu.
         self.spacing = 20 # Spacing between headings
-        self.heading_list = ['Weapons', 'Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items'] # This is the list of headings
+        self.heading_list = ['Weapons', 'Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items', 'Blocks'] # This is the list of headings
 
     def generate_headings(self):
         previous_rect_right = 0
@@ -676,6 +676,8 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
             if self.item_type == 'weapons':
                 self.character.last_weapon = item.text
             self.character.equipped[self.item_type] = None
+            if self.item_type == 'blocks':
+                self.character.block_gid = None
         else:
             if self.item_type == 'weapons':  # Equipping
                 if self.character.equipped['weapons2'] == item.text:
@@ -687,6 +689,9 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
                     self.character.equipped[self.item_type] = item.text
             else:
                 self.character.equipped[self.item_type] = item.text
+                if self.item_type == 'blocks':
+                    self.character.equipped['weapons2'] = None # Makes sure the player doesn't equip a block and a weapon in the same hand
+                    self.character.get_equipped_block_gid()
         self.check_dual()
 
     def left_equip(self, item):
@@ -765,14 +770,18 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
 
     def display_item_info(self, item):
         item_dictionary = globals()[self.item_type.upper()] #converts the item_type string into the correct dictionary to get the item stats from
-        if self.item_type[-1:] == 's':
-            image_path = "self.game." + self.item_type[:-1] + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
+        if self.item_type == 'blocks':
+            gid = gid_with_property(self.game.map.tmxdata, 'material', item.text)
+            item_image = self.game.map.tmxdata.get_tile_image_by_gid(gid)
         else:
-            image_path = "self.game." + self.item_type + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
-        itemdict = eval(self.item_type.upper())
-        item_image = eval(image_path)
-        if 'color' in itemdict[item.text]:
-            item_image = color_image(item_image, itemdict[item.text]['color'])
+            if self.item_type[-1:] == 's':
+                image_path = "self.game." + self.item_type[:-1] + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
+            else:
+                image_path = "self.game." + self.item_type + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
+            itemdict = eval(self.item_type.upper())
+            item_image = eval(image_path)
+            if 'color' in itemdict[item.text]:
+                item_image = color_image(item_image, itemdict[item.text]['color'])
         Picture(self.game, self, item_image, int(self.game.screen_width * (3/4)), 150)
 
         for key in item_dictionary:
@@ -1447,13 +1456,14 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
         elif self.kind == 'enchanter':
             self.heading_list = ['Enchantments', 'Weapons', 'Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves']  # This is the list of headings
         elif self.kind == 'crafting':
-            self.heading_list = ['Weapons', 'Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items']
+            self.heading_list = ['Weapons', 'Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items', 'Blocks']
         self.clicked_sprites = []
         self.not_enough_text = False
         self.materials_list = {}
         self.item_type = self.heading_list[0].lower()
         self.selected_item = None
         self.selected_enchantment = None
+        self.task_acomplished = False
         self.list_items()
 
     def generate_headings(self):
@@ -1468,17 +1478,17 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
 
     def forge_item(self):
         if self.item_type != 'enchantments':
-            task_accomplished = False
+            self.task_accomplished = False
             if self.kind == 'tanning rack':
                 sound = 'scrape'
-                if not task_accomplished:
+                if not self.task_accomplished:
                     skins = [s for s in list(self.game.player.inventory['items'].keys()) if "skin" in s]
                     if skins:
                         if self.game.player.add_inventory(self.selected_item.text, 1):
                             self.game.player.add_inventory(skins[0], -1)
                             self.game.player.stats['smithing'] += 1
-                            task_accomplished = True
-                    elif not task_accomplished:
+                            self.task_accomplished = True
+                    elif not self.task_accomplished:
                         self.not_enough_text = True
 
             elif self.kind == 'grinder':
@@ -1505,7 +1515,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                         self.game.player.equipped['weapons2'] = new_item_name
                     self.selected_item = None
                     self.game.player.stats['smithing'] += 1
-                    task_accomplished = True
+                    self.task_accomplished = True
                 else:
                     self.not_enough_text = True
 
@@ -1518,7 +1528,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                     self.remove_materials()
                     self.game.player.add_inventory(self.selected_item.text, 1) # adds forged item to inventory
                     self.game.player.stats['smithing'] += 1
-                    task_accomplished = True
+                    self.task_accomplished = True
                 else:
                     self.not_enough_text = True
 
@@ -1531,7 +1541,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                     self.remove_materials()
                     self.game.player.add_inventory(self.selected_item.text, 1) # adds forged item to inventory
                     self.game.player.stats['smithing'] += 1
-                    task_accomplished = True
+                    self.task_accomplished = True
                 else:
                     self.not_enough_text = True
 
@@ -1568,7 +1578,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                     if self.game.player.equipped[self.item_type] == self.selected_item.text:
                         self.game.player.equipped[self.item_type] = new_item_name
                     self.game.player.stats['smithing'] += 1
-                    task_accomplished = True
+                    self.task_accomplished = True
                 else:
                     self.not_enough_text = True
 
@@ -1722,7 +1732,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                     elif self.game.player.equipped[self.item_type] == self.selected_item.text:
                         self.game.player.equipped[self.item_type] = new_item_name
                     self.game.player.stats['casting'] += 1
-                    task_accomplished = True
+                    self.task_accomplished = True
                 else:
                     self.not_enough_text = True
 
@@ -1739,7 +1749,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                 self.add_forged_item()
             else:
                 sound = 'anvil'
-            if task_accomplished:
+            if self.task_accomplished:
                 self.game.effects_sounds[sound].play()
                 self.list_items()
         self.selected_enchantment = None
@@ -1751,7 +1761,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
             # Subtracts used materials from inventory
             self.remove_materials()
             self.game.player.add_inventory(self.selected_item.text, 1)  # adds forged item to inventory
-            task_accomplished = True
+            self.task_accomplished = True
         else:
             self.not_enough_text = True
 
@@ -1799,6 +1809,9 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
         for material in self.materials_list:
             if material in self.game.player.inventory['items']:  # Sees if you have any of the required material
                 if self.materials_list[material] > self.game.player.inventory['items'][material]:  # Sees if you have enough of the required material
+                    enough = False
+            elif material in self.game.player.inventory['blocks']:  # Sees if you have any of the required material
+                if self.materials_list[material] > self.game.player.inventory['blocks'][material]:  # Sees if you have enough of the required material
                     enough = False
             else:
                 enough = False
@@ -2007,14 +2020,18 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
 
     def display_item_info(self, item):
         item_dictionary = globals()[self.item_type.upper()]  # converts the item_type string into the correct dictionary to get the item stats from
-        if self.item_type[-1:] == 's':
-            image_path = "self.game." + self.item_type[:-1] + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
+        if self.item_type == 'blocks':
+            gid = gid_with_property(self.game.map.tmxdata, 'material', item.text)
+            item_image = self.game.map.tmxdata.get_tile_image_by_gid(gid)
         else:
-            image_path = "self.game." + self.item_type + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
-        itemdict = eval(self.item_type.upper())
-        item_image = eval(image_path)
-        if 'color' in itemdict[item.text]:
-            item_image = color_image(item_image, itemdict[item.text]['color'])
+            if self.item_type[-1:] == 's':
+                image_path = "self.game." + self.item_type[:-1] + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
+            else:
+                image_path = "self.game." + self.item_type + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
+            itemdict = eval(self.item_type.upper())
+            item_image = eval(image_path)
+            if 'color' in itemdict[item.text]:
+                item_image = color_image(item_image, itemdict[item.text]['color'])
         Picture(self.game, self, item_image, int(self.game.screen_width * (3 / 4)), 150)
 
         for key in item_dictionary:
@@ -2443,7 +2460,7 @@ class Store_Menu(Inventory_Menu): # Inventory Menu, also used as the parent clas
         self.store = store
         self.exit_keys = [pg.K_e, pg.K_ESCAPE] # The keys used to enter/exit the menu.
         self.spacing = 20 # Spacing between headings
-        self.heading_list = ['Weapons', 'Hats', 'Hair', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items'] # This is the list of headings
+        self.heading_list = ['Weapons', 'Hats', 'Hair', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items', 'Blocks'] # This is the list of headings
         self.store_inventory = self.store['inventory'].copy()
         self.markup = self.store['markup']
         self.pvalue = self.store['pvalue'] # percent of item value store buys at
@@ -2575,14 +2592,18 @@ class Store_Menu(Inventory_Menu): # Inventory Menu, also used as the parent clas
 
     def display_item_info(self, item):
         item_dictionary = globals()[self.item_type.upper()] #converts the item_type string into the correct dictionary to get the item stats from
-        if self.item_type[-1:] == 's':
-            image_path = "self.game." + self.item_type[:-1] + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
+        if self.item_type == 'blocks':
+            gid = gid_with_property(self.game.map.tmxdata, 'material', item.text)
+            item_image = self.game.map.tmxdata.get_tile_image_by_gid(gid)
         else:
-            image_path = "self.game." + self.item_type + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
-        itemdict = eval(self.item_type.upper())
-        item_image = eval(image_path)
-        if 'color' in itemdict[item.text]:
-            item_image = color_image(item_image, itemdict[item.text]['color'])
+            if self.item_type[-1:] == 's':
+                image_path = "self.game." + self.item_type[:-1] + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
+            else:
+                image_path = "self.game." + self.item_type + "_images[" + self.item_type.upper() + "['" + item.text + "']['image']]"
+            itemdict = eval(self.item_type.upper())
+            item_image = eval(image_path)
+            if 'color' in itemdict[item.text]:
+                item_image = color_image(item_image, itemdict[item.text]['color'])
         Picture(self.game, self, item_image, int(self.game.screen_width * (3 / 4)), 150)
 
         for key in item_dictionary:

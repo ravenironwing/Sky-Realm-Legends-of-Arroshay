@@ -99,7 +99,7 @@ MENU_FONT = path.join(fonts_folder, 'LinBiolinum_Rah.ttf')
 WRITING_FONT = path.join(fonts_folder, 'DancingScript-Regular.ttf')
 KAWTHI_FONT = path.join(fonts_folder, 'Kawthi.ttf')
 
-ITEM_TYPE_LIST = ['weapons', 'tops', 'bottoms', 'hats', 'shoes', 'gloves', 'items']
+ITEM_TYPE_LIST = ['weapons', 'tops', 'bottoms', 'hats', 'shoes', 'gloves', 'items', 'blocks']
 EQUIP_DRAW_LIST = ['shoes', 'shoes', 'bottoms', 'gloves', 'gloves', None, None, 'tops']
 EQUIP_IMG_LIST = ['shoe', 'shoe', 'bottom', 'glove', 'glove', None, None, 'top']
 
@@ -146,7 +146,7 @@ TILESIZE = 32
 START_WORLD = 'worldmap.tmx'
 UPGRADE_FACTOR = 1.2 # This number determines how much item value increases when upgrading armor and weapons. The higher the number the lower the value.
 
-KEY_MAP = {'jump': pg.K_SPACE, 'sprint': pg.K_LSHIFT, 'forward': pg.K_w, 'back': pg.K_s, 'rot left': pg.K_a, 'rot right': pg.K_d, 'strafe left': pg.K_z, 'strafe right': pg.K_c, 'dismount': pg.K_x, 'cast': pg.K_q, 'interact': pg.K_e, 'reload': pg.K_r, 'fire': pg.K_f, 'climb': pg.K_v, 'use': pg.K_b, 'lamp': pg.K_n, 'transform': pg.K_t, 'grenade': pg.K_g, 'place': pg.K_y, 'overmap': pg.K_o, 'minimap': pg.K_m, 'pause': pg.K_p, 'skill': pg.K_k, 'quest': pg.K_j, 'craft': pg.K_l, 'up': pg.K_u, 'hitbox': pg.K_h, 'inventory': pg.K_i, 'melee': pg.K_TAB}
+KEY_MAP = {'jump': pg.K_SPACE, 'sprint': pg.K_LSHIFT, 'forward': pg.K_w, 'back': pg.K_s, 'rot left': pg.K_a, 'rot right': pg.K_d, 'strafe left': pg.K_z, 'strafe right': pg.K_c, 'dismount': pg.K_x, 'cast': pg.K_q, 'interact': pg.K_e, 'reload': pg.K_r, 'fire': pg.K_f, 'climb': pg.K_v, 'use': pg.K_b, 'lamp': pg.K_n, 'transform': pg.K_t, 'grenade': pg.K_g, 'place': pg.K_y, 'overmap': pg.K_o, 'minimap': pg.K_m, 'pause': pg.K_p, 'skill': pg.K_k, 'quest': pg.K_j, 'craft': pg.K_l, 'up': pg.K_u, 'hitbox': pg.K_h, 'inventory': pg.K_i, 'melee': pg.K_TAB, 'block': pg.K_LALT}
 
 # Day/Night
 DAY_LENGTH = 15 * 60 * 1000
@@ -567,26 +567,26 @@ RACE['skeletondragon'] = {'armor': 40, 'image': 6}
 EMPTY_INVENTORY = {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}}
 
 DEFAULT_INVENTORIES = {}
-DEFAULT_INVENTORIES['male osidine'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1, 'Zhara Talisman':1}}
-DEFAULT_INVENTORIES['female osidine'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1, 'Zhara Talisman':1}}
-DEFAULT_INVENTORIES['male shaktele'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['female shaktele'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['male elf'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['female elf'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['male lacertolian'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['female lacertolian'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['male immortui'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['female immortui'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['male miewdra'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['female miewdra'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['male mechanima'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['female mechanima'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['male whitewraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['female whitewraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['male skeleton'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['female skeleton'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['male blackwraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
-DEFAULT_INVENTORIES['female blackwraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}}
+DEFAULT_INVENTORIES['male osidine'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1, 'Zhara Talisman':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['female osidine'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1, 'Zhara Talisman':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['male shaktele'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['female shaktele'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['male elf'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['female elf'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['male lacertolian'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['female lacertolian'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['male immortui'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['female immortui'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['male miewdra'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['female miewdra'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['male mechanima'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['female mechanima'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['male whitewraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['female whitewraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['male skeleton'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['female skeleton'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['male blackwraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
+DEFAULT_INVENTORIES['female blackwraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
 
 
 ENCHANTMENTS = {}

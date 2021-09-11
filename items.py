@@ -64,6 +64,7 @@ ITEMS['ordinary rock'] = {'image': 115, 'weight': 1.5, 'value': 0, 'random drop'
 ITEMS['palm leaf'] = {'image': 137, 'weight': 0.6, 'value': 3}
 ITEMS['pine branch'] = {'image': 138, 'weight': 0.6, 'value': 3}
 ITEMS['brick'] = {'image': 97, 'weight': 1, 'value': 0, 'random drop': 60}
+ITEMS['logs'] = {'image': 162, 'weight': 20, 'value': 10}
 
 # Foods
 ITEMS['barley'] = {'image': 148, 'health': 5, 'stamina': 3, 'hunger': 2, 'weight': 0.6, 'food': True, 'value': 3}

@@ -29,50 +29,6 @@ tracemalloc.start()
 
 #npc_q = Queue()
 
-def group_draw(self, surface, game = None): # This is a modded version of the pyscroll group draw function that only draws sprites that are on screen (otherwise it's super slow).
-    """ Draw all sprites and map onto the surface
-    :param surface: pygame surface to draw to
-    :type surface: pygame.surface.Surface
-    """
-    ox, oy = self._map_layer.get_center_offset()
-
-    new_surfaces = list()
-    spritedict = self.spritedict
-    gl = self.get_layer_of_sprite
-    new_surfaces_append = new_surfaces.append
-
-    if game == None: #Used if there is not game running yet... kind of useless, but makes it not error out.
-        for spr in self.sprites():
-            new_rect = spr.rect.move(ox, oy)
-            try:
-                new_surfaces_append((spr.image, new_rect, gl(spr), spr.blendmode))
-            except AttributeError:  # generally should only fail when no blendmode available
-                new_surfaces_append((spr.image, new_rect, gl(spr)))
-            spritedict[spr] = new_rect
-
-    else:
-        for spr in self.sprites(): # This modded version only adds the sprite images that are on screen using the game.camera and the on_screen method
-            if game.on_screen_no_edge(spr):
-                new_rect = spr.rect.move(ox, oy)
-                try:
-                    new_surfaces_append((spr.image, new_rect, gl(spr), spr.blendmode))
-                except AttributeError:  # generally should only fail when no blendmode available
-                    new_surfaces_append((spr.image, new_rect, gl(spr)))
-                spritedict[spr] = new_rect
-        #hits = pg.sprite.spritecollide(game.camera, self.sprites(), False)
-        #for spr in hits: # This modded version only adds the sprite images that are on screen by using only the sprites that collide with the camera object.
-        #    new_rect = spr.rect.move(ox, oy)
-        #    try:
-        #        new_surfaces_append((spr.image, new_rect, gl(spr), spr.blendmode))
-        #    except AttributeError:  # generally should only fail when no blendmode available
-        #        new_surfaces_append((spr.image, new_rect, gl(spr)))
-        #    spritedict[spr] = new_rect
-
-    self.lostsprites = []
-    return self._map_layer.draw(surface, surface.get_rect(), new_surfaces)
-
-#PyscrollGroup.draw = group_draw # Replaces the default PyscrollGroup.draw method
-
 def get_tile_number(sprite, layer):  # Gets the type of tile a sprite is on.
     x = int(sprite.pos.x / sprite.game.map.tile_size)
     y = int(sprite.pos.y / sprite.game.map.tile_size)
@@ -205,9 +161,8 @@ def entryway_collide(one, two):
 
 class Game:
     def __init__(self):
-        self.window_ratio = .97
         self.screen_width = WIDTH
-        self.screen_height = int(HEIGHT * self.window_ratio)
+        self.screen_height = HEIGHT
         #self.flags = pg.NOFRAME
         self.flags = pg.SCALED # | pg.FULLSCREEN
         #self.screen = pg.display.set_mode((self.screen_width, HEIGHT), pg.FULLSCREEN)
@@ -263,12 +218,12 @@ class Game:
         else:
             return True
 
-    def on_screen_no_edge(self, sprite): #no threashold for slightly faster draw.
-        rect = self.camera.apply(sprite)
-        if rect.right < 0 or rect.bottom < 0 or rect.left > self.screen_width or rect.top > self.screen_height:
-            return False
-        else:
-            return True
+#    def on_screen_no_edge(self, sprite): #no threashold for slightly faster draw.
+#        rect = self.camera.apply(sprite)
+#        if rect.right < 0 or rect.bottom < 0 or rect.left > self.screen_width or rect.top > self.screen_height:
+#            return False
+#        else:
+#            return True
 
     def is_living(self, npc_kind):
         if 'dead' in self.people[npc_kind]:
@@ -491,22 +446,6 @@ class Game:
         self.shallows_tiles = []
         self.lava_tiles = []
         self.long_grass_tiles = []
-        # Layers
-        self.base_layer = BASE_LAYER
-        self.ocean_plants_layer = CORNERS_LAYER
-        self.water_layer = WATER_LAYER
-        self.river_layer = PLAYER_LAYER
-        self.lava_layer = 0
-        self.wall_layer = 0
-        self.items_layer = ITEMS_LAYER
-        self.mob_layer = PLAYER_LAYER
-        self.player_layer = PLAYER_LAYER
-        self.vehicle_layer = PLAYER_LAYER + 1
-        self.bullet_layer = PLAYER_LAYER + 2
-        self.roof_layer = TREE_LAYER
-        self.effects_layer = PLAYER_LAYER + 5
-        self.sky_layer = PLAYER_LAYER + 6
-
         self.title_font = HEADING_FONT
         self.hud_font = HUD_FONT
         self.script_font = SCRIPT_FONT
@@ -1640,31 +1579,6 @@ class Game:
                 except:
                     pass
 
-        # Assigns layer numbers
-        for i, layer in enumerate(self.map.tmxdata.layers):
-            if "Water" in layer.name:
-                self.water_layer = i
-            elif 'Rounded Corners' in layer.name:
-                self.ocean_plants_layer = i
-            elif 'Rivers' in layer.name:
-                self.river_layer = i
-            elif 'lava' in layer.name:
-                self.lava_layer = i
-            elif layer.name == 'Base Layer':
-                self.base_layer = i
-            elif 'Trees' in layer.name:
-                self.tree_layer = i
-
-        #self.wall_layer = self.base_layer
-        #self.items_layer = self.player_layer
-        #self.mob_layer = self.player_layer
-        #self.vehicle_layer = self.player_layer + 1
-        #self.bullet_layer = self.vehicle_layer + 1
-        #self.roof_layer = self.bullet_layer + 1
-        #self.effects_layer = self.roof_layer + 1
-        #self.sky_layer = self.effects_layer + 1
-
-
         # Generates trees
         # if len(self.breakable) < 1:
         #    for y in range(0, self.map.tiles_high):
@@ -2199,16 +2113,16 @@ class Game:
                     hit.add_health(0.02)
 
             # NPC hit player
-            hits = pg.sprite.spritecollide(self.player, self.npcs_on_screen, False, pg.sprite.collide_circle_ratio(0.7))
-            for hit in hits:
-                self.player.hit_rect.centerx = self.player.pos.x
-                collide_with_walls(self.player, [hit], 'x')
-                self.player.hit_rect.centery = self.player.pos.y
-                collide_with_walls(self.player, [hit], 'y')
-                self.player.rect.center = self.player.hit_rect.center
-                if hit.touch_damage:
-                    if random() < 0.7:
-                        self.player.gets_hit(hit.damage, hit.knockback, hits[0].rot)
+            #hits = pg.sprite.spritecollide(self.player, self.npcs_on_screen, False, pg.sprite.collide_circle_ratio(0.7))
+            #for hit in hits:
+            #    self.player.hit_rect.centerx = self.player.pos.x
+            #    collide_with_walls(self.player, [hit], 'x')
+            #    self.player.hit_rect.centery = self.player.pos.y
+            #    collide_with_walls(self.player, [hit], 'y')
+            #    self.player.rect.center = self.player.hit_rect.center
+            #    if hit.touch_damage:
+            #        if random() < 0.7:
+            #            self.player.gets_hit(hit.damage, hit.knockback, hits[0].rot)
 
             # player hits empty vehicle or mech suit
             if not self.player.in_vehicle:
@@ -2644,7 +2558,7 @@ class Game:
         self.screen.blit(self.fog, (0, 0), special_flags=pg.BLEND_SUB)
 
     def rot_center(self, image, angle):
-        """rotate an image while keeping its center and size"""
+        #rotate an image while keeping its center and size
         orig_rect = image.get_rect()
         rot_image = pg.transform.rotate(image, angle)
         rot_rect = orig_rect.copy()
@@ -2687,8 +2601,8 @@ class Game:
         #self.group.draw(self.screen, self) # Used with my monkey patched version of the old pyscroll.
         self.group.draw(self.screen)
         if self.draw_debug:
-            for wall in self.walls_on_screen:
-                pg.draw.rect(self.screen, CYAN, self.camera.apply_rect(wall.rect), 1)
+            #for wall_rect in self.map.walls_list:
+            #    pg.draw.rect(self.screen, CYAN, self.camera.apply_rect(wall_rect), 1)
             for vehicle in self.vehicles_on_screen:
                 pg.draw.rect(self.screen, CYAN, self.camera.apply_rect(vehicle.hit_rect), 1)
                 pg.draw.rect(self.screen, GREEN, self.camera.apply_rect(vehicle.hit_rect2), 1)
@@ -2883,7 +2797,7 @@ class Game:
                         if self.flags & pg.FULLSCREEN:
                             self.screen_height = HEIGHT
                         else:
-                            self.screen_height = int(HEIGHT * self.window_ratio)
+                            self.screen_height = HEIGHT
                         pg.display.set_mode((self.screen_width, self.screen_height), self.flags)
                 if event.key ==  pg.K_s: # Saves game
                     if event.mod & pg.KMOD_CTRL:

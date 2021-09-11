@@ -16,43 +16,22 @@ vec = pg.math.Vector2
 def get_tile_pos(sprite):
     return (int(sprite.pos.x / sprite.game.map.tile_size), int(sprite.pos.y / sprite.game.map.tile_size))
 
-def get_tile_props(sprite, layer, x = None, y = None):  # Gets the properties of the tile the sprite is on.
-    if x == None:
-        pos = get_tile_pos(sprite)
-        x = pos[0]
-        y = pos[1]
-    if x < 0: x = 0
-    if y < 0: y = 0
-    if x >= sprite.game.map.tiles_wide: x = sprite.game.map.tiles_wide - 1
-    if y >= sprite.game.map.tiles_high: y = sprite.game.map.tiles_high - 1
-    return sprite.game.map.tmxdata.get_tile_properties(x, y, layer)
+#def get_tile_props(sprite, layer, x = None, y = None):  # Gets the properties of the tile the sprite is on.
+#    if x == None:
+#        pos = get_tile_pos(sprite)
+#        x = pos[0]
+#        y = pos[1]
+#    if x < 0: x = 0
+#    if y < 0: y = 0
+#    if x >= sprite.game.map.tiles_wide: x = sprite.game.map.tiles_wide - 1
+#    if y >= sprite.game.map.tiles_high: y = sprite.game.map.tiles_high - 1
+#    return sprite.game.map.tmxdata.get_tile_properties(x, y, layer)
 
 def set_tile_props(sprite): # sets a variable that keeps track of the important properties a sprite is on in order of their priority.
-    sprite.tile_props = {}
-    sprite.tile_props['material'] = ''
-    sprite.tile_props['wall'] = ''
-    plant_layer = None
-    layers = [sprite.game.river_layer, sprite.game.ocean_plants_layer, sprite.game.water_layer, sprite.game.base_layer]
-    for layer in layers:
-        if get_tile_props(sprite, layer) != None:
-            if 'wall' in get_tile_props(sprite, layer):
-                sprite.tile_props['wall'] = get_tile_props(sprite, layer)['wall']
-                sprite.tile_props['material'] = 'wall'
-                break
-            else:
-                sprite.tile_props['wall'] = ''
-            if 'material' in get_tile_props(sprite, layer):
-                sprite.tile_props['material'] = get_tile_props(sprite, layer)['material']
-                break
-            else:
-                sprite.tile_props['material'] = ''
-            if 'plant' in get_tile_props(sprite, layer):
-                sprite.tile_props['plant'] = get_tile_props(sprite, layer)['plant']
-                sprite.tile_props['plant layer'] = layer
-                if 'harvest' in get_tile_props(sprite, layer):
-                    sprite.tile_props['harvest'] = get_tile_props(sprite, layer)['harvest']
-            else:
-                sprite.tile_props['plant layer'] = None
+    pos = get_tile_pos(sprite)
+    x = pos[0]
+    y = pos[1]
+    sprite.tile_props = sprite.game.map.tile_props[y][x]
 
     # Sets sprite environmental state variables
     if 'water' in sprite.tile_props['material']:
@@ -68,67 +47,85 @@ def set_tile_props(sprite): # sets a variable that keeps track of the important 
     else:
         sprite.in_grass = False
 
-    # Checks for plants to harvest
-    if 'harvest' in sprite.tile_props:
+    # sets tile props for next tile. This is used for interacting with things that are in front of sprites like workstations or plants.
+    pdir = vec(1, 0).rotate(-sprite.rot)
+    next_x = int(sprite.pos.x / sprite.game.map.tile_size + pdir.x)
+    next_y = int(sprite.pos.y / sprite.game.map.tile_size + pdir.y)
+    if next_x >= sprite.game.map.tiles_wide: next_x = sprite.game.map.tiles_wide - 1
+    if next_y >= sprite.game.map.tiles_high: next_y = sprite.game.map.tiles_high - 1
+    sprite.next_tile_props = sprite.game.map.tile_props[next_y][next_x]
+    check_harvest(sprite, x, y, next_x, next_y)
+    check_tree(sprite, next_x, next_y)
+
+def check_harvest(sprite, x, y, next_x, next_y):
+    def check(sprite, x, y, props):
         if sprite not in sprite.game.flying_vehicles:
             if sprite in sprite.game.players:
                 sprite.game.message_text = True
-                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to harvest ' + sprite.tile_props['plant']
+                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to harvest ' + props['plant']
             if sprite.e_down:
-                harvest_plant(sprite)
+                harvest_plant(sprite, x, y, props)
+                if sprite in sprite.game.players:
+                    sprite.game.message_text = False
+                    sprite.e_down = False
+    # Checks for plants to harvest
+    if sprite.tile_props['harvest'] != '':
+        check(sprite, x, y, sprite.tile_props)
+    elif sprite.next_tile_props['harvest'] != '':
+        check(sprite, next_x, next_y, sprite.next_tile_props)
+
+def harvest_plant(sprite, x, y, props):
+    if sprite.add_inventory(props['plant'], 1):
+        if props['harvest'] != 'none':
+            sprite.game.map.tmxdata.layers[props['plant layer']].data[y][x] = gid_with_property(sprite.game.map.tmxdata, 'plant', props['harvest'])
+        else:
+            sprite.game.map.tmxdata.layers[props['plant layer']].data[y][x] = 0
+        sprite.game.map.update_tile_props(x, y) # Updates properties for tiles that have changed.
+        sprite.game.map.redraw()
+        set_tile_props(sprite)
+
+def check_equip_for(sprite, search_string):
+    for key, value in sprite.equipped.items():
+        if value and (search_string in value):
+            return True
+    return False
+
+def check_tree(sprite, x, y):
+    if sprite.next_tile_props['tree'] != '':
+        if sprite not in sprite.game.flying_vehicles:
+            if (sprite in sprite.game.players) and check_equip_for(sprite, 'axe'):
+                sprite.game.message_text = True
+                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to chop down this ' + sprite.next_tile_props['tree']
+            if sprite.e_down:
+                harvest_tree(sprite, x, y)
                 if sprite in sprite.game.players:
                     sprite.game.message_text = False
                     sprite.e_down = False
 
-def harvest_plant(sprite):
-    x = int(sprite.pos.x / sprite.game.map.tile_size)
-    y = int(sprite.pos.y / sprite.game.map.tile_size)
-    if sprite.add_inventory(sprite.tile_props['plant'], 1):
-        if sprite.tile_props['harvest'] != 'none':
-            sprite.game.map.tmxdata.layers[sprite.tile_props['plant layer']].data[y][x] = gid_with_property(sprite.game.map.tmxdata, 'plant', sprite.tile_props['harvest'])
-
-        else:
-            sprite.game.map.tmxdata.layers[sprite.tile_props['plant layer']].data[y][x] = 0
-        sprite.game.map.redraw()
-        set_tile_props(sprite)
-
-def get_next_tile_props(sprite, layer, x_off = 0, y_off = 0):  # Gets the properties of the tile the sprite is on.
-    try:
-        pdir = sprite.acc.normalize()
-    except:
-        pdir = vec(1, 0).rotate(-sprite.rot)
-    x = int(sprite.pos.x / sprite.game.map.tile_size + pdir.x) + x_off
-    y = int(sprite.pos.y / sprite.game.map.tile_size + pdir.y) + y_off
-    if x >= sprite.game.map.tiles_wide: x = sprite.game.map.tiles_wide - 1
-    if y >= sprite.game.map.tiles_high: y = sprite.game.map.tiles_high - 1
-    return sprite.game.map.tmxdata.get_tile_properties(x, y, layer)
-
-def set_next_tile_props(sprite): # sets a variable that keeps track of the important properties a sprite is on in order of their priority.
-    sprite.next_tile_props = {}
-    sprite.next_tile_props['material'] = ''
-    sprite.next_tile_props['wall'] = ''
-    plant_layer = None
-    layers = [sprite.game.river_layer, sprite.game.ocean_plants_layer, sprite.game.water_layer, sprite.game.base_layer]
-    for layer in layers:
-        if get_next_tile_props(sprite, layer) != None:
-            if 'wall' in get_next_tile_props(sprite, layer):
-                sprite.next_tile_props['wall'] = get_next_tile_props(sprite, layer)['wall']
-                sprite.next_tile_props['material'] = 'wall'
-                break
-            else:
-                sprite.next_tile_props['wall'] = ''
-            if 'material' in get_next_tile_props(sprite, layer):
-                sprite.next_tile_props['material'] = get_next_tile_props(sprite, layer)['material']
-                break
-            else:
-                sprite.next_tile_props['material'] = ''
-            if 'plant' in get_next_tile_props(sprite, layer):
-                sprite.next_tile_props['plant'] = get_next_tile_props(sprite, layer)['plant']
-                sprite.next_tile_props['plant layer'] = layer
-                if 'harvest' in get_next_tile_props(sprite, layer):
-                    sprite.next_tile_props['harvest'] = get_next_tile_props(sprite, layer)['harvest']
-            else:
-                sprite.next_tile_props['plant layer'] = None
+def harvest_tree(sprite, x, y):
+    if 'large' in sprite.next_tile_props['tree']:
+        yi = y - 3
+        yf = y + 3
+        xi = x - 3
+        xf = x + 3
+    elif 'medium' in sprite.next_tile_props['tree']:
+        yi = y - 2
+        yf = y + 2
+        xi = x - 2
+        xf = x + 2
+    elif 'small' in sprite.next_tile_props['tree']:
+        yi = y - 1
+        yf = y + 1
+        xi = x - 1
+        xf = x + 1
+    for j in range(yi, yf + 1):
+        for i in range(xi, xf + 1):
+            sprite.game.map.tmxdata.layers[sprite.game.map.trees_layer].data[j][i] = 0
+            if randrange(0, 10) < 6:
+                sprite.game.map.tmxdata.layers[sprite.game.map.river_layer].data[j][i] = gid_with_property(sprite.game.map.tmxdata, 'plant', 'logs')
+            sprite.game.map.update_tile_props(i, j) # Updates properties for tiles that have changed.
+    sprite.game.map.redraw()
+    set_tile_props(sprite)
 
 def gid_with_property(tmxdata, key, value):
     for gid, props in tmxdata.tile_properties.items():
@@ -146,10 +143,7 @@ def wall_check(sprite):  # Used for tile-based wall collisions
         return False
 
 def next_wall_check(sprite, x_off = 0, y_off = 0):  # Used for tile-based wall detection
-    try:
-        pdir = sprite.acc.normalize()
-    except:
-        pdir = vec(1, 0).rotate(-sprite.rot)
+    pdir = vec(1, 0).rotate(-sprite.rot)
     x = int(sprite.pos.x / sprite.game.map.tile_size + pdir.x) + x_off
     y = int(sprite.pos.y / sprite.game.map.tile_size + pdir.y) + y_off
     return xy_wall_check(sprite, x, y)
@@ -159,8 +153,7 @@ def xy_wall_check(sprite, x, y):  # Used for tile-based wall checks
     if y < 0: return False
     if x >= sprite.game.map.tiles_wide: return False
     if y >= sprite.game.map.tiles_high: return False
-    props = get_tile_props(sprite, sprite.game.base_layer, x, y)
-    if props and ('wall' in props) and (props.get('wall')) in ['wall', 'climbable']:
+    if sprite.tmxdata.walls[y][x]:
         return True
     else:
         return False
@@ -214,33 +207,33 @@ def get_surrounding_walls(sprite, x_off = 0, y_off = 0):
     y = pos[1] + y_off
     surrounding_tilesxy_list = [((x-1),(y-1)), (x,(y-1)), ((x+1),(y-1)), ((x-1),y), ((x+1),y), ((x-1),(y+1)), (x,(y+1)), ((x+1),(y+1))]
     surrounding_tile_rects = []
-    for tile_pos in surrounding_tilesxy_list:
-        if xy_wall_check(sprite, tile_pos[0], tile_pos[1]): # If there is a wall create a rect then add it to the list.
-            tile_rect = pg.Rect(tile_pos[0] * sprite.game.map.tile_size, tile_pos[1] * sprite.game.map.tile_size, sprite.game.map.tile_size, sprite.game.map.tile_size)
-            surrounding_tile_rects.append(tile_rect)
+    for tile_pos in surrounding_tilesxy_list: # Gest a list of surrounding wall rects from the walls list.
+        if sprite.game.map.walls[tile_pos[1]][tile_pos[0]]:
+            surrounding_tile_rects.append(sprite.game.map.walls[tile_pos[1]][tile_pos[0]])
     return surrounding_tile_rects
 
-def collide_with_tile_walls(sprite, dir):
+def collide_with_tile_walls(sprite):
+    sprite.hit_rect.centerx = sprite.pos.x
     surrounding_walls = get_surrounding_walls(sprite)
     for tile_rect in surrounding_walls:
         if tile_rect.colliderect(sprite.hit_rect):
-            if dir == 'x':
-                if tile_rect.centerx > sprite.hit_rect.centerx: # going right
-                    sprite.pos.x = tile_rect.left - sprite.hit_rect.width / 2
-                if tile_rect.centerx < sprite.hit_rect.centerx: # going left
-                    sprite.pos.x = tile_rect.right + sprite.hit_rect.width / 2
-                sprite.vel.x = 0
-                sprite.hit_rect.centerx = sprite.pos.x
-                return True
-            elif dir == 'y':
-                if tile_rect.centery > sprite.hit_rect.centery: # going down
-                    sprite.pos.y = tile_rect.top - sprite.hit_rect.height / 2
-                if tile_rect.centery < sprite.hit_rect.centery: # going up
-                    sprite.pos.y = tile_rect.bottom + sprite.hit_rect.height / 2
-                sprite.vel.y = 0
-                sprite.hit_rect.centery = sprite.pos.y
-                return True
-    return False
+            if sprite.vel.x > 0: # going right
+                sprite.pos.x = tile_rect.left - sprite.hit_rect.width / 2
+            if sprite.vel.x < 0: # going left
+                sprite.pos.x = tile_rect.right + sprite.hit_rect.width / 2
+            sprite.vel.x = 0
+            sprite.hit_rect.centerx = sprite.pos.x
+    sprite.hit_rect.centery = sprite.pos.y
+    surrounding_walls = get_surrounding_walls(sprite)
+    for tile_rect in surrounding_walls:
+        if tile_rect.colliderect(sprite.hit_rect):
+            if sprite.vel.y > 0: # going down
+                sprite.pos.y = tile_rect.top - sprite.hit_rect.height / 2
+            if sprite.vel.y < 0: # going up
+                sprite.pos.y = tile_rect.bottom + sprite.hit_rect.height / 2
+            sprite.vel.y = 0
+            sprite.hit_rect.centery = sprite.pos.y
+    sprite.rect.center = sprite.hit_rect.center
 
 def collide_hit_rect(one, two):
     return one.hit_rect.colliderect(two.rect)
@@ -670,7 +663,7 @@ class Turret(pg.sprite.Sprite):
     def __init__(self, game, mother):
         self.game = game
         self.mother = mother
-        self._layer = self.game.bullet_layer
+        self._layer = self.game.map.bullet_layer
         self.groups = game.turrets
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game.group.add(self)
@@ -1062,10 +1055,7 @@ class Body(pg.sprite.Sprite):
             self.race = self.mother.equipped['race']
         else:
             self.race = self.mother.equipped['race'] + 'dragon'
-        if self.mother in self.game.npcs:
-            self._layer = self.game.mob_layer
-        else:
-            self._layer = self.game.player_layer
+        self._layer = self.mother._layer
         self.groups = game.all_sprites, game.npc_bodies
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game.group.add(self)
@@ -1412,7 +1402,10 @@ class Player(pg.sprite.Sprite):
     def __init__(self, game, x = 0, y = 0, kind = 'player', health = None, inventory = None, colors = None):
         #Graphics and motion setup
         self.game = game
-        self._layer = self.game.items_layer
+        try:
+            self._layer = self.game.map.player_layer
+        except:
+            self._layer = PLAYER_LAYER
         self.kind = kind
         if self.kind == 'player':
             self.npc = False
@@ -1433,7 +1426,7 @@ class Player(pg.sprite.Sprite):
         self.has_dragon_body = True # Used to define whether or not a character can transform into a dragon.
         self.image = self.game.body_surface
         self.rect = self.image.get_rect()
-        self.hit_rect = PLAYER_HIT_RECT
+        self.hit_rect = copy.deepcopy(PLAYER_HIT_RECT)
         self.hit_rect.center = self.rect.center
         self.brightness = 1
         self.mask_kind = 0
@@ -1940,15 +1933,7 @@ class Player(pg.sprite.Sprite):
             if not self.in_vehicle:
                 if ('wraith' not in self.race) or self.stats['weight'] !=0:
                     if self.vel.magnitude() > 0:
-                        self.hit_rect.centerx = self.pos.x
-                        collide_with_tile_walls(self, 'x')
-                        collide_with_elevations(self, 'x')
-                        collide_with_vehicles(self, 'x')
-                        self.hit_rect.centery = self.pos.y
-                        collide_with_tile_walls(self, 'y')
-                        collide_with_elevations(self, 'y')
-                        collide_with_vehicles(self, 'y')
-                        self.rect.center = self.hit_rect.center
+                        collide_with_tile_walls(self)
             if self.light_on:
                 if self in self.game.lights:
                     if self.race == 'mechanima':
@@ -1968,7 +1953,6 @@ class Player(pg.sprite.Sprite):
             self.check_map_pos() # Used for changing to a new map when you get pass over the edge.
 
             set_tile_props(self)
-            set_next_tile_props(self)
 
     def transform(self):
         self.invisible = False
@@ -2411,35 +2395,6 @@ class Player(pg.sprite.Sprite):
                     self.melee_playing = False
                     self.dual_melee = False
                     self.last_shot = pg.time.get_ticks()
-
-                    #Spawns breakable ore blocks when you hit the tiles.
-                    if len(self.game.wall_tiles) > 0:
-                        if self.weapon_hand == 'weapons':
-                            melee_rect = self.body.weapon_melee_rect
-                        else:
-                            melee_rect = self.body.weapon2_melee_rect
-                        x = int(melee_rect.centerx / self.game.map.tile_size)
-                        y = int(melee_rect.centery / self.game.map.tile_size)
-                        if x < 0: return
-                        if y < 0: return
-                        if x > self.game.map.tiles_wide: return
-                        if y > self.game.map.tiles_high: return
-                        tile = self.game.map.tmxdata.get_tile_gid(x, y, self.game.wall_layer)
-                        if tile in self.game.ore_tiles:
-                            center = vec(x * self.game.map.tile_size + self.game.map.tile_size/2, y * self.game.map.tile_size + self.game.map.tile_size/2)
-                            self.game.effects_sounds['rock_hit'].play()
-                            breakable = Breakable(self.game, center, self.game.map.tile_size, self.game.map.tile_size, BLOCK_DICT[self.game.ore_tiles.index(tile)], self.game.previous_map)
-                            # Checks to make sure you don't double spawn a breakable block.
-                            self.game.breakable.remove(breakable)
-                            hits = pg.sprite.spritecollide(breakable, self.game.breakable, False)
-                            if hits:
-                                breakable.kill()
-                            else:
-                                self.game.breakable.add(breakable)
-                            self.game.map.tmxdata.layers[self.game.wall_layer].data[y][x] = choice(self.game.empty_tiles)
-                            self.game.map.redraw()
-
-
 
     def pre_jump(self):
         if not (self.melee_playing or self.in_vehicle or self.is_reloading):
@@ -3157,13 +3112,13 @@ class Animal(pg.sprite.Sprite):
         else:
             self.flying = False
         if self.flying:
-            self._layer = self.game.sky_layer
+            self._layer = self.game.map.sky_layer
             self.in_flying_vehicle = True
         elif 'horse' in self.name:
-            self._layer = self.game.bullet_layer
+            self._layer = self.game.map.bullet_layer
             self.in_flying_vehicle = False
         else:
-            self._layer = self.game.mob_layer
+            self._layer = self.game.map.mob_layer
             self.in_flying_vehicle = False
         if self.kind['grabable']:
             self.groups = game.all_sprites, game.mobs, game.animals, game.grabable_animals, game.detectables, game.moving_targets
@@ -3223,6 +3178,7 @@ class Animal(pg.sprite.Sprite):
             if not self.flying:
                 self.hideable = True # Used for animals that can hide in long grass
         self.tile_props = {'material': '', 'wall': ''}
+        self.next_tile_props = {'material': '', 'wall': ''}
         self.e_down = False
         self._in_grass = False
         self.hit_rect = self.kind['hit rect'].copy()
@@ -3574,13 +3530,6 @@ class Animal(pg.sprite.Sprite):
                     self.avoid_mobs()
                     self.accelerate(self.run_speed)
 
-                    self.hit_rect.centerx = self.pos.x
-                    collide_with_tile_walls(self, 'x')
-                    self.hit_rect.centery = self.pos.y
-                    collide_with_tile_walls(self, 'y')
-                    self.rect.center = self.hit_rect.center
-                    collide(self)
-
                 else:
                     if self.swimming:
                         self.selected_image_list = self.swim_image_list
@@ -3599,7 +3548,6 @@ class Animal(pg.sprite.Sprite):
                     self.acc = vec(1, 0).rotate(-self.rot)
                     self.avoid_mobs()
                     self.accelerate(self.walk_speed)
-                    collide(self)
 
             else: # This is what the animal does if you are riding it
                 # Increases animal friction when not accelerating
@@ -3637,8 +3585,10 @@ class Animal(pg.sprite.Sprite):
                 self.rot = self.driver.rot
                 self.pos = self.driver.pos
                 self.rotate_image(self.selected_image_list)
-                collide(self)
+
                 self.get_keys()  # this needs to be last in this method to avoid executing the rest of the update section if you exit
+            collide_with_tile_walls(self)
+            collide(self)
         set_tile_props(self)
 
     def check_empty(self):
@@ -3710,7 +3660,7 @@ class Animal(pg.sprite.Sprite):
             self.remove(self.game.animals)
             self.remove(self.game.moving_targets)
             self.add(self.game.corpses)
-            self.game.group.change_layer(self, self.game.items_layer) # Switches the corpse to items layer
+            self.game.group.change_layer(self, self.game.map.items_layer) # Switches the corpse to items layer
             self.image = pg.transform.rotate(self.game.corpse_images[self.kind['corpse']], self.rot)
             self.rect = self.image.get_rect()
             self.rect.center = self.pos
@@ -3737,7 +3687,7 @@ class Animal(pg.sprite.Sprite):
 class Arrow(pg.sprite.Sprite):
     def __init__(self, game, mother, weapon):
         self.game = game
-        self._layer = self.game.bullet_layer
+        self._layer = self.game.map.bullet_layer
         self.groups = game.all_sprites, game.arrows
         pg.sprite.Sprite.__init__(self, self.groups)
         self.mother = mother
@@ -3764,9 +3714,9 @@ class Bullet(pg.sprite.Sprite):
         self.game = game
         self.sky = sky
         if self.sky:
-            self._layer = self.game.sky_layer
+            self._layer = self.game.map.sky_layer
         else:
-            self._layer = self.game.bullet_layer
+            self._layer = self.game.map.bullet_layer
         self.mother = mother
         self.enemy = enemy
         if self.enemy:
@@ -3863,7 +3813,7 @@ class Bullet(pg.sprite.Sprite):
 class MuzzleFlash(pg.sprite.Sprite):
     def __init__(self, game, pos):
         self.game = game
-        self._layer = self.game.effects_layer
+        self._layer = self.game.map.effects_layer
         self.groups = game.all_sprites, game.lights
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game.group.add(self)
@@ -3886,10 +3836,7 @@ class Dropped_Item(pg.sprite.Sprite):
     def __init__(self, game, pos, type, item, rot = None, random_spread = False):
         self.game = game
         self.brightness = 0
-        if 'plate' in item:
-            self._layer = self.game.wall_layer
-        else:
-            self._layer = self.game.items_layer
+        self._layer = self.game.map.items_layer
         if 'fire pit' in item:
             self.groups = game.all_sprites, game.dropped_items, game.detectables, game.firepits
         elif item in LIGHTS_LIST:
@@ -3997,9 +3944,9 @@ class Stationary_Animated(pg.sprite.Sprite): # Used for fires and other stationa
         self.game = game
         self.sky = sky
         if self.sky:
-            self._layer = self.game.sky_layer
+            self._layer = self.game.map.sky_layer
         else:
-            self._layer = self.game.bullet_layer
+            self._layer = self.game.map.bullet_layer
         self.center = obj_center
         self.kind = kind
         self.offset = offset
@@ -4069,7 +4016,7 @@ class Stationary_Animated(pg.sprite.Sprite): # Used for fires and other stationa
 class Entryway(pg.sprite.Sprite):
     def __init__(self, game, x, y, orientation = 'L', kind = 'wood', name = 'generic', locked = False):
         self.game = game
-        self._layer = self.game.wall_layer
+        self._layer = self.game.map.items_layer
         self.groups = game.all_sprites, game.entryways
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game.group.add(self)
@@ -4239,7 +4186,7 @@ class Entryway(pg.sprite.Sprite):
 class ElectricDoor(pg.sprite.Sprite): # Used for fires and other stationary animated sprites
     def __init__(self, game, x, y, w, h, locked = False):
         self.game = game
-        self._layer = self.game.bullet_layer
+        self._layer = self.game.map.bullet_layer
         self.image_list = self.game.electric_door_images
         self.groups = game.all_sprites, game.entryways, game.lights, game.electric_doors
         pg.sprite.Sprite.__init__(self, self.groups)
@@ -4337,9 +4284,9 @@ class Explosion(pg.sprite.Sprite):
         self.game = game
         self.sky = sky
         if self.sky:
-            self._layer = self.game.sky_layer
+            self._layer = self.game.map.sky_layer
         else:
-            self._layer = self.game.bullet_layer
+            self._layer = self.game.map.bullet_layer
         self.groups = game.all_sprites, game.explosions, game.lights
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game.group.add(self)
@@ -4414,9 +4361,9 @@ class Fireball(pg.sprite.Sprite):
         self.game = game
         self.sky = sky
         if self.sky:
-            self._layer = self.game.sky_layer
+            self._layer = self.game.map.sky_layer
         else:
-            self._layer = self.game.mob_layer
+            self._layer = self.game.map.mob_layer
         self.mother = mother
         self.enemy = enemy
         if self.enemy:
@@ -4517,7 +4464,7 @@ class FirePot(pg.sprite.Sprite):
 class Spell_Animation(pg.sprite.Sprite):
     def __init__(self, game, kind, pos, rot, source_vel = None, damage = 0, knockback = 0, lifetime = 1000, speed = 0, after_effect = None, loop = False):
         self.game = game
-        self._layer = self.game.effects_layer
+        self._layer = self.game.map.effects_layer
         self.groups = game.all_sprites
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game.group.add(self)
@@ -4576,7 +4523,7 @@ class Spell_Animation(pg.sprite.Sprite):
 class Portal(pg.sprite.Sprite):
     def __init__(self, game, obj_center, coordinate, location):
         self.game = game
-        self._layer = self.game.effects_layer
+        self._layer = self.game.map.effects_layer
         self.coordinate = coordinate
         self.location = location
         self.center = obj_center
@@ -4620,7 +4567,7 @@ class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animate
         self.game = game
         under = False
         if 'tree' in name:
-            self._layer = self.game.roof_layer
+            self._layer = self.game.map.trees_layer
         elif 'block' in name or name == 'dirt':
             for i in UNDERWORLD:
                 if i in map:
@@ -4628,9 +4575,9 @@ class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animate
             if under:
                 self._layer = 0
             else:
-                self._layer = self.game.wall_layer
+                self._layer = self.game.map.items_layer
         else:
-            self._layer = self.game.wall_layer
+            self._layer = self.game.map.items_layer
         self.w = w
         self.h = h
         self.map = map
@@ -5145,7 +5092,7 @@ class Detector(pg.sprite.Sprite): # Used to rest in
 class Target(pg.sprite.Sprite): # Used for fires and other stationary animated sprites
     def __init__(self, game, x = 0, y = 0):
         self.game = game
-        self._layer = self.game.wall_layer
+        self._layer = self.game.map.items_layer
         self.groups = game.all_static_sprites, game.random_targets
         self.rect_size = 60
         pg.sprite.Sprite.__init__(self, self.groups)

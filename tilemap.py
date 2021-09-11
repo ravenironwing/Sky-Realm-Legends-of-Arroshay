@@ -42,8 +42,77 @@ class TiledMap:
         #self.overlay = MapOverlay(tm)
         map_data = pyscroll.data.TiledMapData(self.tmxdata)
         self.map_layer = pyscroll.BufferedRenderer(map_data, (self.game.screen_width, self.game.screen_height), clamp_camera=True)
+        for i, layer in enumerate(self.tmxdata.visible_layers):
+            if layer.name == 'Base Layer':
+                self.base_layer = i
+            elif layer.name == 'Rounded Corners':
+                self.ocean_plants_layer = i
+            elif layer.name == 'Water':
+                self.water_layer = i
+            elif layer.name == 'Plants Waves Rivers':
+                self.river_layer = i
+            elif layer.name == 'Trees':
+                self.trees_layer = i
+        self.items_layer = self.river_layer
+        self.mob_layer = self.river_layer
+        self.player_layer = self.river_layer
+        self.vehicle_layer = self.river_layer + 1
+        self.bullet_layer = self.river_layer + 2
+        self.effects_layer = self.river_layer + 5
+        self.sky_layer = self.river_layer + 6
+        self.walls = []
+        self.tile_props = []
+        self.set_map_tiles_props()
+
         #self.overlay = self.generate_over_layer()
         #self.minimap = MiniMap(tm)
+
+    def set_map_tiles_props(self):
+        self.walls = []
+        self.tile_props = []
+        for y in range(0, self.tiles_high):
+            wall_row = []
+            props_row = []
+            for x in range(0, self.tiles_wide):
+                tile_rect, tile_props = self.get_tile_props(x, y)
+                wall_row.append(tile_rect)
+                props_row.append(tile_props)
+            self.tile_props.append(props_row)
+            self.walls.append(wall_row)
+
+    def update_tile_props(self, x, y):
+        tile_rect, tile_props = self.get_tile_props(x, y)
+        self.tile_props[y][x] = tile_props
+        self.walls[y][x] = tile_rect
+
+    def get_tile_props(self, x, y):
+        tile_props = {}
+        tile_props['material'] = ''
+        tile_props['wall'] = ''
+        tile_props['plant'] = ''
+        tile_props['plant layer'] = self.river_layer
+        tile_props['harvest'] = ''
+        tile_props['tree'] = ''
+        tile_rect = False
+
+        layers = [self.trees_layer, self.river_layer, self.ocean_plants_layer, self.water_layer, self.base_layer]
+        for layer in layers:
+            props = self.tmxdata.get_tile_properties(x, y, layer)
+            if props != None:
+                if 'wall' in props:
+                    tile_props['wall'] = props['wall']
+                    tile_rect = pg.Rect(x * self.tile_size, y * self.tile_size, self.tile_size, self.tile_size)
+                if 'material' in props:
+                    tile_props['material'] = props['material']
+                    break
+                if 'plant' in props:
+                    tile_props['plant'] = props['plant']
+                    tile_props['plant layer'] = layer
+                    if 'harvest' in props:
+                        tile_props['harvest'] = props['harvest']
+                if 'tree' in props:
+                    tile_props['tree'] = props['tree']
+        return tile_rect, tile_props
 
     def toggle_visible_layers(self):
         if self.game.player_inside:

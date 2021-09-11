@@ -625,31 +625,26 @@ class Game:
         self.tree_images = {}
         self.breakable_images = {}
         for kind in BREAKABLE_IMAGES:
-            if 'tree' not in kind:
-                temp_list = []
-                for i, picture in enumerate(BREAKABLE_IMAGES[kind]):
-                    img = pg.image.load(path.join(breakable_folder, BREAKABLE_IMAGES[kind][i])).convert_alpha()
-                    temp_list.append(img)
-                self.breakable_images[kind] = temp_list
-            else:
-                temp_list = []
-                temp_list2 = []
-                temp_list3 = []
-                temp_list4 = []
-                for i, picture in enumerate(BREAKABLE_IMAGES[kind]):
-                    img = pg.image.load(path.join(breakable_folder, BREAKABLE_IMAGES[kind][i])).convert_alpha()
-                    scaled_image = pg.transform.scale(img, (TREE_SIZES['sm'], TREE_SIZES['sm']))
-                    temp_list.append(scaled_image)
-                    scaled_image = pg.transform.scale(img, (TREE_SIZES['md'], TREE_SIZES['md']))
-                    temp_list2.append(scaled_image)
-                    scaled_image = pg.transform.scale(img, (TREE_SIZES['lg'], TREE_SIZES['lg']))
-                    temp_list3.append(scaled_image)
-                    scaled_image = pg.transform.scale(img, (TREE_SIZES['xl'], TREE_SIZES['xl']))
-                    temp_list4.append(scaled_image)
-                self.tree_images['sm' + kind] = temp_list
-                self.tree_images['md' + kind] = temp_list2
-                self.tree_images['lg' + kind] = temp_list3
-                self.tree_images['xl' + kind] = temp_list4
+            temp_list = []
+            for i, picture in enumerate(BREAKABLE_IMAGES[kind]):
+                img = pg.image.load(path.join(breakable_folder, BREAKABLE_IMAGES[kind][i])).convert_alpha()
+                temp_list.append(img)
+            self.breakable_images[kind] = temp_list
+        for kind in TREES:
+            temp_list = []
+            temp_list2 = []
+            temp_list3 = []
+            for i, picture in enumerate(TREE_IMAGES[kind]):
+                img = pg.image.load(path.join(tree_folder, TREE_IMAGES[kind][i])).convert_alpha()
+                scaled_image = pg.transform.scale(img, (TREE_SIZES['small'], TREE_SIZES['small']))
+                temp_list.append(scaled_image)
+                scaled_image = pg.transform.scale(img, (TREE_SIZES['medium'], TREE_SIZES['medium']))
+                temp_list2.append(scaled_image)
+                scaled_image = pg.transform.scale(img, (TREE_SIZES['large'], TREE_SIZES['large']))
+                temp_list3.append(scaled_image)
+            self.tree_images['small ' + kind] = temp_list
+            self.tree_images['medium ' + kind] = temp_list2
+            self.tree_images['large ' + kind] = temp_list3
 
         self.portal_sheet = pg.image.load(PORTAL_SHEET).convert_alpha()
         self.portal_images = load_spritesheet(self.portal_sheet, 256)

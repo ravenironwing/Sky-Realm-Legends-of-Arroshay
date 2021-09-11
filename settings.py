@@ -69,6 +69,7 @@ door_break_folder = path.join(img_folder, 'door_break_animation')
 bullets_folder = path.join(img_folder, 'bullets')
 fire_folder = path.join(img_folder, 'fire_animation')
 breakable_folder = path.join(img_folder, 'breakable')
+tree_folder = path.join(img_folder, 'trees')
 shock_folder = path.join(img_folder, 'shock_animation')
 electric_door_folder = path.join(img_folder, 'electric_door_animation')
 fireball_folder = path.join(img_folder, 'fireball')
@@ -179,8 +180,17 @@ WING2_OFFSET = (-15, -21)
 MELEE_SIZE = 5
 #WALL_DETECT_DIST = 80
 
-#Misc Sprite Settings
-TREE_SIZES = {'sm': 100, 'md': 200, 'lg': 300, 'xl': 350}
+#Misc Sprite Settings/Stuffs
+TREE_SIZES = {'small': 110, 'medium': 183, 'large': 256}
+TREES = {}
+TREES['dead tree'] = {}
+TREES['green tree'] = {}
+TREES['palm tree'] = {}
+TREES['pine tree'] = {}
+BREAKABLES = {}
+BREAKABLES['empty turtle shell'] = {'break type': 'gradual', 'wobble': False, 'weapon required': ['mace', 'pickaxe', 'axe'], 'animate speed': 50, 'right weapon hit sound': 'rock_hit', 'hit sound': 'rock_hit', 'break sound': 'rocks', 'health': 2, 'damage': 0, 'knockback': 0, 'protected': False, 'random drop number': True, 'items': {'turtle shell plate':12}, 'min drop': 4, 'rare items': ['bluefish']}
+
+
 DOOR_STYLES = {}
 DOOR_STYLES['wood'] = {'image': 0, 'hp': 500}
 DOOR_STYLES['heavy'] = {'image': 1, 'hp': 1000}
@@ -251,6 +261,15 @@ for breakable in BREAKABLES:
         filename = breakable + '{}.png'.format(i)
         temp_list.append(filename)
     BREAKABLE_IMAGES[breakable] = temp_list
+
+TREE_IMAGES = {}
+for tree in TREES:
+    temp_list = []
+    number_of_files = len([name for name in os.listdir(tree_folder) if tree in name if os.path.isfile(os.path.join(tree_folder, name))])
+    for i in range(0, number_of_files):
+        filename = tree + '{}.png'.format(i)
+        temp_list.append(filename)
+    TREE_IMAGES[tree] = temp_list
 
 SHOCK_IMAGES = []
 number_of_files = len([name for name in os.listdir(shock_folder) if os.path.isfile(os.path.join(shock_folder, name))])
@@ -486,7 +505,7 @@ ZOMBIE_MOAN_SOUNDS = ['brains2.ogg', 'brains3.ogg', 'zombie-roar-1.ogg', 'zombie
                       'zombie-roar-3.ogg', 'zombie-roar-5.ogg', 'zombie-roar-6.ogg', 'zombie-roar-7.ogg']
 ZOMBIE_HIT_SOUNDS = ['splat-15.ogg']
 WRAITH_SOUNDS = ['wraith1.ogg', 'wraith2.ogg', 'wraith3.ogg', 'wraith4.ogg']
-EFFECTS_SOUNDS = {'eat': 'eat.ogg', 'door close': 'door_close.ogg', 'door open': 'door_open.ogg', 'charge': 'charge.ogg', 'bow reload': 'bow reload.ogg', 'level_start': 'Day_1_v2_mod.ogg', 'click': 'click.ogg', 'fanfare': 'fanfare.ogg', 'rustle': 'rustle.ogg', 'pickaxe': 'pickaxe.ogg', 'rocks': 'rocks.ogg', 'rock_hit': 'rock_hit.ogg', 'fart': 'fart.ogg', 'pee': 'pee.ogg', 'toilet': 'toilet.ogg',
+EFFECTS_SOUNDS = {'tree fall': 'tree_fall.ogg', 'chopping wood': 'chopping_wood.ogg', 'eat': 'eat.ogg', 'door close': 'door_close.ogg', 'door open': 'door_open.ogg', 'charge': 'charge.ogg', 'bow reload': 'bow reload.ogg', 'level_start': 'Day_1_v2_mod.ogg', 'click': 'click.ogg', 'fanfare': 'fanfare.ogg', 'rustle': 'rustle.ogg', 'pickaxe': 'pickaxe.ogg', 'rocks': 'rocks.ogg', 'rock_hit': 'rock_hit.ogg', 'fart': 'fart.ogg', 'pee': 'pee.ogg', 'toilet': 'toilet.ogg',
                   'health_up': 'health_pack.ogg', 'casting healing': 'casting_healing.ogg', 'page turn': 'page_turn.ogg',
                   'gun_pickup': 'gun_pickup.ogg', 'jump': 'jump.ogg', 'tank': 'tank.ogg', 'tank engine': 'tank_engine.ogg','splash': 'splash.ogg', 'grass': 'grass.ogg', 'swim': 'swim.ogg', 'shallows': 'shallows.ogg', 'climb': 'climb.ogg', 'unlock': 'unlock.ogg', 'lock click': 'lock_click.ogg', 'fire blast': 'fire_blast.ogg', 'knock':
                   'knock.ogg', 'metal hit': 'metal_hit.ogg', 'anvil': 'anvil.ogg', 'scrape': 'scrape.ogg', 'grindstone': 'grindstone.ogg', 'hammering': 'hammering.ogg', 'snore': 'snore.ogg', 'cashregister': 'cashregister.ogg', 'alchemy': 'alchemy.ogg', 'enchant': 'enchant.ogg', 'fire crackle': 'fire_crackling.ogg'}

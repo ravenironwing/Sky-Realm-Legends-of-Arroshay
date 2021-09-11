@@ -4,7 +4,6 @@ from settings import *
 from npcs import *
 from os import path
 import copy
-from interactables import *
 from collections import Counter
 from menu import *
 from vehicles import *
@@ -103,29 +102,38 @@ def check_tree(sprite, x, y):
                     sprite.e_down = False
 
 def harvest_tree(sprite, x, y):
+    size = ""
     if 'large' in sprite.next_tile_props['tree']:
         yi = y - 3
         yf = y + 3
         xi = x - 3
         xf = x + 3
+        size = 'large'
+        name = sprite.next_tile_props['tree'].replace('large ', '')
     elif 'medium' in sprite.next_tile_props['tree']:
         yi = y - 2
         yf = y + 2
         xi = x - 2
         xf = x + 2
+        size = 'medium'
+        name = sprite.next_tile_props['tree'].replace('medium ', '')
     elif 'small' in sprite.next_tile_props['tree']:
         yi = y - 1
         yf = y + 1
         xi = x - 1
         xf = x + 1
+        size = 'small'
+        name = sprite.next_tile_props['tree'].replace('small ', '')
+    sprite.game.channel6.play(sprite.game.effects_sounds['chopping wood'], loops=0)
+    while sprite.game.channel6.get_busy():
+        pass
+    sprite.game.channel6.play(sprite.game.effects_sounds['tree fall'], loops=0)
     for j in range(yi, yf + 1):
         for i in range(xi, xf + 1):
             sprite.game.map.tmxdata.layers[sprite.game.map.trees_layer].data[j][i] = 0
-            if randrange(0, 10) < 6:
-                sprite.game.map.tmxdata.layers[sprite.game.map.river_layer].data[j][i] = gid_with_property(sprite.game.map.tmxdata, 'plant', 'logs')
-            sprite.game.map.update_tile_props(i, j) # Updates properties for tiles that have changed.
+            sprite.game.map.update_tile_props(i, j)  # Updates properties for tiles that have changed.
     sprite.game.map.redraw()
-    set_tile_props(sprite)
+    Falling_Tree(sprite, x, y, xi, xf, yi, yf, name, size)
 
 def gid_with_property(tmxdata, key, value):
     for gid, props in tmxdata.tile_properties.items():
@@ -4562,22 +4570,65 @@ class Portal(pg.sprite.Sprite):
         if self.frame > len(images) - 1:
             self.frame = 0
 
+class Falling_Tree(pg.sprite.Sprite): # animation of trees falling when you chop them down.
+    def __init__(self, sprite, x, y, xi, xf, yi, yf, name, size, rot = 0):
+        self.sprite = sprite
+        self.game = sprite.game
+        self._layer = self.game.map.trees_layer
+        self.name = name
+        self.size = size
+        self.xi = xi
+        self.xf = xf
+        self.yf = yf
+        self.yi = yi
+        self.image_list = self.game.tree_images[self.size + ' ' + self.name]
+        self.groups = self.game.all_sprites, self.game.breakable
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game.group.add(self)
+        self.rot = rot
+        if self.rot:
+            self.image = pg.transform.rotate(self.image_list[0].copy(), self.rot)
+        else:
+            self.image = self.image_list[0].copy()
+        self.center = (x * self.game.map.tile_size + self.game.map.tile_size/2, y * self.game.map.tile_size + self.game.map.tile_size/2)
+        self.rect = self.image.get_rect()
+        self.rect.center = self.center
+        # Animation vars
+        self.animate_speed = 70
+        self.frame = 0
+        self.last_move = 0
+
+    def update(self):
+        now = pg.time.get_ticks()
+        if now - self.last_move > self.animate_speed:
+            self.animate(self.image_list)
+            self.last_move = now
+            if self.rot:
+                self.image = pg.transform.rotate(self.image_list[self.frame], self.rot)
+            else:
+                self.image = self.image_list[self.frame]
+            self.rect.center = self.center
+
+    def animate(self, images):
+        self.frame += 1
+        if self.frame >= len(images) - 1:
+            self.remove_tree()
+
+    def remove_tree(self):
+        for j in range(self.yi, self.yf + 1):
+            for i in range(self.xi, self.xf + 1):
+                if randrange(0, 10) < 4:
+                    self.game.map.tmxdata.layers[self.game.map.river_layer].data[j][i] = gid_with_property(self.game.map.tmxdata, 'plant', 'logs')
+                self.game.map.update_tile_props(i, j)  # Updates properties for tiles that have changed.
+        self.game.map.redraw()
+        set_tile_props(self.sprite)
+        self.kill()
+
 class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animated sprites
     def __init__(self, game, obj_center, w, h, name, map, fixed_rot = None, size = None):
         self.game = game
         under = False
-        if 'tree' in name:
-            self._layer = self.game.map.trees_layer
-        elif 'block' in name or name == 'dirt':
-            for i in UNDERWORLD:
-                if i in map:
-                    under = True
-            if under:
-                self._layer = 0
-            else:
-                self._layer = self.game.map.items_layer
-        else:
-            self._layer = self.game.map.items_layer
+        self._layer = self.game.map.items_layer
         self.w = w
         self.h = h
         self.map = map
@@ -4587,38 +4638,14 @@ class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animate
         self.size = size
         self.name = name
         self.kind =  BREAKABLES[self.name]
-        if 'tree' in self.name:
-            if self.size == None:
-                self.size = choice(['sm', 'md', 'lg', 'xl'])
-            self.image_list = self.game.tree_images[self.size + self.name]
-        elif 'block' in self.name:
-            if len(self.game.breakable_images[self.name]) > 1:
-                self.image_list = self.game.breakable_images[self.name]
-            else:
-                self.image_list = []
-                self.image_list.append(self.game.breakable_images[self.name][0])
-                for i in range(0, 10):
-                    # superimposes the crack images over the ore images.
-                    if i < 5:
-                        temp_image = self.game.breakable_images[self.name][0].copy()
-                        temp_image.blit(self.game.breakable_images['crack'][i], (0, 0))
-                        self.image_list.append(temp_image)
-                    else:
-                        self.image_list.append(self.game.breakable_images['crack'][i])
-                self.game.breakable_images[self.name] = self.image_list
-        else:
-            self.image_list = self.game.breakable_images[self.name]
+        self.image_list = self.game.breakable_images[self.name]
         self.scale_factor = 1
 
         self.groups = game.all_sprites, game.breakable
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game.group.add(self)
         # Image vars
-        if 'block' in self.name:
-            self.rot = 0
-        elif self.name == 'dirt':
-            self.rot = 0
-        elif fixed_rot == None:
+        if fixed_rot == None:
             self.rot = randrange(0, 360)
         else:
             self.rot = fixed_rot
@@ -4626,14 +4653,6 @@ class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animate
         self.rect = self.image.get_rect()
         self.rect.center = self.center
         self.trunk = Obstacle(self.game, x, y, w, h)
-        if self.name in VEIN_LIST: # Makes it so all rocks spawn at a jumpable height.
-            hits = pg.sprite.spritecollide(self.trunk, self.game.elevations, False)
-            if hits:
-                self.trunk.kill()
-                self.trunk = Elevation(self.game, x, y, w, h, hits[0].elevation + 2)
-            else:
-                self.trunk.kill()
-                self.trunk = Elevation(self.game, x, y, w, h, 2)
         self.hit_rect = self.trunk.rect
         self.hit_rect.center = self.trunk.rect.center
         # Animation vars
@@ -4646,7 +4665,6 @@ class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animate
         self.hits = 0
         self.right_hits = 0
         self.hit_weapon = None
-
         self.hit_sound = self.game.effects_sounds[self.kind['hit sound']]
         self.right_hit_sound = self.game.effects_sounds[self.kind['right weapon hit sound']]
         self.break_sound = self.game.effects_sounds[self.kind['break sound']]
@@ -4700,7 +4718,7 @@ class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animate
     def animate_death(self, images):
         self.frame += 1
         if self.frame > len(images) - 2:
-            self.remove_bush()
+            self.remove_breakable()
 
     def animate_hit(self):
         self.frame += 1
@@ -4737,33 +4755,21 @@ class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animate
             if self.hp < 1:
                 self.dead = True
 
-    def remove_bush(self):
+    def remove_breakable(self):
         random_value = randrange(0, 100)  # random number in range [0.0,1.0)
-        if 'tree' not in self.name:
-            for thing in self.items:
-                if self.random_drop_number:
-                    drop_number = randrange(self.min_drop, self.items[thing])
+        for thing in self.items:
+            if self.random_drop_number:
+                drop_number = randrange(self.min_drop, self.items[thing])
+            else:
+                drop_number = self.items[thing]
+            for i in range(0, drop_number):
+                if thing in ANIMALS:
+                    Animal(self.game, self.center.x, self.center.y, self.map, thing)
                 else:
-                    drop_number = self.items[thing]
-                for i in range(0, drop_number):
-                    if thing in ANIMALS:
-                        Animal(self.game, self.center.x, self.center.y, self.map, thing)
-                    else:
-                        for kind in ITEM_TYPE_LIST:
-                            if thing in eval(kind.upper()):
-                                rand_rot = randrange(0, 360)
-                                Dropped_Item(self.game, self.center, kind, thing, rand_rot, True)
-        else: # Wood drops for trees are based on size.
-            for thing in self.items:
-                drop_number = ceil(self.items[thing] * TREE_SIZES[self.size]/TREE_SIZES['lg'])
-                for i in range(0, drop_number):
-                    if thing in ANIMALS:
-                        Animal(self.game, self.center.x, self.center.y, self.map, thing)
-                    else:
-                        for kind in ITEM_TYPE_LIST:
-                            if thing in eval(kind.upper()):
-                                rand_rot = randrange(0, 360)
-                                Dropped_Item(self.game, self.center, kind, thing, rand_rot, True)
+                    for kind in ITEM_TYPE_LIST:
+                        if thing in eval(kind.upper()):
+                            rand_rot = randrange(0, 360)
+                            Dropped_Item(self.game, self.center, kind, thing, rand_rot, True)
 
         if None not in self.rare_items:
             if random_value < 5: # Chance of getting a rare item

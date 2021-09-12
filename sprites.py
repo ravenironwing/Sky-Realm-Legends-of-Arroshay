@@ -12,6 +12,9 @@ from time import perf_counter
 
 vec = pg.math.Vector2
 
+def round_to_base(x, base=90):
+    return base * round(x / base)
+
 def get_tile_pos(sprite):
     return int(sprite.pos.x / sprite.game.map.tile_size), int(sprite.pos.y / sprite.game.map.tile_size)
 
@@ -217,7 +220,7 @@ def get_surrounding_walls(sprite, x_off = 0, y_off = 0):
     y = pos[1] + y_off
     surrounding_tilesxy_list = [((x-1),(y-1)), (x,(y-1)), ((x+1),(y-1)), ((x-1),y), ((x+1),y), ((x-1),(y+1)), (x,(y+1)), ((x+1),(y+1))]
     surrounding_tile_rects = []
-    for tile_pos in surrounding_tilesxy_list: # Gest a list of surrounding wall rects from the walls list.
+    for tile_pos in surrounding_tilesxy_list: # Makes a list of surrounding wall rects from the walls list.
         if sprite.game.map.walls[tile_pos[1]][tile_pos[0]]:
             surrounding_tile_rects.append(sprite.game.map.walls[tile_pos[1]][tile_pos[0]])
     return surrounding_tile_rects
@@ -1213,8 +1216,9 @@ class Body(pg.sprite.Sprite):
                     weapon2_angle = part[2]
                     if self.mother.equipped['blocks']:
                         temp_img = self.game.map.tmxdata.get_tile_image_by_gid(self.mother.block_gid).copy()
+                        temp_img = temp_img.convert_alpha()
                         temp_img = pg.transform.scale(temp_img, (20, 20))
-                        image = pg.transform.rotate(temp_img, self.mother.rot)
+                        image = pg.transform.rotate(temp_img, part[2])
                         temp_rect = image.get_rect()
                         body_surface.blit(image, (rect.centerx - (temp_rect.centerx - part[0]), rect.centery - (temp_rect.centery - part[1])))
                     elif self.mother.equipped['weapons2']:
@@ -2858,10 +2862,11 @@ class Player(pg.sprite.Sprite):
                 if (self.next_tile_props['material'] != self.equipped['blocks']) and (self.next_tile_props['plant'] != self.equipped['blocks']): # Makes sure you're not placing the same block.
                     self.game.effects_sounds['click'].play()
                     props = self.game.map.tmxdata.get_tile_properties_by_gid(self.block_gid)
+                    temp_gid = self.game.map.gid_to_nearest_angle(self.block_gid, self.rot)
                     if 'plant' in props:
-                        self.game.map.tmxdata.layers[self.game.map.river_layer].data[y][x] = self.block_gid
+                        self.game.map.tmxdata.layers[self.game.map.river_layer].data[y][x] = temp_gid
                     else:
-                        self.game.map.tmxdata.layers[self.game.map.base_layer].data[y][x] = self.block_gid
+                        self.game.map.tmxdata.layers[self.game.map.base_layer].data[y][x] = temp_gid
                         self.game.map.tmxdata.layers[self.game.map.ocean_plants_layer].data[y][x] = 0
                         self.game.map.tmxdata.layers[self.game.map.river_layer].data[y][x] = 0
                     self.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.

@@ -1,12 +1,17 @@
 from chests import *
 
 BLOCKS = {}
-BLOCKS['log wall'] = {'craftable': True, 'materials': {'logs':4}, 'weight': 10, 'value': 30}
-BLOCKS['log corner post'] = {'craftable': True, 'materials': {'logs':4}, 'weight': 10, 'value': 30}
-BLOCKS['wood floor'] = {'craftable': True, 'materials': {'logs':2}, 'weight': 10, 'value': 30}
-BLOCKS['wood counter'] = {'craftable': True, 'materials': {'logs':2}, 'weight': 10, 'value': 30}
-BLOCKS['fire pit'] = {'craftable': True, 'materials': {'cut dry wood':4, 'ordinary rock':10}, 'weight': 10, 'value': 5}
-BLOCKS['logs'] = {'weight': 20, 'value': 10}
+BLOCKS['dark chest'] = {'craftable': True, 'materials': {'logs':3, 'iron ingot': 2, 'leather': 1}, 'weight': 5, 'value': 60, 'layer': 'self.game.map.river_layer'}
+BLOCKS['brick wall'] = {'craftable': True, 'materials': {'brick':8}, 'weight': 10, 'value': 30, 'layer': 'self.game.map.base_layer'}
+BLOCKS['log wall'] = {'craftable': True, 'materials': {'logs':4}, 'weight': 10, 'value': 30, 'layer': 'self.game.map.base_layer'}
+BLOCKS['log corner post'] = {'craftable': True, 'materials': {'logs':4}, 'weight': 10, 'value': 30, 'layer': 'self.game.map.base_layer'}
+BLOCKS['wood floor'] = {'craftable': True, 'materials': {'logs':2}, 'weight': 10, 'value': 30, 'layer': 'self.game.map.base_layer'}
+BLOCKS['wood counter'] = {'craftable': True, 'materials': {'logs':2}, 'weight': 5, 'value': 30, 'layer': 'self.game.map.ocean_plants_layer'}
+BLOCKS['work bench'] = {'craftable': True, 'materials': {'wood counter':1, 'table clamp':1}, 'weight': 8, 'value': 60, 'layer': 'self.game.map.ocean_plants_layer'}
+BLOCKS['anvil'] = {'craftable': True, 'materials': {'iron ingots': 15}, 'weight': 50, 'value': 60, 'layer': 'self.game.map.ocean_plants_layer'}
+BLOCKS['fire pit'] = {'craftable': True, 'materials': {'cut dry wood':4, 'ordinary rock':10}, 'weight': 10, 'value': 5, 'layer': 'self.game.map.river_layer'}
+BLOCKS['grass roof'] = {'craftable': True, 'materials': {'dry grass':10}, 'weight': 4, 'value': 30, 'layer': 'self.game.map.trees_layer'}
+BLOCKS['logs'] = {'weight': 20, 'value': 10, 'layer': 'self.game.map.river_layer'}
 
 # Items
 ITEMS = {}
@@ -42,6 +47,7 @@ ITEMS['lock pick'] = {'image': 11, 'hp': 50, 'weight': 0.2, 'forgeable': True, '
 
 # Forgeable
 ITEMS['flint and steel'] = {'image': 150, 'hp': 20, 'weight': 1, 'materials': {'steel ingot': 1, 'flint':1}, 'forgeable': True, 'value': 75}
+ITEMS['table clamp'] = {'image': 150, 'weight': 5, 'materials': {'steel ingot': 3, 'steel rod': 1, 'machine screws': 1}, 'forgeable': True, 'value': 100}
 
 # Craftable
 ITEMS['wood block'] = {'craftable': True, 'material': 'wood', 'image': 27, 'weight': 2.1, 'value': 10, 'materials': {'cut green wood':2}}
@@ -69,7 +75,7 @@ ITEMS['horse bridle'] = {'image': 132, 'weight': 1, 'value': 300}
 ITEMS['ordinary rock'] = {'image': 115, 'weight': 1.5, 'value': 0, 'random drop': 2}
 ITEMS['palm leaf'] = {'image': 137, 'weight': 0.6, 'value': 3}
 ITEMS['pine branch'] = {'image': 138, 'weight': 0.6, 'value': 3}
-ITEMS['brick'] = {'image': 97, 'weight': 1, 'value': 0, 'random drop': 60}
+ITEMS['brick'] = {'image': 97, 'weight': 1, 'value': 0, 'random drop': 60, 'craftable': True, 'materials': {'clay':1}}
 
 # Foods
 ITEMS['barley'] = {'image': 148, 'health': 5, 'stamina': 3, 'hunger': 2, 'weight': 0.6, 'food': True, 'value': 3}

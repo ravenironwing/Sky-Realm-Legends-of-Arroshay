@@ -1439,7 +1439,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
         self.action_keys = [pg.K_f]
         self.spacing = 20  # Spacing between headings
         self.kind = kind
-        if self.kind == 'forge':
+        if self.kind == 'anvil':
             self.heading_list = ['Weapons', 'Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items']  # This is the list of headings
         elif self.kind == 'smelter':
             self.heading_list = ['Items']  # This is the list of headings
@@ -1519,7 +1519,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                 else:
                     self.not_enough_text = True
 
-            elif self.kind == 'forge':
+            elif self.kind == 'anvil':
                 sound = 'anvil'
                 enough = self.check_materials(self.selected_item.text)
 
@@ -1865,7 +1865,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
 
     def list_items(self):
         self.clear_menu()
-        if self.kind == 'forge':
+        if self.kind == 'anvil':
             row = 0
             item_dict = eval(self.item_type.upper())
             for item in item_dict:

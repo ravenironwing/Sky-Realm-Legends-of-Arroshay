@@ -155,7 +155,7 @@ DAY_PERIOD = DAY_LENGTH + NIGHT_LENGTH
 NIGHTFALL_SPEED = 100 # The higher the slower. In ms.
 GAME_HOUR = DAY_PERIOD/24
 
-WORK_STATION_LIST = ['work bench', 'forge', 'enchanter', 'smelter', 'tanning rack', 'grinder', 'cooking fire', 'alchemy lab']
+WORK_STATION_LIST = ['work bench', 'anvil', 'enchanter', 'smelter', 'tanning rack', 'grinder', 'cooking fire', 'alchemy lab']
 
 # Player settings
 PLAYER_HEALTH = 100

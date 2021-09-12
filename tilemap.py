@@ -5,6 +5,8 @@ from os import path
 import pyscroll
 import copy
 import logging
+from pytmx.util_pygame import handle_transformation
+from pytmx import TileFlags
 logger = logging.getLogger('orthographic')
 logger.setLevel(logging.ERROR)
 
@@ -66,6 +68,30 @@ class TiledMap:
 
         #self.overlay = self.generate_over_layer()
         #self.minimap = MiniMap(tm)
+
+    def get_new_rotated_gid(self, gid, hor = False, vert = False, diag = False):
+        tileflags = TileFlags(hor, vert, diag)
+        new_gid = self.tmxdata.register_gid(gid, tileflags)
+        original_image = self.tmxdata.get_tile_image_by_gid(gid)
+        new_image = handle_transformation(original_image, tileflags)
+        if len(self.tmxdata.images) <= new_gid:
+            self.tmxdata.images.append(new_image)
+        else:
+            self.tmxdata.images[new_gid] = new_image
+        props = self.tmxdata.get_tile_properties_by_gid(gid)
+        self.tmxdata.set_tile_properties(new_gid, props)
+        return new_gid
+
+    def gid_to_nearest_angle(self, gid, angle):
+        nearest = 90 * round(angle / 90)
+        if nearest == 90:
+            return gid
+        elif nearest == 180:
+            return self.get_new_rotated_gid(gid, True, False, True)
+        elif nearest == 270:
+            return self.get_new_rotated_gid(gid, True, True, False)
+        elif nearest in [0, 360]:
+            return self.get_new_rotated_gid(gid, False, True, True)
 
     def set_map_tiles_props(self):
         self.walls = []

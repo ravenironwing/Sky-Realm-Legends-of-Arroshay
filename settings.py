@@ -564,7 +564,7 @@ RACE['mechanimadragon'] = {'armor': 40, 'image': 5}
 RACE['whitewraithdragon'] = {'armor': 40, 'image': 7}
 RACE['skeletondragon'] = {'armor': 40, 'image': 6}
 
-EMPTY_INVENTORY = {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}}
+EMPTY_INVENTORY = {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}, 'blocks': {}}
 
 DEFAULT_INVENTORIES = {}
 DEFAULT_INVENTORIES['male osidine'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1, 'Zhara Talisman':1}, 'blocks': {}}

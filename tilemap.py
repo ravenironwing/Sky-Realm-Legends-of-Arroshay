@@ -26,22 +26,17 @@ class MapData: #Used to keep track of what NPCs, animals and objects move to wha
         self.tiledata = None
 
 class TiledMap:
-    def __init__(self, game, filename):
+    def __init__(self, game, map_name):
         self.game = game
-        self.filename = filename
-        tm = pytmx.load_pygame(filename)
-        ov = pytmx.load_pygame(filename)
+        self.filename = path.join(map_folder, map_name)
+        self.name, _ = map_name.split(".")
+        tm = pytmx.load_pygame(self.filename)
         self.width = tm.width * tm.tilewidth
         self.tiles_wide = tm.width
         self.tile_size = tm.tilewidth
         self.height = tm.height * tm.tileheight
         self.tiles_high = tm.height
         self.tmxdata = tm
-        #self.overlay_data = ov
-        #self.image = self.make_map()
-        #self.rect = self.image.get_rect()
-        #self.rect.center = self.game.player.rect.center
-        #self.overlay = MapOverlay(tm)
         map_data = pyscroll.data.TiledMapData(self.tmxdata)
         self.map_layer = pyscroll.BufferedRenderer(map_data, (self.game.screen_width, self.game.screen_height), clamp_camera=True)
         for i, layer in enumerate(self.tmxdata.visible_layers):
@@ -64,6 +59,7 @@ class TiledMap:
         self.sky_layer = self.river_layer + 6
         self.walls = []
         self.tile_props = []
+        self.chests =[[0 for j in range(self.tiles_high)] for i in range(self.tiles_wide)] # Makes an empty 2D array for storing chest locations. Chests will be stored in the array as dictionaries.
         self.set_map_tiles_props()
 
         #self.overlay = self.generate_over_layer()
@@ -128,8 +124,18 @@ class TiledMap:
                 if 'wall' in props:
                     tile_props['wall'] = props['wall']
                     tile_rect = pg.Rect(x * self.tile_size, y * self.tile_size, self.tile_size, self.tile_size)
-                if 'material' in props:
+                if (not tile_props['material']) and ('material' in props): # the not clause makes it so it doesn't assign tiles that have already been assigned, as they must be assigned in order of the layers list.
                     tile_props['material'] = props['material']
+                    chest_found = False
+                    if 'chest' in props['material']:
+                        for chest in CHESTS.keys():
+                            if (chest == (x, y)) and (CHESTS[chest]['map'] == self.name):
+                                if not self.chests[y][x]: # Assigns the chest dictionary to the chest array if it hasn't been assigned yet.
+                                    self.chests[y][x] = CHESTS[chest]
+                                chest_found = True
+                        if not chest_found: # If not chest is found in the chests.py CHESTS then an empty chest is created and the map name assigned.
+                            self.chests[y][x] = copy.deepcopy(EMPTY_CHEST)
+                            self.chests[y][x]['map'] = self.filename
                 if 'plant' in props:
                     tile_props['plant'] = props['plant']
                     tile_props['plant layer'] = layer

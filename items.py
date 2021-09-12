@@ -1,7 +1,7 @@
 from chests import *
 
 BLOCKS = {}
-BLOCKS['dark chest'] = {'craftable': True, 'materials': {'logs':3, 'iron ingot': 2, 'leather': 1}, 'weight': 5, 'value': 60, 'layer': 'self.game.map.river_layer'}
+BLOCKS['chest'] = {'craftable': True, 'materials': {'logs':3, 'iron ingot': 2, 'leather': 1}, 'weight': 5, 'value': 60, 'layer': 'self.game.map.river_layer'}
 BLOCKS['brick wall'] = {'craftable': True, 'materials': {'brick':8}, 'weight': 10, 'value': 30, 'layer': 'self.game.map.base_layer'}
 BLOCKS['log wall'] = {'craftable': True, 'materials': {'logs':4}, 'weight': 10, 'value': 30, 'layer': 'self.game.map.base_layer'}
 BLOCKS['log corner post'] = {'craftable': True, 'materials': {'logs':4}, 'weight': 10, 'value': 30, 'layer': 'self.game.map.base_layer'}
@@ -270,7 +270,7 @@ ITEMS['airship key'] = {'image': 116, 'weight': 0.1, 'value': 10000}
 
 # Generates keys for all chests
 for chest in CHESTS:
-    key_name = chest + " chest key"
+    key_name = CHESTS[chest]['name'] + " key"
     ITEMS[key_name] = {'image': 116, 'weight': 0.1, 'value': 100}
 
 

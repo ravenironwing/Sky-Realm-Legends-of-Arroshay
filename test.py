@@ -1,5 +1,12 @@
-from math import ceil
-def myround(x, base=90):
-    return base * round(x/base)
+dictionary = {}
+dictionary[(1, 0)] = 10
+dictionary[(1, 1)] = 9
+dictionary[(2, 0)] = 8
+dictionary[(0, 2)] = 7
 
-print(myround(320))
+for x in range(0, 6):
+    for y in range(0, 6):
+        for chest in dictionary.keys():
+            if chest == (x, y):
+                print(dictionary[chest])
+

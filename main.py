@@ -399,7 +399,6 @@ class Game:
         # Loads saved upgraded equipment:
         self.people = PEOPLE # Updates NPCs
         self.quests = QUESTS # Updates Quests from save
-        self.chests = CHESTS # Updates chests from dave
         self.key_map = KEY_MAP
         updated_equipment = load_file[8]
         UPGRADED_WEAPONS.update(updated_equipment[0])
@@ -787,7 +786,6 @@ class Game:
         self.saved_companions = []
         self.underworld = False
         self.quests = QUESTS
-        self.chests = CHESTS
         self.key_map = KEY_MAP
         self.bg_music = BG_MUSIC
         self.previous_music = TITLE_MUSIC
@@ -874,7 +872,6 @@ class Game:
         self.fireballs = pg.sprite.Group()
         self.firepits = pg.sprite.Group()
         self.containers = pg.sprite.Group()
-        self.chest_containers = pg.sprite.Group()
         self.bullets = pg.sprite.Group()
         self.enemy_bullets = pg.sprite.Group()
         self.enemy_fireballs = pg.sprite.Group()
@@ -1220,7 +1217,7 @@ class Game:
         pg.display.flip()
         if not self.new_game:
             self.garbage_collect()
-        self.map = TiledMap(self, path.join(map_folder, map))
+        self.map = TiledMap(self, map)
         self.group._map_layer = self.map.map_layer # Sets the map as the Pyscroll group base layer.
         self.camera = Camera(self, self.map.width, self.map.height)
 
@@ -1520,13 +1517,6 @@ class Game:
                 if tile_object.name == 'lava':
                     Lava(self, tile_object.x, tile_object.y,
                              tile_object.width, tile_object.height)
-                if 'chest' in tile_object.name:
-                    spawn_chest = True
-                    for container in self.containers:
-                        if container.name == tile_object.name:
-                            spawn_chest = False
-                    if spawn_chest:
-                        Chest(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height, tile_object.name)
                 if 'bed' in tile_object.name:
                     Bed(self, tile_object.x, tile_object.y,
                              tile_object.width, tile_object.height, tile_object.name)
@@ -1930,7 +1920,7 @@ class Game:
                     if not self.in_loot_menu:
                         self.in_loot_menu = True
                         self.in_menu = True
-                        self.loot_menu = Loot_Menu(self, hits[0])
+                        self.loot_menu = Loot_Menu(self, hits[0].inventory)
                         self.message_text = False
 
             # player melee hits entryway (door)
@@ -1970,29 +1960,32 @@ class Game:
                         self.player.e_down = False
 
             # player hit container
-            hits = pg.sprite.spritecollide(self.player, self.containers, False)
-            if hits:
-                if not hits[0].inventory['locked']:
+            if 'chest' in self.player.next_tile_props['material']:
+                x, y = get_next_tile_pos(self.player)
+                chest = self.map.chests[y][x]
+                if not chest['locked']:
                     self.message_text = True
-                    self.message = pg.key.name(self.key_map['interact']).upper() + ' to open'
+                    self.message = pg.key.name(self.key_map['interact']).upper() + ' to open chest'
                     if self.player.e_down:
                         if not self.in_loot_menu:
-                            if hits[0] in self.chest_containers:
-                                self.effects_sounds['door open'].play()
+                            self.effects_sounds['door open'].play()
                             self.in_loot_menu = True
-                            self.loot_menu = Loot_Menu(self, hits[0])
+                            self.loot_menu = Loot_Menu(self, chest['inventory'])
                         self.message_text = False
                         self.player.e_down = False
                 else:
                     self.message_text = True
-                    self.message = pg.key.name(self.key_map['interact']).upper() + ' to unlock'
-                    if self.player.e_down:
-                        if not self.in_lock_menu:
-                            self.in_lock_menu = self.in_menu = True
-                            self.lock_menu = Lock_Menu(self, hits[0])
-                        self.message_text = False
-                        self.player.e_down = False
-
+                    key_name = chest['name'] + ' key'
+                    if self.player.check_inventory('lock pick') or self.player.check_inventory(key_name):
+                        self.message = pg.key.name(self.key_map['interact']).upper() + ' to unlock chest'
+                        if self.player.e_down:
+                            if not self.in_lock_menu:
+                                self.in_lock_menu = self.in_menu = True
+                                self.lock_menu = Lock_Menu(self, chest, 'chest')
+                            self.message_text = False
+                            self.player.e_down = False
+                    else:
+                        self.message = 'This chest is locked'
 
             # Player is in talking range of NPC
             if True not in [self.message_text, self.in_menu]:

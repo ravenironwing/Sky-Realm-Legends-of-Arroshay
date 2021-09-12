@@ -1655,8 +1655,16 @@ class Player(pg.sprite.Sprite):
             item = item.replace(' M', ' F')
         return add_inventory(self.inventory, item, count)
 
+    def add_two_inventories(self, new_inventory):
+        num_items = 0 # Used for counting looting points.
+        for item_type in new_inventory:
+            for item, count in new_inventory[item_type].items():
+                if self.add_inventory(item, count):
+                    num_items += count
+        return num_items
+
     def check_inventory(self, item, count = 1):
-        return check_inventory(self.inventory)
+        return check_inventory(self.inventory, item, count)
 
     def get_keys(self):
         self.rot_speed = 0
@@ -2662,40 +2670,30 @@ class Player(pg.sprite.Sprite):
                         self.last_cast = now
 
     def check_materials(self, item_type, chosen_item, subtract_materials = True):
-        enough = True
         if 'materials' not in eval(item_type.upper())[chosen_item]:
-            return enough
+            return True
         else:
-            self.count_resources()
             materials_list = eval(item_type.upper())[chosen_item]['materials']
-            for material in materials_list:
-                if material in self.items_numbered:  # Sees if you have any of the required material
-                    if materials_list[material] > self.items_numbered[material]:  # Sees if you have enough of the required material
-                        enough = False
-                else:
-                    enough = False
-            if enough:
+            if self.check_materials_list(materials_list):
                 if subtract_materials:
-                    self.remove_materials(materials_list)
-            return enough
+                    self.subract_material_list(materials_list)
+                    return True
 
-    #def count_resources(self):
-    #    # This block creates a dictionary which includes each type of item in the player's item inventory and how many of each.
-    #    item_counter = Counter(self.game.player.inventory['items'])
-    #    self.items_numbered = {}
-    #    for item in self.inventory['items']:
-    #       if item not in self.items_numbered:
-    #           self.items_numbered[item] = item_counter[item]
+    def subract_material_list(self, materials_list):
+        for item, count in materials_list.items():
+            self.add_inventory(item, -count)
 
-    #def remove_materials(self, materials_list):
-    #    for material in materials_list:
-    #        items_removed = 0
-    #        for number, x in enumerate(self.inventory['items']):
-    #            if x == material:
-    #                if items_removed < materials_list[material]:
-    #                    self.inventory['items'][number] = None
-    #                    items_removed += 1
-    #    self.calculate_weight()
+    def check_materials_list(self, materials_list):
+        for material in materials_list:
+            if material in self.inventory['items']:  # Sees if you have any of the required material
+                if materials_list[material] > self.inventory['items'][material]:  # Sees if you have enough of the required material
+                    return False
+            elif material in self.inventory['blocks']:  # Sees if you have any of the required material
+                if materials_list[material] > self.inventory['blocks'][material]:  # Sees if you have enough of the required material
+                    return False
+            else:
+                return False
+        return True
 
     def use_item(self):
         remove = False

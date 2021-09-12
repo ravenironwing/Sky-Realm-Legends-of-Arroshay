@@ -911,7 +911,7 @@ class Loot_Menu(Inventory_Menu):
         self.loot_sprites = pg.sprite.Group()
         self.action_keys = [pg.K_a, pg.K_s]
         self.exit_keys = [pg.K_e, pg.K_ESCAPE]  # The keys used to enter/exit the menu.
-        self.heading_list = ['Loot', 'Weapons', 'Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items']  # This is the list of headings
+        self.heading_list = ['Loot', 'Weapons', 'Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items', 'Blocks']  # This is the list of headings
         self.item_type = None
         self.container = container
 
@@ -936,12 +936,11 @@ class Loot_Menu(Inventory_Menu):
                     self.game.e_down = False
                     self.running = False
                 if event.key == self.action_keys[0]: # A key Takes all loot
-                    for item_type in ITEM_TYPE_LIST:
-                        for item in self.container.inventory[item_type]:
-                            if item:
-                                if self.game.player.add_inventory(item):
-                                    self.game.player.stats['looting'] += 1
-                    self.container.inventory = copy.deepcopy(EMPTY_INVENTORY)
+                    self.game.player.stats['looting'] += self.game.player.add_two_inventories(self.container)
+                    for item in ITEM_TYPE_LIST: # Empties the inventory.
+                        self.container[item] = {}
+                    self.selected_item = None
+                    self.list_loot()
 
                 if event.key == self.action_keys[1]: # S key Stores items in containers
                     if self.selected_heading.text != 'Loot':
@@ -950,11 +949,9 @@ class Loot_Menu(Inventory_Menu):
                             if self.game.player.equipped[self.item_type] == self.selected_item.text:
                                 self.game.player.equipped[self.item_type] = None
                             # Stores item in container and removes from inventory
-                            for i, item in enumerate(self.game.player.inventory[self.item_type]):
-                                if item == self.selected_item.text:
-                                    add_inventory(self.container.inventory, item, 1)
-                                    self.game.player.add_inventory(item, -1)
-                                    self.selected_item.text = 'None'
+                            add_inventory(self.container, self.selected_item.text, 1)
+                            self.game.player.add_inventory(self.selected_item.text, -1)
+                            self.selected_item.text = 'None'
                             self.list_items()
                     self.clear_item_info()
 
@@ -995,11 +992,11 @@ class Loot_Menu(Inventory_Menu):
                         self.item_type = item.type
                         self.display_item_info(item)
                         if self.mouse_click == (0, 0, 1):
-                            counter = Counter(self.container.inventory[self.item_type])
+                            counter = Counter(self.container[self.item_type])
                             for x in range(0, counter[item.text]):
                                 if self.game.player.add_inventory(item.text, 1):
                                     self.game.player.stats['looting'] += 1
-                                    add_inventory(self.container.inventory, item.text, -1)
+                                    add_inventory(self.container, item.text, -1)
                         self.list_loot()
 
     def list_loot(self):
@@ -1007,12 +1004,12 @@ class Loot_Menu(Inventory_Menu):
         displayed_list = [] # Keeps track of which items have been displayed
         row = 0
         for item_type in ITEM_TYPE_LIST:
-            for item in self.container.inventory[item_type]:
+            for item in self.container[item_type]:
                 if item not in displayed_list:
                     if item:
                         item_name = Text(self, item, default_font, 20, WHITE, 50, 30 * row + 75, "topleft", item_type)
-                        if self.container.inventory[item_type][item] > 1:
-                            item_count = Text(self, str(self.container.inventory[item_type][item]), default_font, 20, WHITE, item_name.rect.right + 10, 30 * row + 75, "topleft")
+                        if self.container[item_type][item] > 1:
+                            item_count = Text(self, str(self.container[item_type][item]), default_font, 20, WHITE, item_name.rect.right + 10, 30 * row + 75, "topleft")
                             self.item_tags_sprites.add(item_count)
                         row += 1
                         displayed_list.append(item)
@@ -1047,8 +1044,8 @@ class Loot_Menu(Inventory_Menu):
         self.game.player.current_weapon2 = self.game.player.equipped['weapons2']
         self.game.player.calculate_fire_power()
         self.game.player.calculate_perks()
-        if self.container in self.game.corpses:
-            self.container.check_empty()
+        #if self.container in self.game.corpses:
+        #    self.container.check_empty()
         self.game.beg = perf_counter() # resets the counter so dt doesn't get messed up.
         del self
 
@@ -1078,36 +1075,34 @@ class Loot_Menu(Inventory_Menu):
 
 
 class Lock_Menu():
-    def __init__(self, game, lock):
+    def __init__(self, game, lock, kind):
         spacing = 20
         self.game = game
         self.lock = lock
-        if self.lock.kind == 'chest':
-            self.key_name = self.lock.name + ' chest key'
-        else:
-            self.key_name = self.lock.name + ' key'
+        self.kind = kind
+        if self.kind == 'chest':
+            self.key_name = self.lock['name'] + ' key'
         self.menu_sprites = pg.sprite.Group()
         self.keyway_sprite = pg.sprite.Group()
         self.running = True
         self.key_unlocked = False
         self.lock_radius = self.game.lock_image.get_width() / 2
-        if not self.lock.inventory['locked']: # Guards against bugs that might trigger the lock menu for unlocked chests
+        if not self.lock['locked']: # Guards against bugs that might trigger the lock menu for unlocked chests
             self.running = False
         if self.game.player.check_inventory(self.key_name, 1):
             self.key_unlocked = True
-            self.lock.inventory['locked'] = False
-            self.lock.locked = False
+            self.lock['locked'] = False
             self.game.effects_sounds['unlock'].play()
             self.game.player.stats['lock picking'] += 2
             self.keyway = Lock_Keyway(self.game, self, True)
             self.keyway.turn = True
-            self.label_menu = Text(self, "It looks like you have the right key.", default_font, 30, WHITE, 30, 10, "topleft")
+            self.label_menu = Text(self, "It looks like you have the right key.", default_font, 15, WHITE, 30, 10, "topleft")
         elif self.game.player.check_inventory('lock pick', 1): # sees if you have a lock pick of any type in your inventory.
             self.keyway = Lock_Keyway(self.game, self)
             self.pick = Lock_Pick(self.game, self)
-            self.label_menu = Text(self, "Pick Lock: Use W/S to move lock pick and SPACE to try to open the lock.", default_font, 30, WHITE, 30, 10, "topleft")
+            self.label_menu = Text(self, "Pick Lock: Use W/S to move lock pick and SPACE to try to open the lock.", default_font, 15, WHITE, 30, 10, "topleft")
         else:
-            self.label_menu = Text(self, 'You need a key or lock pick to open this lock!', default_font, 30, WHITE, 30, 100, "topleft")
+            self.label_menu = Text(self, 'You need a key or lock pick to open this lock!', default_font, 15, WHITE, 30, 100, "topleft")
         self.menu_sprites.add(self.label_menu)
         self.broken = False
         pg.mixer.music.stop() # Music is annoying while picking locks.
@@ -1149,12 +1144,12 @@ class Lock_Menu():
         self.keyway_sprite.draw(self.game.screen)
         self.menu_sprites.draw(self.game.screen)
         if self.key_unlocked:
-            self.draw_text("You unlocked the lock with the key.", default_font, 60, WHITE, 120, int(self.game.screen_height * 3/4), "topleft")
-        elif not self.lock.inventory['locked']:
-            self.draw_text("You successfully picked the lock!", default_font, 60, WHITE, 120, int(self.game.screen_height * 3/4), "topleft")
+            self.draw_text("You unlocked the lock with the key.", default_font, 30, WHITE, 120, int(self.game.screen_height * 3/4), "topleft")
+        elif not self.lock['locked']:
+            self.draw_text("You successfully picked the lock!", default_font, 30, WHITE, 120, int(self.game.screen_height * 3/4), "topleft")
         if self.broken:
-            self.draw_text("You broke your lock pick!", default_font, 60, WHITE, 120, int(self.game.screen_height * 3/4), "topleft")
-        self.draw_text("Right Click to Select Menu    E: Exit menu", default_font, 20, WHITE, 10, self.game.screen_height - 40, "topleft")
+            self.draw_text("You broke your lock pick!", default_font, 30, WHITE, 120, int(self.game.screen_height * 3/4), "topleft")
+        self.draw_text("E: Exit menu", default_font, 20, WHITE, 10, self.game.screen_height - 40, "topleft")
         pg.display.flip()
 
     def draw_text(self, text, font_name, size, color, x, y, align="topleft"):
@@ -1183,12 +1178,12 @@ class Lock_Pick(pg.sprite.Sprite):
         self.pos = vec(0, self.rect.center[1])
         self.rot = 0
         self.rot_speed = 0
-        self.combo = self.mother.lock.inventory['combo']
-        self.difficulty = self.mother.lock.inventory['difficulty']
+        self.combo = self.mother.lock['combo']
+        self.difficulty = self.mother.lock['difficulty']
         self.move = False
         self.last_move = 0
         self.hp = 25
-        self.toggle = 5
+        self.toggle = 2
         self.y_offset = 0
         if self.game.player.check_inventory('lock pick', 1):
             self.selected_pick = 'lock pick'
@@ -1205,6 +1200,7 @@ class Lock_Pick(pg.sprite.Sprite):
             self.move = True
         if keys[pg.K_SPACE]:
             self.toggle = -self.toggle
+            self.mother.keyway.jiggle = True
             self.pick()
         if self.move:
             now = pg.time.get_ticks()
@@ -1225,8 +1221,8 @@ class Lock_Pick(pg.sprite.Sprite):
             choice(self.game.lock_picking_sounds).play()
             self.mother.keyway.kill()
             self.kill()
-        working, self.selected_pick = self.game.player.change_used_item('items', self.selected_pick, True) # Makes it so the lock pick wears out.
-        if working:
+        #working, self.selected_pick = self.game.player.change_used_item('items', self.selected_pick, True) # Makes it so the lock pick wears out.
+        if True:
             if abs(self.rot - self.combo) <= self.difficulty:
                 self.mother.keyway.turn = True
             else:
@@ -1250,8 +1246,7 @@ class Lock_Pick(pg.sprite.Sprite):
 
     def update(self):
         if self.mother.keyway.open:
-            self.mother.lock.inventory['locked'] = False
-            self.mother.lock.locked = False
+            self.mother.lock['locked'] = False
             self.game.effects_sounds['unlock'].play()
             self.game.player.stats['lock picking'] += 20 / self.difficulty
             self.kill()
@@ -1281,11 +1276,26 @@ class Lock_Keyway(pg.sprite.Sprite):
             self.image_orig = self.game.lock_keyway_image
         self.image = self.image_orig.copy()
         self.rect = self.image.get_rect()
-        self.rect.center = (self.game.screen_width/2 - 2, self.game.screen_height/2 + 17)
+        self.rect.center = (self.game.screen_width/2 - 1, self.game.screen_height/2 + 8)
         self.rot = 0
         self.last_frame = 0
         self.turn = False
+        self.jiggle = False
+        self.jiggle_down = True
         self.open = False
+
+    def false_set(self):
+        if self.jiggle_down:
+            if self.rot > -8:
+                self.rot -= 1
+            else:
+                self.jiggle_down = False
+        else:
+            if self.rot < 0:
+                self.rot += 1
+            else:
+                self.jiggle_down = True
+                self.jiggle = False
 
     def animate(self):
         if self.rot > -90:
@@ -1301,6 +1311,10 @@ class Lock_Keyway(pg.sprite.Sprite):
             if now - self.last_frame > 1:
                 self.last_fram = now
                 self.animate()
+        elif self.jiggle:
+            if now - self.last_frame > 20:
+                self.last_fram = now
+                self.false_set()
         self.image = pg.transform.rotate(self.game.lock_pick_image, self.rot)
         new_image = pg.transform.rotate(self.image_orig, self.rot)
         old_center = self.rect.center
@@ -1789,7 +1803,6 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
             makeorupgrade = 'materials'
         else:
             makeorupgrade = 'upgrade'
-        enough = True
         if 'aetherial' in chosen_item: # Only lets wraiths craft aetherial armor
             if 'wraith' not in self.game.player.equipped['race']:
                 return False
@@ -1806,16 +1819,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
             self.materials_list = ENCHANTMENTS[chosen_item][makeorupgrade]
         else:
             self.materials_list = eval(self.item_type.upper())[chosen_item][makeorupgrade]
-        for material in self.materials_list:
-            if material in self.game.player.inventory['items']:  # Sees if you have any of the required material
-                if self.materials_list[material] > self.game.player.inventory['items'][material]:  # Sees if you have enough of the required material
-                    enough = False
-            elif material in self.game.player.inventory['blocks']:  # Sees if you have any of the required material
-                if self.materials_list[material] > self.game.player.inventory['blocks'][material]:  # Sees if you have enough of the required material
-                    enough = False
-            else:
-                enough = False
-        return enough
+        return self.game.player.check_materials_list(self.materials_list)
 
 
     def events(self):
@@ -2298,12 +2302,9 @@ class Dialogue_Menu():
 
 
     def check_inventory(self):
-        for item_type in ITEM_TYPE_LIST:
-            for item in self.game.player.inventory[item_type]:
-                if self.needed_item in item:
-                    if self.game.player.inventory[item_type][item] >= self.needed_item_count:
-                        self.player_has_item = True
-                        return True
+        if self.game.player.check_inventory(self.needed_item, self.needed_item_count):
+            self.player_has_item = True
+            return True
 
     def action(self):
         if 'summon' in self.game.quests[self.previous_quest]['action']:

@@ -8,7 +8,7 @@ from collections import Counter
 from menu import *
 from vehicles import *
 from math import ceil
-from time import perf_counter
+from time import perf_counter, sleep
 
 vec = pg.math.Vector2
 
@@ -58,8 +58,108 @@ def set_tile_props(sprite): # sets a variable that keeps track of the important 
     # sets tile props for next tile. This is used for interacting with things that are in front of sprites like workstations or plants.
     next_x, next_y = get_next_tile_pos(sprite)
     sprite.next_tile_props = sprite.game.map.tile_props[next_y][next_x]
+    check_tile_hits(sprite)
     check_harvest(sprite, x, y, next_x, next_y)
     check_tree(sprite, next_x, next_y)
+
+def check_tile_hits(sprite):
+    # player hit container/chest
+    if 'chest' in sprite.next_tile_props['material']:
+        if not sprite.npc:
+            x, y = get_next_tile_pos(sprite)
+            chest = sprite.game.map.chests[y][x]
+            if not chest['locked']:
+                sprite.game.message_text = True
+                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to open chest'
+                if sprite.e_down:
+                    if not sprite.game.in_loot_menu:
+                        sprite.game.effects_sounds['door open'].play()
+                        sprite.game.in_loot_menu = True
+                        sprite.game.make_loot_menu(chest['inventory'])
+                    sprite.game.message_text = False
+                    sprite.e_down = False
+            else:
+                sprite.game.message_text = True
+                key_name = chest['name'] + ' key'
+                if sprite.check_inventory('lock pick') or sprite.check_inventory(key_name):
+                    sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to unlock chest'
+                    if sprite.e_down:
+                        if not sprite.game.in_lock_menu:
+                            sprite.game.in_lock_menu = sprite.game.in_menu = True
+                            sprite.game.make_lock_menu(chest, 'chest')
+                        sprite.game.message_text = False
+                        sprite.e_down = False
+                else:
+                    sprite.game.message = 'This chest is locked'
+
+    # player hits work station (forge, grinder, work bench, etc)
+    elif (sprite.next_tile_props['material'] in WORK_STATION_LIST) or (sprite.tile_props['material'] in WORK_STATION_LIST):
+        if sprite.next_tile_props['material'] in WORK_STATION_LIST:
+            sprite.game.station_type = sprite.next_tile_props['material']
+        else:
+            sprite.game.station_type = sprite.tile_props['material']
+        if not sprite.npc:
+            sprite.game.message_text = True
+            sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to use ' + sprite.game.station_type
+            if sprite.e_down:
+                sprite.game.in_station_menu = True
+                sprite.game.in_menu = True
+                sprite.game.make_work_station_menu(sprite.game.station_type)
+                sprite.game.message_text = False
+                sprite.e_down = False
+
+    elif 'bed' in sprite.tile_props['material']:
+        if not sprite.npc:
+            sprite.game.message_text = True
+            sprite.game.message = 'Press ' + pg.key.name(sprite.game.key_map['interact']).upper() + ' to sleep in bed.'
+        if sprite.e_down:
+            sprite.sleep_in_bed()
+            sprite.game.message_text = False
+            sprite.e_down = False
+
+    elif 'toilet' in sprite.tile_props['material']:
+        sprite.game.message_text = True
+        sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to use toilet'
+        if sprite.e_down:
+            sprite.use_toilet()
+            sprite.game.message_text = False
+            sprite.e_down = False
+
+    elif 'lava' in sprite.tile_props['material'] and not (sprite.jumping or sprite.flying):
+        sprite.gets_hit(20, 0, 0)
+        now = pg.time.get_ticks()
+        if now - sprite.last_fire > 300:
+            sprite.game.effects_sounds['fire blast'].play()
+            Stationary_Animated(sprite.game, sprite.pos, 'fire', 3000)
+            sprite.last_fire = now
+
+    elif 'electric door' in sprite.tile_props['material']:
+        if sprite.race not in ['mechanima', 'mechanima dragon', 'mech_suit']:
+            sprite.gets_hit(15, 0, 50)
+            now = pg.time.get_ticks()
+            if now - sprite.last_fire > 300:
+                sprite.game.effects_sounds['fire blast'].play()
+                Stationary_Animated(sprite.game, sprite.pos, 'fire', 3000)
+                sprite.last_fire = now
+        else:
+            sprite.add_health(0.02)
+
+    elif 'charger' in sprite.tile_props['material']:
+        if 'mechanima' in sprite.race:
+            now = pg.time.get_ticks()
+            if now - sprite.last_charge > 1000:
+                sprite.game.last_charge = now
+                if sprite.possessing:
+                    if sprite.possessing.race == 'mech_suit':
+                        sprite.possessing.add_health(4)
+                else:
+                    sprite.add_health(4)
+                    try:
+                        sprite.add_magica(4)
+                        sprite.add_stamina(4)
+                    except:
+                        pass
+
 
 def check_harvest(sprite, x, y, next_x, next_y):
     def check(sprite, x, y, props):
@@ -198,22 +298,6 @@ def color_image(image, color):
     temp_image.blit(color_image, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
     return temp_image
 
-def collide(sprite):
-    sprite.hit_rect.centerx = sprite.pos.x
-    for item in sprite.collide_list:
-            collide_with_walls(sprite, item, 'x')
-    if not (sprite.immaterial or sprite.flying):
-        collide_with_elevations(sprite, 'x')
-        collide_with_vehicles(sprite, 'x')
-
-    sprite.hit_rect.centery = sprite.pos.y
-    for item in sprite.collide_list:
-            collide_with_walls(sprite, item, 'y')
-    if not (sprite.immaterial or sprite.flying):
-        collide_with_elevations(sprite, 'y')
-        collide_with_vehicles(sprite, 'y')
-    sprite.rect.center = sprite.hit_rect.center
-
 def get_surrounding_walls(sprite, x_off = 0, y_off = 0):
     pos = get_tile_pos(sprite)
     x = pos[0] + x_off
@@ -269,66 +353,52 @@ def collide_with_walls(sprite, group, dir):
             sprite.vel.y = 0
             sprite.hit_rect.centery = sprite.pos.y
 
-def players_hit_rect(one, two):
+def moving_target_hit_rect(one, two):
     return one.hit_rect.colliderect(two.hit_rect)
 
-def collide_with_players(sprite, group, dir):
-    hits = pg.sprite.spritecollide(sprite, group, False, collide_hit_rect)
-    if hits:
-        if dir == 'x':
-            if hits[0].hit_rect.centerx > sprite.hit_rect.centerx:  # going right
-                sprite.pos.x = hits[0].hit_rect.left - sprite.hit_rect.width / 2
-            if hits[0].hit_rect.centerx < sprite.hit_rect.centerx:  # going left
-                sprite.pos.x = hits[0].hit_rect.right + sprite.hit_rect.width / 2
-            sprite.vel.x = 0
-            sprite.hit_rect.centerx = sprite.pos.x
-        elif dir == 'y':
-            if hits[0].hit_rect.centery > sprite.hit_rect.centery:  # going down
-                sprite.pos.y = hits[0].hit_rect.top - sprite.hit_rect.height / 2
-            if hits[0].hit_rect.centery < sprite.hit_rect.centery:  # going up
-                sprite.pos.y = hits[0].hit_rect.bottom + sprite.hit_rect.height / 2
-            sprite.vel.y = 0
-            sprite.hit_rect.centery = sprite.pos.y
+def collide_with_moving_targets(sprite):
+    sprite.remove(sprite.game.moving_targets_on_screen)
+    hits = pg.sprite.spritecollide(sprite, sprite.game.moving_targets_on_screen, False, moving_target_hit_rect)
+    if hits and not hits[0].flying:
+        if hits[0].kind != sprite.kind:
+            if hits[0].touch_damage:
+                hits[0].does_melee_damage(sprite)
+        if hits[0] in sprite.game.animals:
+            if not hits[0].occupied:
+                if hits[0] in sprite.game.grabable_animals:
+                    if not sprite.npc:
+                        sprite.game.message_text = True
+                        sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to catch'
+                    if sprite.e_down:
+                        sprite.add_inventory(hits[0].item)
+                        hits[0].kill()
+                        sprite.game.message_text = False
+                        sprite.e_down = False
+                elif hits[0].mountable:
+                    sprite.game.message_text = True
+                    sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to mount, ' + pg.key.name(sprite.game.key_map['dismount']).upper() + ' to dismount'
+                    if sprite.e_down:
+                        hits[0].mount(sprite)
+                        sprite.game.message_text = False
+                        sprite.e_down = False
 
-    """
-    if sprite in sprite.game.vehicles_on_screen:
-        hits = pg.sprite.spritecollide(sprite, group, False, wall_vehicle_collide_hit2_rect)
-        if hits:
-            if dir == 'x':
-                if hits[0].rect.centerx > sprite.hit_rect2.centerx: # Heading Right
-                    sprite.pos.x = hits[0].rect.left - (sprite.hit_rect2.width / 2 + sprite.hrect_offset2.rotate(-sprite.rot).x)
-                if hits[0].rect.centerx < sprite.hit_rect2.centerx: # Heading Left
-                    sprite.pos.x = hits[0].rect.right + sprite.hit_rect2.width / 2 + sprite.hrect_offset2.rotate(-sprite.rot).x
-                sprite.vel.x = 0
-                sprite.hit_rect.centerx = sprite.pos.x
-                sprite.hit_rect2.centerx = sprite.pos.x + sprite.hrect_offset2.rotate(-sprite.rot).x
-            if dir == 'y':
-                if hits[0].rect.centery > sprite.hit_rect2.centery: # Heading down
-                    sprite.pos.y = hits[0].rect.top - (sprite.hit_rect2.height / 2 + sprite.hrect_offset2.rotate(-sprite.rot).y)
-                if hits[0].rect.centery < sprite.hit_rect2.centery: # Heading up
-                    sprite.pos.y = hits[0].rect.bottom + sprite.hit_rect2.height / 2  + sprite.hrect_offset2.rotate(-sprite.rot).y
-                sprite.vel.y = 0
-                sprite.hit_rect.centery = sprite.pos.y
-                sprite.hit_rect2.centery = sprite.pos.y + sprite.hrect_offset2.rotate(-sprite.rot).y
-        hits = pg.sprite.spritecollide(sprite, group, False, wall_vehicle_collide_hit3_rect)
-        if hits:
-            if dir == 'x':
-                if hits[0].rect.centerx > sprite.hit_rect3.centerx:  # Heading Right
-                    sprite.pos.x = hits[0].rect.left - (sprite.hit_rect3.width / 2 + sprite.hrect_offset3.rotate(-sprite.rot).x)
-                if hits[0].rect.centerx < sprite.hit_rect3.centerx:  # Heading Left
-                    sprite.pos.x = hits[0].rect.right + sprite.hit_rect3.width / 2 + sprite.hrect_offset3.rotate(-sprite.rot).x
-                sprite.vel.x = 0
-                sprite.hit_rect.centerx = sprite.pos.x
-                sprite.hit_rect3.centerx = sprite.pos.x + sprite.hrect_offset3.rotate(-sprite.rot).x
-            if dir == 'y':
-                if hits[0].rect.centery > sprite.hit_rect3.centery:  # Heading down
-                    sprite.pos.y = hits[0].rect.top - (sprite.hit_rect3.height / 2 + sprite.hrect_offset3.rotate(-sprite.rot).y)
-                if hits[0].rect.centery < sprite.hit_rect3.centery:  # Heading up
-                    sprite.pos.y = hits[0].rect.bottom + sprite.hit_rect3.height / 2 + sprite.hrect_offset3.rotate(-sprite.rot).y
-                sprite.vel.y = 0
-                sprite.hit_rect.centery = sprite.pos.y
-                sprite.hit_rect3.centery = sprite.pos.y + sprite.hrect_offset3.rotate(-sprite.rot).y
-        """
+        sprite.hit_rect.centerx = sprite.pos.x
+        if hits[0].hit_rect.centerx > sprite.hit_rect.centerx:  # going right
+            sprite.pos.x = hits[0].hit_rect.left - sprite.hit_rect.width / 2
+        if hits[0].hit_rect.centerx < sprite.hit_rect.centerx:  # going left
+            sprite.pos.x = hits[0].hit_rect.right + sprite.hit_rect.width / 2
+        sprite.vel.x = (sprite.vel.x + hits[0].vel.x) / 2
+        sprite.hit_rect.centerx = sprite.pos.x
+        sprite.hit_rect.centery = sprite.pos.y
+        if hits[0].hit_rect.centery > sprite.hit_rect.centery:  # going down
+            sprite.pos.y = hits[0].hit_rect.top - sprite.hit_rect.height / 2
+        if hits[0].hit_rect.centery < sprite.hit_rect.centery:  # going up
+            sprite.pos.y = hits[0].hit_rect.bottom + sprite.hit_rect.height / 2
+        sprite.vel.y = (sprite.vel.y + hits[0].vel.y) / 2
+        sprite.hit_rect.centery = sprite.pos.y
+        sprite.rect.center = sprite.hit_rect.center
+    sprite.add(sprite.game.moving_targets_on_screen)
+
 
 def vehicle_collide_hit_rect(one, two):
     return one.hit_rect.colliderect(two.hit_rect)
@@ -342,68 +412,6 @@ def wall_vehicle_collide_hit2_rect(one, two):
     return one.hit_rect2.colliderect(two.rect)
 def wall_vehicle_collide_hit3_rect(one, two):
     return one.hit_rect3.colliderect(two.rect)
-
-def collide_with_vehicles(sprite, dir):
-    forward = False
-    hits = pg.sprite.spritecollide(sprite, sprite.game.vehicles_on_screen, False, vehicle_collide_any)
-    if hits:
-        if sprite != hits[0]:
-            if hits[0].forward:
-                forward = True
-                sprite.gets_hit(hits[0].damage, 10, sprite.rot -180, 80)
-
-    if not forward:
-        hits = pg.sprite.spritecollide(sprite, sprite.game.vehicles_on_screen, False, vehicle_collide_hit_rect)
-        if hits:
-            if sprite != hits[0]:
-                if dir == 'x':
-                    if hits[0].rect.centerx > sprite.hit_rect.centerx:
-                        sprite.pos.x = hits[0].hit_rect.left - sprite.hit_rect.width / 2
-                    if hits[0].rect.centerx < sprite.hit_rect.centerx:
-                        sprite.pos.x = hits[0].hit_rect.right + sprite.hit_rect.width / 2
-                    sprite.vel.x = 0
-                    sprite.hit_rect.centerx = sprite.pos.x
-                elif dir == 'y':
-                    if hits[0].rect.centery > sprite.hit_rect.centery:
-                        sprite.pos.y = hits[0].hit_rect.top - sprite.hit_rect.height / 2
-                    if hits[0].rect.centery < sprite.hit_rect.centery:
-                        sprite.pos.y = hits[0].hit_rect.bottom + sprite.hit_rect.height / 2
-                    sprite.vel.y = 0
-                    sprite.hit_rect.centery = sprite.pos.y
-        hits = pg.sprite.spritecollide(sprite, sprite.game.vehicles_on_screen, False, vehicle_collide_hit2_rect)
-        if hits:
-            if sprite != hits[0]:
-                if dir == 'x':
-                    if hits[0].rect.centerx > sprite.hit_rect.centerx:
-                        sprite.pos.x = hits[0].hit_rect2.left - sprite.hit_rect.width / 2
-                    if hits[0].rect.centerx < sprite.hit_rect.centerx:
-                        sprite.pos.x = hits[0].hit_rect2.right + sprite.hit_rect.width / 2
-                    sprite.vel.x = 0
-                    sprite.hit_rect.centerx = sprite.pos.x
-                elif dir == 'y':
-                    if hits[0].rect.centery > sprite.hit_rect.centery:
-                        sprite.pos.y = hits[0].hit_rect2.top - sprite.hit_rect.height / 2
-                    if hits[0].rect.centery < sprite.hit_rect.centery:
-                        sprite.pos.y = hits[0].hit_rect2.bottom + sprite.hit_rect.height / 2
-                    sprite.vel.y = 0
-                    sprite.hit_rect.centery = sprite.pos.y
-        hits = pg.sprite.spritecollide(sprite, sprite.game.vehicles_on_screen, False, vehicle_collide_hit3_rect)
-        if hits:
-            if sprite != hits[0]:
-                if dir == 'x':
-                    if hits[0].rect.centerx > sprite.hit_rect.centerx:
-                        sprite.pos.x = hits[0].hit_rect3.left - sprite.hit_rect.width / 2
-                    if hits[0].rect.centerx < sprite.hit_rect.centerx:
-                        sprite.pos.x = hits[0].hit_rect3.right + sprite.hit_rect.width / 2
-                    sprite.vel.x = 0
-                    sprite.hit_rect.centerx = sprite.pos.x
-                elif dir == 'y':
-                    if hits[0].rect.centery > sprite.hit_rect.centery:
-                        sprite.pos.y = hits[0].hit_rect3.top - sprite.hit_rect.height / 2
-                    if hits[0].rect.centery < sprite.hit_rect.centery:
-                        sprite.pos.y = hits[0].hit_rect3.bottom + sprite.hit_rect.height / 2
-                    sprite.vel.y = 0
-                    sprite.hit_rect.centery = sprite.pos.y
 
 def collide_with_elevations(sprite, dir):
     xwall = False
@@ -1500,6 +1508,8 @@ class Player(pg.sprite.Sprite):
         self.last_magica_drain = 0
         self.last_hunger = 0
         self.last_fireball = 0
+        self.last_fire = 0
+        self.last_charge = 0
         self.melee_playing = False
         self.dual_melee = False
         self.is_reloading = False
@@ -1981,8 +1991,8 @@ class Player(pg.sprite.Sprite):
             self.pos += (self.vel +0.5 * self.acc) * self.game.dt
             if not self.in_vehicle:
                 if ('wraith' not in self.race) or self.stats['weight'] !=0:
-                    if self.vel.magnitude() > 0:
-                        collide_with_tile_walls(self)
+                    collide_with_tile_walls(self)
+                    collide_with_moving_targets(self)
             if self.light_on:
                 if self in self.game.lights:
                     if self.race == 'mechanima':
@@ -2000,7 +2010,6 @@ class Player(pg.sprite.Sprite):
             else:
                 self.light_mask_rect.center = (-2000, -2000) # Moves light off screen when off
             self.check_map_pos() # Used for changing to a new map when you get pass over the edge.
-
             set_tile_props(self)
 
     def transform(self):
@@ -3148,6 +3157,24 @@ class Player(pg.sprite.Sprite):
                 if self.stats['magica'] < 0:
                     self.stats['magica'] = 0
 
+    def use_toilet(self):
+        self.add_health(5)
+        self.add_stamina(30)
+        self.add_hunger(-4)
+        toilet_sounds = ['fart', 'pee']
+        self.game.effects_sounds[choice(toilet_sounds)].play()
+        sleep(2)
+        self.game.effects_sounds['toilet'].play()
+        self.game.beg = perf_counter() # resets dt
+
+    def sleep_in_bed(self):
+        if not self.npc:
+            self.game.sleep_in_bed()
+        else: # I will add a sleeping animation later.
+            self.add_health(50)
+            self.add_stamina(50)
+            self.add_magica(50)
+
 class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
     def __init__(self, sprite):
         self.sprite = sprite
@@ -3174,6 +3201,7 @@ class Animal(pg.sprite.Sprite):
         self.kind = self.cat = ANIMALS[species]
         self.name = self.kind['name']
         self.protected = self.kind['protected']
+        self.npc = True
         if 'flying' in self.kind.keys():
             self.flying = self.kind['flying']
         else:
@@ -3258,6 +3286,8 @@ class Animal(pg.sprite.Sprite):
         self.melee_rate = 800
         self.last_move = 0
         self.last_wall_hit = 0
+        self.last_fire = 0
+        self.last_charge = 0
         self.last_target_seek = 0
         self.hit_wall = False
         self.living = True
@@ -3327,6 +3357,12 @@ class Animal(pg.sprite.Sprite):
                     self.run_image_list = self.old_run_image_list
                     self.walk_image_list = self.old_walk_image_list
             self._in_grass = value
+
+    def use_toilet(self):
+        pass
+
+    def sleep_in_bed(self):
+        pass
 
     def avoid_mobs(self):
         for mob in self.game.mobs_on_screen:
@@ -3554,21 +3590,21 @@ class Animal(pg.sprite.Sprite):
                     self.selected_image_list = self.run_image_list
 
                 # This part makes the animal avoid walls
-                if self.climbing:
-                    hits = pg.sprite.spritecollide(self, self.game.walls_on_screen, False) + pg.sprite.spritecollide(self, self.game.shallows_on_screen, False)
-                else:
-                    hits = pg.sprite.spritecollide(self, self.game.barriers_on_screen, False) + pg.sprite.spritecollide(self, self.game.shallows_on_screen, False) # This part makes the animal avoid walls
-                if hits:
-                    self.hit_wall = True
-                    now = pg.time.get_ticks()
-                    if now - self.last_wall_hit > randrange(300, 1000):
-                        self.animate(self.selected_image_list)
-                        self.last_wall_hit = now
-                        if random() < 0.5:
-                            self.rotate_direction = choice([-1, 0, 1])
-                    self.rot += (3 * (self.walk_speed / self.width) * self.rotate_direction) % 360
-                    self.avoid_mobs()
-                    self.accelerate(self.walk_speed)
+                #if self.climbing:
+                #    hits = pg.sprite.spritecollide(self, self.game.walls_on_screen, False)
+                #else:
+                #    hits = pg.sprite.spritecollide(self, self.game.barriers_on_screen, False)# This part makes the animal avoid walls
+                #if hits:
+                #    self.hit_wall = True
+                #    now = pg.time.get_ticks()
+                #    if now - self.last_wall_hit > randrange(300, 1000):
+                #        self.animate(self.selected_image_list)
+                #        self.last_wall_hit = now
+                #        if random() < 0.5:
+                #            self.rotate_direction = choice([-1, 0, 1])
+                #    self.rot += (3 * (self.walk_speed / self.width) * self.rotate_direction) % 360
+                #    self.avoid_mobs()
+                #    self.accelerate(self.walk_speed)
 
                 if (target_dist.length_squared() < self.detect_radius**2) and (self.target not in self.game.random_targets):
                     #if random() < 0.002:
@@ -3654,8 +3690,9 @@ class Animal(pg.sprite.Sprite):
                 self.rotate_image(self.selected_image_list)
 
                 self.get_keys()  # this needs to be last in this method to avoid executing the rest of the update section if you exit
-            collide_with_tile_walls(self)
-            collide(self)
+            if not self.flying:
+                collide_with_tile_walls(self)
+                collide_with_moving_targets(self)
         set_tile_props(self)
 
     def check_empty(self):
@@ -3982,11 +4019,11 @@ class Dropped_Item(pg.sprite.Sprite):
             self.kill()
 
         # Dropping items in grass
-        hits = pg.sprite.spritecollide(self, self.game.long_grass, False)
-        if hits:
-            self.image = self.game.invisible_image
-            self.rect = self.hit_rect = self.image.get_rect()
-            self.rect.center = self.pos
+        #hits = pg.sprite.spritecollide(self, self.game.long_grass, False)
+        #if hits:
+        #    self.image = self.game.invisible_image
+        #    self.rect = self.hit_rect = self.image.get_rect()
+        #    self.rect.center = self.pos
 
     def update(self):
         pass
@@ -4994,24 +5031,6 @@ class LongGrass(pg.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
-class Lava(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h):
-        self.groups = game.lava, game.obstacles, game.all_static_sprites, game.lights
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-        self.damage = 10
-        mask_width = int(w * 9/5) + 256
-        mask_height = int(h * 9/5) + 256
-        self.light_mask = pg.transform.scale(self.game.light_mask_images[4], (mask_width, mask_height))
-        self.light_mask_rect = self.light_mask.get_rect()
-        self.light_mask_rect.center = self.rect.center
-
 class Door(pg.sprite.Sprite):
     def __init__(self, game, x, y, w, h, name):
         self.groups = game.doors, game.all_static_sprites
@@ -5029,93 +5048,6 @@ class Door(pg.sprite.Sprite):
         locy = int(self.name[-2:])
         self.loc = vec(locx, locy)
         self.map = self.map[4:] + '.tmx'
-
-class Chest(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h, name, elev = 2):
-        self.groups = game.containers, game.chest_containers, game.elevations, game.all_static_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.name = name.replace('chest', '')
-        self.kind = 'chest'
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.w = w
-        self.h = h
-        self.rect.x = x
-        self.rect.y = y
-        self.inventory = copy.deepcopy(self.game.chests[self.name]) # Creates an independent copy of the chest contents to later use and replace 'random' entries with actual items.
-        random_inventory_item(self.inventory)
-        CHESTS[self.name] = self.inventory
-        self.locked = self.inventory['locked']
-        self.elevation = 0
-        set_elevation(self)
-        self.elevation += elev
-        if self.rect.width > self.rect.height:
-            self.orient = 'h'
-        else:
-            self.orient = 'v'
-
-"""
-class Work_Station(pg.sprite.Sprite): # Used for work benches, tanning racks, grinders, forges, enchanting tables, etc.
-    def __init__(self, game, x, y, w, h, kind):
-        self.groups = game.work_stations, game.all_static_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.kind = kind
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-        self.pos = vec(self.rect.centerx, self.rect.centery)
-
-class Bed(pg.sprite.Sprite): # Used to rest in
-    def __init__(self, game, x, y, w, h, name, elev = 2):
-        self.groups = game.beds, game.all_static_sprites, game.elevations
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.name = name
-        if ' cost' in self.name:
-            self.cost = int(self.name[-3:])
-            self.name = 'bed'
-        else:
-            self.cost = 0
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-        self.elevation = 0
-        set_elevation(self)
-        self.elevation += elev
-        if self.rect.width > self.rect.height:
-            self.orient = 'h'
-        else:
-            self.orient = 'v'
-
-class Toilet(pg.sprite.Sprite): # Used to rest in
-    def __init__(self, game, x, y, w, h, elev = 2):
-        self.groups = game.toilets, game.all_static_sprites, game.elevations, game.climbs
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-        self.elevation = 0
-        set_elevation(self)
-        self.elevation += elev
-        if self.rect.width > self.rect.height:
-            self.orient = 'h'
-        else:
-            self.orient = 'v'
-"""
 
 class Detector(pg.sprite.Sprite): # Used to rest in
     def __init__(self, game, x, y, w, h, name):

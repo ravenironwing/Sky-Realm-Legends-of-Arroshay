@@ -110,25 +110,25 @@ pg.mixer.pre_init(44100, -16, 4, 2048)
 pg.init()
 pg.mixer.init()
 os.environ['SDL_VIDEO_CENTERED'] = '1'
-infoObject = pg.display.Info() #creates an info object to detect native screen resolution.
+#infoObject = pg.display.Info() #creates an info object to detect native screen resolution.
 # Sets maximum screen resolution to 1920 by 1080
 MODES = pg.display.list_modes()
-WIDTH = int(infoObject.current_w / 2)
-HEIGHT = int(infoObject.current_h / 2)
-if (WIDTH < 960) and (infoObject.current_w > 960):
-    WIDTH = 960
-    HEIGHT = 540
-elif WIDTH > 1920:
-    WIDTH = 1920
-    HEIGHT = 1080
+#WIDTH = int(infoObject.current_w / 2)
+#HEIGHT = int(infoObject.current_h / 2)
+#if (WIDTH < 960) and (infoObject.current_w > 960):
+WIDTH = 960
+HEIGHT = 540
+#elif WIDTH > 1920:
+#    WIDTH = 1920
+#    HEIGHT = 1080
 #if WIDTH > 1600: # Allowing for 1080 slows down performance by about 10+ fps and really doesn't improve the experience much.
 #WIDTH = 1600
 #HEIGHT = 900
 #WIDTH = 1024
 #HEIGHT = 768
-if WIDTH > 1920: # Allowing for 1080p slows down performance by about 10+ fps and really doesn't improve the experience much.
-    WIDTH = 1920
-    HEIGHT = 1080
+#if WIDTH > 1920: # Allowing for 1080p slows down performance by about 10+ fps and really doesn't improve the experience much.
+#    WIDTH = 1920
+#    HEIGHT = 1080
 #MAPWIDTH = 8192 # Number of tiles wide times pixel width of tile or 65 * 128
 #MAPHEIGHT = 8192 # Number of tiles high times pixel height of tile or 65 * 128
 FPS = 60
@@ -174,9 +174,7 @@ TALK_RADIUS =  int(TILESIZE*0.66)
 TANK_IN_WATER = 'tank_underwater.png'
 SUNKEN_TANK = 'sunken_tank.png'
 PLAYER_IMG = 'player1.png'
-PLAYER_HIT_RECT = pg.Rect(0, 0, int(TILESIZE*0.8), int(TILESIZE*0.8))
-WING1_OFFSET = (-15, 21)
-WING2_OFFSET = (-15, -21)
+PLAYER_HIT_RECT = pg.Rect(0, 0, int(TILESIZE*0.7), int(TILESIZE*0.7))
 MELEE_SIZE = 5
 #WALL_DETECT_DIST = 80
 
@@ -441,10 +439,10 @@ MUZZLE_FLASHES = ['whitePuff15.png', 'whitePuff16.png', 'whitePuff17.png',
 FLASH_DURATION = 50
 DAMAGE_ALPHA = [i for i in range(0, 255, 55)]
 NIGHT_COLOR = (20, 20, 20)
-LIGHT_RADIUS = (400, 400)
-EXPLODE_LIGHT_RADIUS = (500, 500)
-FIRE_LIGHT_RADIUS = (800, 800)
-FIREBALL_LIGHT_RADIUS = (300, 300)
+LIGHT_RADIUS = (200, 200)
+EXPLODE_LIGHT_RADIUS = (250, 250)
+FIRE_LIGHT_RADIUS = (500, 500)
+FIREBALL_LIGHT_RADIUS = (150, 150)
 LIGHT_MASK = "light_350_med.png"
 SQUARE_LIGHT_MASK = 'light_square.png'
 MAX_DARKNESS = 180
@@ -591,7 +589,7 @@ DEFAULT_INVENTORIES['female blackwraith'] =  {'weapons': {}, 'hats': {}, 'tops':
 
 ENCHANTMENTS = {}
 ENCHANTMENTS['explosive'] = {'materials':{'gun powder':1, 'black crystal':1}, 'equip kind': ['weapons'], 'image': 3}
-ENCHANTMENTS['fire spark'] = {'materials':{'flint stone':1, 'steel ingot':1, 'red crystal':1}, 'equip kind': ['weapons'], 'image': 0}
+ENCHANTMENTS['fire spark'] = {'materials':{'flint':1, 'steel ingot':1, 'red crystal':1}, 'equip kind': ['weapons'], 'image': 0}
 ENCHANTMENTS['electric spark'] = {'materials':{'dead rabbit':1, 'blue crystal':1, 'white crystal':1}, 'equip kind': ['weapons'], 'image': 1}
 ENCHANTMENTS['dragon breath'] = {'materials':{'gun powder':1, 'red crystal':1, 'dragon spit':1}, 'equip kind': ['hats'], 'image': 7}
 ENCHANTMENTS['reinforced health'] = {'materials':{'potion of major healing':1, 'red crystal':1}, 'equip kind': ['hats', 'tops', 'bottoms', 'gloves', 'shoes'], 'image': 4}

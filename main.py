@@ -457,7 +457,7 @@ class Game:
         self.open_letter_image = pg.image.load(path.join(img_folder, 'open_letter.png')).convert()
         self.open_letter_image = pg.transform.scale(self.open_letter_image, (self.screen_width, self.screen_height - 30))
         self.over_minimap_image = pg.image.load(path.join(img_folder, OVERWORLD_MAP_IMAGE)).convert()
-        self.over_minimap_image = pg.transform.scale(self.over_minimap_image, (self.screen_width, self.screen_height))
+        self.over_minimap_image = pg.transform.scale(self.over_minimap_image, (self.screen_height, self.screen_height))
         self.compass_image = pg.image.load(path.join(img_folder, 'compass.png')).convert_alpha()
         self.player_tur = pg.image.load(path.join(img_folder, PLAYER_TUR)).convert_alpha()
         #self.player_tank = pg.image.load(path.join(img_folder, PLAYER_TANK)).convert_alpha()
@@ -504,11 +504,11 @@ class Game:
                 bullet_img = pg.image.load(path.join(bullets_folder, BULLET_IMAGES[i])).convert_alpha()
                 if size != 'ar':
                     if i != 0:
-                        img = pg.transform.scale(bullet_img, (6*(x + 1), 4*(x + 1)))
+                        img = pg.transform.scale(bullet_img, (3*(x + 1), 2*(x + 1)))
                     else:
-                        img = pg.transform.scale(bullet_img, (12 * (x + 1), 4 * (x + 1)))
+                        img = pg.transform.scale(bullet_img, (6 * (x + 1), 2 * (x + 1)))
                 else:
-                    img = pg.transform.scale(bullet_img, (80, 10))
+                    img = pg.transform.scale(bullet_img, (40, 5))
                 bullet_name = size + str(i)
                 self.bullet_images[bullet_name] = img
 
@@ -566,7 +566,7 @@ class Game:
             self.light_mask_images.append(img)
 
         self.flashlight_masks = []
-        temp_img = pg.transform.scale(self.light_mask_images[3], (int(600 * 2.8), 600))
+        temp_img = pg.transform.scale(self.light_mask_images[3], (int(300 * 2.8), 300))
         for rot in range(0, 120):
             new_image = pg.transform.rotate(temp_img, rot*3)
             self.flashlight_masks.append(new_image)
@@ -576,11 +576,11 @@ class Game:
             image_list = []
                 # enlarge image animation
             for i in range(0, 5):
-                new_image = pg.transform.scale(image, (25*i, 25*i))
+                new_image = pg.transform.scale(image, (13*i, 13*i))
                 image_list.append(new_image)
             # shrink animation
             for i in range(1, 10):
-                new_image = pg.transform.scale(image, (int(140/i), int(140/i)))
+                new_image = pg.transform.scale(image, (int(70/i), int(70/i)))
                 image_list.append(new_image)
             self.magic_animation_images.append(image_list)
 
@@ -1922,6 +1922,7 @@ class Game:
                         self.in_menu = True
                         self.loot_menu = Loot_Menu(self, hits[0].inventory)
                         self.message_text = False
+                        self.player.e_down = False
 
             # player melee hits entryway (door)
             if self.player.melee_playing:
@@ -1959,7 +1960,7 @@ class Game:
                         self.message_text = False
                         self.player.e_down = False
 
-            # player hit container
+            # player hit container/chest
             if 'chest' in self.player.next_tile_props['material']:
                 x, y = get_next_tile_pos(self.player)
                 chest = self.map.chests[y][x]
@@ -2104,9 +2105,9 @@ class Game:
             #hits = pg.sprite.spritecollide(self.player, self.npcs_on_screen, False, pg.sprite.collide_circle_ratio(0.7))
             #for hit in hits:
             #    self.player.hit_rect.centerx = self.player.pos.x
-            #    collide_with_walls(self.player, [hit], 'x')
+            #    collide_with_players(self.player, [hit], 'x')
             #    self.player.hit_rect.centery = self.player.pos.y
-            #    collide_with_walls(self.player, [hit], 'y')
+            #    collide_with_players(self.player, [hit], 'y')
             #    self.player.rect.center = self.player.hit_rect.center
             #    if hit.touch_damage:
             #        if random() < 0.7:
@@ -2567,7 +2568,7 @@ class Game:
         pg.draw.rect(self.screen, YELLOW, pos_rect, 1)
 
     def draw_overmap(self):
-        cell_width = self.screen_width / len(self.map_data_list[0])
+        cell_width = self.screen_height / len(self.map_data_list[0])
         cell_height = self.screen_height / len(self.map_data_list)
         offsetx = int(self.world_location.x * cell_width)
         offsety = int(self.world_location.y * cell_height)
@@ -2724,6 +2725,7 @@ class Game:
                 if event.key == pg.K_ESCAPE:
                     self.in_settings_menu = True
                     self.in_menu = True
+                    self.hud_overmap = False
                 if event.key == self.key_map['inventory']:
                     self.player.empty_mags() # This makes sure the bullets in your clip don't transfer to the wrong weapons if you switch weapons in your inventory
                     self.in_inventory_menu = True

@@ -8,7 +8,7 @@ BLOCKS['log corner post'] = {'craftable': True, 'materials': {'logs':4}, 'weight
 BLOCKS['wood floor'] = {'craftable': True, 'materials': {'logs':2}, 'weight': 10, 'value': 30, 'layer': 'self.game.map.base_layer'}
 BLOCKS['wood counter'] = {'craftable': True, 'materials': {'logs':2}, 'weight': 5, 'value': 30, 'layer': 'self.game.map.ocean_plants_layer'}
 BLOCKS['work bench'] = {'craftable': True, 'materials': {'wood counter':1, 'table clamp':1}, 'weight': 8, 'value': 60, 'layer': 'self.game.map.ocean_plants_layer'}
-BLOCKS['anvil'] = {'craftable': True, 'materials': {'iron ingots': 15}, 'weight': 50, 'value': 60, 'layer': 'self.game.map.ocean_plants_layer'}
+BLOCKS['anvil'] = {'craftable': True, 'materials': {'iron ingot': 15}, 'weight': 50, 'value': 60, 'layer': 'self.game.map.ocean_plants_layer'}
 BLOCKS['fire pit'] = {'craftable': True, 'materials': {'cut dry wood':4, 'ordinary rock':10}, 'weight': 10, 'value': 5, 'layer': 'self.game.map.river_layer'}
 BLOCKS['grass roof'] = {'craftable': True, 'materials': {'dry grass':10}, 'weight': 4, 'value': 30, 'layer': 'self.game.map.trees_layer'}
 BLOCKS['logs'] = {'weight': 20, 'value': 10, 'layer': 'self.game.map.river_layer'}
@@ -64,8 +64,8 @@ ITEMS['empty barrel'] = {'image': 131, 'weight': 10, 'value': 100}
 ITEMS['empty mug'] = {'image': 147, 'weight': 0.4, 'value': 1}
 
 # Misc items
-ITEMS['candle burner'] = {'image': 61, 'weight': 1, 'value': 250, 'brightness': 100, 'light mask': 1, 'materials': {'candle':1, 'steel pipe': 1, 'steel wire': 1}, 'forgeable': True}
-ITEMS['candle'] = {'image': 62, 'weight': 0.3, 'value': 25, 'brightness': 100, 'light mask': 1}
+ITEMS['candle burner'] = {'image': 61, 'weight': 1, 'value': 250, 'brightness': 50, 'light mask': 1, 'materials': {'candle':1, 'steel pipe': 1, 'steel wire': 1}, 'forgeable': True}
+ITEMS['candle'] = {'image': 62, 'weight': 0.3, 'value': 25, 'brightness': 50, 'light mask': 1}
 ITEMS['chop sticks'] = {'image': 106, 'weight': 0.1, 'value': 1}
 
 ITEMS['airship fuel'] = {'alchemy': True, 'image': 130, 'weight': 25, 'materials': {'empty barrel':1, 'whale oil':3, 'distilled alcohol':5}, 'value': 2000}
@@ -107,7 +107,7 @@ ITEMS['carrot'] = {'image': 98, 'health': 2, 'hunger': 6, 'stamina': 2, 'weight'
 ITEMS['california roll'] = {'image': 103, 'hunger': 11, 'health': 10, 'stamina': 3, 'weight': 0.1, 'food': True, 'value': 35}
 ITEMS['salmon sushi'] = {'image': 104, 'hunger': 12, 'health': 12, 'stamina': 4, 'weight': 0.1, 'food': True, 'value': 40}
 ITEMS['shrimp sushi'] = {'image': 105, 'hunger': 13, 'health': 8, 'stamina': 6, 'weight': 0.1, 'food': True, 'value': 28}
-ITEMS['radioactive pizza'] = {'image': 151, 'health': 150, 'stamina': 150, 'hunger': -15, 'weight': 0.1, 'food': True, 'value': 200, 'brightness': 100, 'light mask': 1}
+ITEMS['radioactive pizza'] = {'image': 151, 'health': 150, 'stamina': 150, 'hunger': -15, 'weight': 0.1, 'food': True, 'value': 200, 'brightness': 50, 'light mask': 1}
 
 # Live animals
 ITEMS['live green moth'] = {'image': 41, 'weight': 0.1, 'value': 2}
@@ -153,7 +153,7 @@ ITEMS['potassium nitrate crystals'] = {'image': 75, 'weight': 0.3, 'value': 54, 
 ITEMS['squid tentacle'] = {'image': 101, 'weight': 2, 'value': 28}
 ITEMS['squid eye'] = {'image': 102, 'weight': 0.5, 'value': 65}
 ITEMS['squid ink'] = {'health': 5, 'image': 10, 'weight': 0.5, 'value': 25}
-ITEMS['living water'] = {'health': 15, 'image': 7, 'weight': 0.2, 'value': 50, 'brightness': 30}
+ITEMS['living water'] = {'health': 15, 'image': 7, 'weight': 0.2, 'value': 50, 'brightness': 15}
 ITEMS['bottled water'] = {'health': 5, 'image': 7, 'weight': 0.2, 'value': 2}
 ITEMS['distilled alcohol'] = {'health': -20, 'image': 6, 'weight': 0.2, 'value': 100}
 ITEMS['whale oil'] = {'image': 4, 'weight': 0.2, 'value': 100}

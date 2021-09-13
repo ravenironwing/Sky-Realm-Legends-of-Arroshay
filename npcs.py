@@ -30,20 +30,28 @@ PEOPLE = {}
 
 # NPCs I have fixed for the new system.
 PEOPLE['generic'] = {'name': 'Villager', 'protected': True, 'health': 100, 'touch damage': False, 'damage': 5, 'knockback': 2, 'acceleration': 5, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'fwp', 'armed': False, 'dual wield': False,
-    'collide': ['walls', 'lava'],
     'gender': 'random', 'race': 'osidine', 'hair': ['random'], 'magic': [None],
     'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'}, 'dialogue': 'random VILLAGER_DLG', 'store': None,
     'inventory':{'weapons': {'lantern':1}, 'hats': {}, 'tops': {'random VILLAGER_':1}, 'bottoms': {'random VILLAGER_':1}, 'gloves': {}, 'shoes': {'brown boots': 1}, 'items': {'gold': 100}, 'blocks': {}},
     'animations': {None}}
 
 PEOPLE['villager'] = {'name': 'Villager', 'protected': True, 'health': 100, 'touch damage': False, 'damage': 5, 'knockback': 2, 'acceleration': 5, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'fwp', 'armed': False, 'dual wield': False,
-    'collide': ['walls', 'lava'],
     'gender': 'random', 'race': 'osidine', 'hair': ['random'], 'magic': [None],
     'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'}, 'dialogue': 'random VILLAGER_DLG', 'store': None,
     'inventory':{'weapons': {'lantern':1}, 'hats': {}, 'tops': {'random VILLAGER_':1}, 'bottoms': {'random VILLAGER_':1}, 'gloves': {}, 'shoes': {'brown boots': 1}, 'items': {'gold': 100}, 'blocks': {}},
     'animations': {None}}
 VILLAGER_TOPS = CASUAL_TOPS_LIST
 VILLAGER_BOTTOMS = CASUAL_BOTTOMS_LIST
+PEOPLE['osidine guard'] = {'name': 'Guard', 'protected': True, 'health': 600, 'touch damage': False, 'damage': 15, 'knockback': 10, 'acceleration': 6, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'awp', 'armed': True, 'dual wield': False,
+    'gender': 'random', 'race': 'osidine', 'hair': ['random'], 'magic': [None],
+    'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'}, 'dialogue': 'random GUARD_DLG', 'store': None,
+    'inventory': { 'weapons': {'random GUARD_':1, 'lantern':1}, 'hats': {'random GUARD_':1}, 'tops': {'steel guard armor':1}, 'bottoms': {'random GUARD_':1}, 'shoes': {'steel boots':1}, 'gloves': {'random GUARD_':1}, 'items': {'random':1,  'gold': 250}, 'blocks': {}},
+    'animations': {None}}
+GUARD_WEAPONS = ['steel broadsword', 'steel mace']
+GUARD_HATS = ['steel guard helmet', 'steel helmet']
+GUARD_GLOVES = ['steel gauntlets', 'leather gauntlets']
+GUARD_BOTTOMS = ['steel chainmail leggings F', 'leather leggings F', 'steel chainmail leggings M', 'leather leggings M']
+
 
 # NPCs I have not fixed:
 
@@ -190,10 +198,7 @@ PEOPLE['guard'] = {'name': 'Guard', 'protected': True, 'health': 600, 'touch dam
     'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'}, 'dialogue': 'random GUARD_DLG', 'store': None,
     'expanded inventory': {'gender': list(GENDER.keys()), 'race': RACE_TYPE_LIST, 'weapons': ['random GUARD_', 'lantern'], 'hats': ['random GUARD_'], 'hair': ['random'], 'tops': ['steel guard armor'], 'bottoms': ['random GUARD_'], 'shoes': ['steel boots'], 'gloves': ['random GUARD_'], 'gold': 250, 'items': ['random'], 'magic': [None]},
     'animations': {None}}
-GUARD_WEAPONS = ['steel broadsword', 'steel mace']
-GUARD_HATS = ['steel guard helmet', 'steel helmet']
-GUARD_GLOVES = ['steel gauntlets', 'leather gauntlets']
-GUARD_BOTTOMS = ['steel chainmail leggings F', 'leather leggings F', 'steel chainmail leggings M', 'leather leggings M']
+
 
 
 PEOPLE['shaktelevillager'] = {'name': 'Villager', 'protected': True, 'health': 100, 'touch damage': False, 'damage': 0, 'knockback': 2, 'walk speed': DEFAULT_WALK_SPEED, 'run speed': DEFAULT_RUN_SPEED, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'fwp', 'armed': False, 'dual wield': False,

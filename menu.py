@@ -203,7 +203,6 @@ class Menu():  # used as the parent class for other menus.
         if self.item_selected:
             for i, item_stat in enumerate(self.printable_stat_list):
                 self.draw_text(item_stat, default_font, 20, WHITE, self.game.screen_width / 2 + 50, self.game.screen_height / 3 + 30 * i, "topleft")
-        self.draw_text("Armor Rating: " + str(self.game.player.stats['armor']) + "   Carry Weight: " + str(self.game.player.stats['weight']) + "  Max Carry Weight: " + str(self.game.player.stats['max weight']), default_font, 25, WHITE, 20, self.game.screen_height - 80, "topleft")
         self.draw_text("Right Click: Equip/Unequip   Left Click: Equip second weapon/View Item    B: use Items    X: drop selected item    E: Exit Menu", default_font, 20, WHITE, 10, self.game.screen_height - 40, "topleft")
         if self.warning_message != "":
             self.draw_text(self.warning_message, default_font, 30, YELLOW, self.game.screen_width/2, self.game.screen_height/2, "topleft")
@@ -511,7 +510,7 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
         # These items are changed for inherrited menus.
         self.exit_keys = [pg.K_i, pg.K_e, pg.K_ESCAPE] # The keys used to enter/exit the menu.
         self.spacing = 20 # Spacing between headings
-        self.heading_list = ['Weapons', 'Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items', 'Blocks'] # This is the list of headings
+        self.heading_list = ['Weapons', 'Hats', 'Tops', 'Bottoms', 'Shoes', 'Gloves', 'Items', 'Blocks', 'Magic'] # This is the list of headings
 
     def generate_headings(self):
         previous_rect_right = 0
@@ -542,8 +541,8 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
         else:
             self.book_image = self.game.open_book_image
         self.page = 0
-        self.wrap_factor = int(ceil((self.game.screen_width / 2) / 19))
-        self.number_of_lines = int(ceil((self.game.screen_height / 54)))
+        self.wrap_factor = int(ceil((self.game.screen_width / 2) / 15))
+        self.number_of_lines = int(ceil((self.game.screen_height / 42)))
         self.book_font = eval(ITEMS[self.selected_item.text]['font'])
         if self.book_font == 'KAWTHI_FONT':
             self.heading_font = KAWTHI_FONT
@@ -612,17 +611,17 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
         self.game.screen.fill(BLACK)
         self.game.screen.blit(self.book_image, (0, 0))
         self.draw_text("Press SPACE to turn page or RIGHT and LEFT Arrow Keys, E to exit.", default_font, 20, WHITE, self.game.screen_width / 2, self.game.screen_height - 15, "center")
-        font_size = 25
+        font_size = 18
         byword = 'by'
         if self.book_font == WRITING_FONT:
-            font_size = 35
+            font_size = 18
             self.heading_font = WRITING_FONT
         if self.letter:
             byword = 'from'
         if self.page == 0:
-            self.draw_text(self.book_heading, self.heading_font, 40, BLACK, self.game.screen_width * (3/4), self.game.screen_height * (1/5), "center")
-            self.draw_text(byword, self.book_font, 28, BLACK, self.game.screen_width * (3/4), self.game.screen_height * (2/5), "center")
-            self.draw_text(self.book_author, self.book_font, 28, BLACK, self.game.screen_width * (3/4), self.game.screen_height * (3/5), "center")
+            self.draw_text(self.book_heading, self.heading_font, 25, BLACK, self.game.screen_width * (3/4), self.game.screen_height * (1/5), "center")
+            self.draw_text(byword, self.book_font, 18, BLACK, self.game.screen_width * (3/4), self.game.screen_height * (2/5), "center")
+            self.draw_text(self.book_author, self.book_font, 18, BLACK, self.game.screen_width * (3/4), self.game.screen_height * (3/5), "center")
         else:
             if self.page > len(self.book_data):
                 self.page -= 1
@@ -631,14 +630,15 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
             #lines = len(self.book_data[self.page])
             left_margin = 125
             top_margin = 45
+            line_spacing = 32
             right_margin = self.game.screen_width/2 + 50
             j = 0
             for i, line in enumerate(self.book_data[self.page - 1]):
-                self.draw_text(line, self.book_font, font_size, BLACK, left_margin, top_margin + (45 * i), "topleft")
+                self.draw_text(line, self.book_font, font_size, BLACK, left_margin, top_margin + (line_spacing * i), "topleft")
                 j += 1
             if self.page == len(self.book_data):
                 for line in self.book_spellwords:
-                    self.draw_text(line, KAWTHI_FONT, font_size, BLACK, left_margin, top_margin + (45 * j), "topleft")
+                    self.draw_text(line, KAWTHI_FONT, font_size, BLACK, left_margin, top_margin + (line_spacing * j), "topleft")
                     j += 1
             self.page += 1
             if self.page > len(self.book_data):
@@ -647,11 +647,11 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
                 return
             j = 0
             for i, line in enumerate(self.book_data[self.page - 1]):
-                self.draw_text(line, self.book_font, font_size, BLACK, right_margin, top_margin + (45 * i), "topleft")
+                self.draw_text(line, self.book_font, font_size, BLACK, right_margin, top_margin + (line_spacing * i), "topleft")
                 j += 1
             if self.page == len(self.book_data):
                 for line in self.book_spellwords:
-                    self.draw_text(line, KAWTHI_FONT, font_size, BLACK, right_margin, top_margin + (45 * j), "topleft")
+                    self.draw_text(line, KAWTHI_FONT, font_size, BLACK, right_margin, top_margin + (line_spacing * j), "topleft")
                     j += 1
         pg.display.flip()
 
@@ -729,7 +729,11 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
         row = 0
         x_row = 50
         max_width = 0
-        for item in self.character.inventory[self.item_type]:
+        if self.selected_heading.text == 'Magic':
+            inventory = self.character.expanded_inventory
+        else:
+            inventory = self.character.inventory
+        for item in inventory[self.item_type]:
             if item not in displayed_list:
                 if 30 * row + 75 > (self.game.screen_height - 195):
                     row = 0
@@ -746,8 +750,9 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
                 if self.character.equipped['weapons2'] and self.character.equipped['weapons2'] == item:
                     left_equipped_text = Text(self, "(L)", default_font, 20, WHITE, item_name.rect.left - 32, 30 * row + 75, "topleft")
                     self.item_tags_sprites.add(left_equipped_text)
-                item_count = Text(self, str(self.character.inventory[self.item_type][item]), default_font, 20, WHITE, item_name.rect.right + 10, 30 * row + 75, "topleft")
-                self.item_tags_sprites.add(item_count)
+                if self.selected_heading.text != 'Magic':
+                    item_count = Text(self, str(inventory[self.item_type][item]), default_font, 20, WHITE, item_name.rect.right + 10, 30 * row + 75, "topleft")
+                    self.item_tags_sprites.add(item_count)
                 if item_name.rect.right > max_width:
                     max_width = item_name.rect.right
                 displayed_list.append(item)
@@ -895,10 +900,10 @@ class Inventory_Menu(Menu): # Inventory Menu, also used as the parent class for 
         self.menu_sprites.draw(self.game.screen)
         if self.item_selected:
             for i, item_stat in enumerate(self.printable_stat_list):
-                self.draw_text(item_stat, default_font, 20, WHITE, self.game.screen_width / 2 + 50, self.game.screen_height / 3 + 30 * i, "topleft")
+                self.draw_text(item_stat, default_font, 12, WHITE, self.game.screen_width / 2 + 50, self.game.screen_height / 6 + 15 * i, "topleft")
         if self.character == self.game.player:
-            self.draw_text("Armor Rating: " + str(self.character.stats['armor']) + "   Carry Weight: " + str(self.character.stats['weight']) + "  Max Carry Weight: " + str(self.character.stats['max weight']), default_font, 25, WHITE, 20, self.game.screen_height - 80, "topleft")
-        self.draw_text("Right Click: Equip/Unequip   Left Click: Equip second weapon/View Item   B: use Items   X: drop selected item  Y: place item  E: Exit Menu   ESC: quit game", default_font, 20, WHITE, 10, self.game.screen_height - 40, "topleft")
+            self.draw_text("Armor Rating: " + str(self.character.stats['armor']) + "   Carry Weight: " + str(self.character.stats['weight']) + "  Max Carry Weight: " + str(self.character.stats['max weight']), default_font, 12, WHITE, 20, self.game.screen_height - 80, "topleft")
+        self.draw_text("Right Click: Equip/Unequip   Left Click: Equip second weapon/View Item   B: use Items   X: drop selected item  Y: place item  E: Exit Menu   ESC: quit game", default_font, 12, WHITE, 10, self.game.screen_height - 40, "topleft")
         if self.warning_message:
             self.draw_text(self.warning_message, default_font, 60, YELLOW, self.game.screen_width/2, self.game.screen_height/2, "center")
         pg.display.flip()
@@ -1068,9 +1073,9 @@ class Loot_Menu(Inventory_Menu):
         self.menu_sprites.draw(self.game.screen)
         if self.item_selected:
             for i, item_stat in enumerate(self.printable_stat_list):
-                self.draw_text(item_stat, default_font, 20, WHITE, self.game.screen_width / 2 + 50, self.game.screen_height / 3 + 30 * i, "topleft")
-        self.draw_text("Armor Rating: " + str(self.game.player.stats['armor']) + "   Carry Weight: " + str(self.game.player.stats['weight']) + "  Max Carry Weight: " + str(self.game.player.stats['max weight']), default_font, 25, WHITE, 20, self.game.screen_height - 80, "topleft")
-        self.draw_text("Right Click to Loot/Equip    A Take all   S: Store selected item   E: Exit menu", default_font, 20, WHITE, 10, self.game.screen_height - 40, "topleft")
+                self.draw_text(item_stat, default_font, 12, WHITE, self.game.screen_width / 2 + 50, self.game.screen_height / 6 + 12 * i, "topleft")
+        self.draw_text("Armor Rating: " + str(self.game.player.stats['armor']) + "   Carry Weight: " + str(self.game.player.stats['weight']) + "  Max Carry Weight: " + str(self.game.player.stats['max weight']), default_font, 12, WHITE, 20, self.game.screen_height - 80, "topleft")
+        self.draw_text("Right Click to Loot/Equip    A Take all   S: Store selected item   E: Exit menu", default_font, 12, WHITE, 10, self.game.screen_height - 40, "topleft")
         pg.display.flip()
 
 
@@ -1134,6 +1139,9 @@ class Lock_Menu():
             self.events()
             self.draw()
         self.game.in_lock_menu = self.game.in_menu = False
+        if 'inventory' in self.lock: # Enters loot menu after you unlock a chest.
+            self.game.in_loot_menu = True
+            self.game.loot_menu = Loot_Menu(self.game, self.lock['inventory'])
         pg.mixer.music.play(loops=-1)
         self.game.beg = perf_counter() # resets the counter so dt doesn't get messed up.
         del self
@@ -1173,7 +1181,7 @@ class Lock_Pick(pg.sprite.Sprite):
         #self.surface.blit(self.image_orig, (5, -100))
         self.image = self.surface
         self.rect = self.image.get_rect()
-        self.rect.center = (self.game.screen_width/2, self.game.screen_height/2 + self.surface_height/2 + 3)
+        self.rect.center = (self.game.screen_width/2 + 5, self.game.screen_height/2 + self.surface_height/2 + 3)
         self.old_center = self.rect.center
         self.pos = vec(0, self.rect.center[1])
         self.rot = 0
@@ -1252,7 +1260,7 @@ class Lock_Pick(pg.sprite.Sprite):
             self.kill()
         self.get_keys()
         self.rot = (self.rot + self.rot_speed * self.game.dt) % 360
-        y_disp = abs(self.rot - 180) + 160
+        y_disp = (abs(self.rot - 180) + 160)/2
         self.pos.y = self.old_center[1] + y_disp + self.y_offset
         self.surface.fill(BLACK)
         self.surface.set_colorkey(BLACK)  # makes transparent
@@ -1597,6 +1605,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                     self.not_enough_text = True
 
             elif self.kind == 'enchanter':
+                enchanted_offset = ENCHANTED_OFFSET
                 casting_factor = int(self.game.player.stats['casting'] / 10) # This is how much your casting experience influences enchantment's potency
                 sound = 'enchant'
                 enough = self.check_materials(self.selected_enchantment)
@@ -1607,7 +1616,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                     upgraded_item = eval(self.item_type.upper())[self.selected_item.text].copy()
                     if self.selected_enchantment == 'fire spark':
                         if upgraded_item['gun']:
-                            upgraded_item['damage'] += self.game.player.stats['casting'] / 10
+                            upgraded_item['damage'] += casting_factor
                             if 'value' in upgraded_item.keys():
                                 upgraded_item['value'] += 1 + int(self.game.player.stats['casting'] / UPGRADE_FACTOR)
                             bullet = upgraded_item['bullet_size'][-1:]
@@ -1635,7 +1644,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                             upgraded_item['damage'] = 1 + casting_factor
                             upgraded_item['bullet_size'] = 'lg3'
                             upgraded_item['bullet_count'] = 1
-                            upgraded_item['offset'] = vec(38, 0)
+                            upgraded_item['offset'] = enchanted_offset
 
                     elif self.selected_enchantment == 'electric spark':
                         if upgraded_item['gun']:
@@ -1654,7 +1663,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                                 upgraded_item['bullet_size'] = 'lg2'
 
                         else:
-                            upgraded_item['bullet_speed'] = 450 + casting_factor
+                            upgraded_item['bullet_speed'] = 225 + casting_factor
                             if upgraded_item['bullet_speed'] > 700:
                                 upgraded_item['bullet_speed'] = 700
                             upgraded_item['bullet_lifetime'] = 300 + casting_factor*5
@@ -1666,7 +1675,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                             upgraded_item['damage'] = 1 + casting_factor
                             upgraded_item['bullet_size'] = 'lg2'
                             upgraded_item['bullet_count'] = 2 + int(casting_factor/10)
-                            upgraded_item['offset'] = vec(38, 0)
+                            upgraded_item['offset'] = enchanted_offset
 
                     elif self.selected_enchantment == 'explosive':
                         if upgraded_item['gun']:
@@ -1685,7 +1694,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                             else:
                                 upgraded_item['bullet_size'] = size + '10'
                         else:
-                            upgraded_item['bullet_speed'] = 600 + casting_factor
+                            upgraded_item['bullet_speed'] = 300 + casting_factor
                             if upgraded_item['bullet_speed'] > 700:
                                 upgraded_item['bullet_speed'] = 700
                             upgraded_item['bullet_lifetime'] = 200 + casting_factor
@@ -1697,7 +1706,7 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
                             upgraded_item['damage'] = 1 + casting_factor
                             upgraded_item['bullet_size'] = 'md10'
                             upgraded_item['bullet_count'] = 1 + int(casting_factor / 10)
-                            upgraded_item['offset'] = vec(38, 0)
+                            upgraded_item['offset'] = enchanted_offset
 
                     elif self.selected_enchantment == 'dragon breath':
                         if 'fire enhance' not in upgraded_item.keys():
@@ -1795,8 +1804,8 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
         return new_item_name
 
     def remove_materials(self):
-        for material in self.materials_list:
-            self.game.player.add_inventory(material, -self.materials_list[material])
+        for material, count in self.materials_list.items():
+            self.game.player.add_inventory(material, -count)
 
     def check_materials(self, chosen_item, upgrade = False):
         if not upgrade:
@@ -2088,20 +2097,19 @@ class Work_Station_Menu(Menu): # Used for upgrading weapons
         self.menu_sprites.draw(self.game.screen)
         if self.item_selected:
             for i, item_stat in enumerate(self.printable_stat_list):
-                self.draw_text(item_stat, default_font, 20, WHITE, self.game.screen_width / 2 + 50, self.game.screen_height / 3 + 30 * i, "topleft")
+                self.draw_text(item_stat, default_font, 12, WHITE, self.game.screen_width / 2 + 50, self.game.screen_height / 3 + 15 * i, "topleft")
 
         previous_line_location = 0
         for x in FORGEITEMS:
             if x in self.game.player.inventory['items']:
-                self.draw_text(x + " " + str(self.game.player.inventory['items'][x]), default_font, 14, WHITE, 30 + previous_line_location, self.game.screen_height - 120, "topleft")
+                self.draw_text(x + " " + str(self.game.player.inventory['items'][x]), default_font, 12, WHITE, 15 + previous_line_location, self.game.screen_height - 120, "topleft")
                 previous_line_location += (len(x) * 10)
 
         if self.kind == 'enchanter' and self.selected_enchantment:
             self.draw_text(self.selected_enchantment.capitalize() + ' enchantment selected.', default_font, 30, WHITE, 50, self.game.screen_height - 170, "topleft")
-        self.draw_text("Armor Rating: " + str(self.game.player.stats['armor']) + "   Carry Weight: " + str(self.game.player.stats['weight']) + "  Max Carry Weight: " + str(self.game.player.stats['max weight']), default_font, 25, WHITE, 20, self.game.screen_height - 80, "topleft")
-        self.draw_text("Left Click: Select Item    F: create item    E: Exit Menu", default_font, 20, WHITE, 10, self.game.screen_height - 40, "topleft")
+        self.draw_text("Left Click: Select Item    F: create item    E: Exit Menu", default_font, 12, WHITE, 10, self.game.screen_height - 40, "topleft")
         if self.not_enough_text:
-            self.draw_text("Insufficient resources!", default_font, 40, YELLOW, self.game.screen_width/4, self.game.screen_height/2, "topleft")
+            self.draw_text("Insufficient resources!", default_font, 20, YELLOW, self.game.screen_width/4, self.game.screen_height/2, "topleft")
         pg.display.flip()
 
 class Dialogue_Menu():
@@ -2838,7 +2846,7 @@ class Settings_Menu(Menu):
         super().__init__(game)
         self.exit_keys = [pg.K_ESCAPE] # The keys used to enter/exit the menu.
         self.spacing = 40 # Spacing between headings
-        self.heading_list = ['Game', 'Controls'] # This is the list of headings
+        self.heading_list = ['Game', 'Inventory', 'Map', 'Crafting', 'Quests', 'Controls'] # This is the list of headings
         self.game_menu_list = ['Save Game', 'Load Game', 'Quit Game']
         self.controls_menu_list = self.game.key_map.keys()
         self.previous_item = None
@@ -2887,6 +2895,21 @@ class Settings_Menu(Menu):
                         self.selected_heading = heading
                         self.item_selected = False
                         self.selected_item = None
+                        # Switches to other menus.
+                        if self.selected_heading.text == 'Inventory':
+                            self.game.in_inventory_menu = True
+                            self.running = False
+                        elif self.selected_heading.text == 'Map':
+                            self.game.hud_overmap = True
+                            self.running = False
+                        elif self.selected_heading.text == 'Crafting':
+                            self.running = False
+                            self.game.in_station_menu = True
+                            self.game.station_menu = Work_Station_Menu(self.game, 'crafting')
+                        elif self.selected_heading.text == 'Quests':
+                            self.running = False
+                            self.game.in_quest_menu = True
+                            self.game.quest_menu = Quest_Menu(self.game)
                         self.list_items()
                 # Equips items
                 for item in self.clicked_sprites:
@@ -2926,27 +2949,28 @@ class Settings_Menu(Menu):
 
     def list_items(self):
         self.clear_menu()
-        if self.selected_heading.text == 'Controls':
-            menu_list = self.controls_menu_list
-            font_size = 20
-            font_space = 30
-        else:
-            menu_list = self.game_menu_list
-            font_size = 30
-            font_space = 40
-
-        for i, x in enumerate(menu_list):
-            if i < 25:
-                xpos = 50
-                ypos = font_space * i + 75
+        if self.selected_heading.text in ['Game', 'Controls']:
+            if self.selected_heading.text == 'Controls':
+                menu_list = self.controls_menu_list
+                font_size = 14
+                font_space = 16
             else:
-                xpos = self.game.screen_width/2 + 50
-                ypos = font_space * (i - 25) + 75
-            item_name = Text(self, x, default_font, font_size, WHITE, xpos, ypos, "topleft")
-            self.item_sprites.add(item_name)
-            if menu_list == self.controls_menu_list:
-                item_name = Text(self, pg.key.name(self.game.key_map[x]), default_font, font_size, WHITE, xpos + 120, ypos, "topleft")
+                menu_list = self.game_menu_list
+                font_size = 30
+                font_space = 40
+
+            for i, x in enumerate(menu_list):
+                if i < 25:
+                    xpos = 50
+                    ypos = font_space * i + 75
+                else:
+                    xpos = self.game.screen_width/2 + 50
+                    ypos = font_space * (i - 25) + 75
+                item_name = Text(self, x, default_font, font_size, WHITE, xpos, ypos, "topleft")
                 self.item_sprites.add(item_name)
+                if menu_list == self.controls_menu_list:
+                    item_name = Text(self, pg.key.name(self.game.key_map[x]), default_font, font_size, WHITE, xpos + 120, ypos, "topleft")
+                    self.item_sprites.add(item_name)
 
     def display_item_info(self, item):
         pass

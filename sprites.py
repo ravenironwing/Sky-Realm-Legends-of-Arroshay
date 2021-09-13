@@ -269,6 +269,27 @@ def collide_with_walls(sprite, group, dir):
             sprite.vel.y = 0
             sprite.hit_rect.centery = sprite.pos.y
 
+def players_hit_rect(one, two):
+    return one.hit_rect.colliderect(two.hit_rect)
+
+def collide_with_players(sprite, group, dir):
+    hits = pg.sprite.spritecollide(sprite, group, False, collide_hit_rect)
+    if hits:
+        if dir == 'x':
+            if hits[0].hit_rect.centerx > sprite.hit_rect.centerx:  # going right
+                sprite.pos.x = hits[0].hit_rect.left - sprite.hit_rect.width / 2
+            if hits[0].hit_rect.centerx < sprite.hit_rect.centerx:  # going left
+                sprite.pos.x = hits[0].hit_rect.right + sprite.hit_rect.width / 2
+            sprite.vel.x = 0
+            sprite.hit_rect.centerx = sprite.pos.x
+        elif dir == 'y':
+            if hits[0].hit_rect.centery > sprite.hit_rect.centery:  # going down
+                sprite.pos.y = hits[0].hit_rect.top - sprite.hit_rect.height / 2
+            if hits[0].hit_rect.centery < sprite.hit_rect.centery:  # going up
+                sprite.pos.y = hits[0].hit_rect.bottom + sprite.hit_rect.height / 2
+            sprite.vel.y = 0
+            sprite.hit_rect.centery = sprite.pos.y
+
     """
     if sprite in sprite.game.vehicles_on_screen:
         hits = pg.sprite.spritecollide(sprite, group, False, wall_vehicle_collide_hit2_rect)
@@ -687,7 +708,7 @@ class Turret(pg.sprite.Sprite):
         self.rect.center = self.mother.rect.center
         self.hit_rect = SMALL_HIT_RECT.copy()
         self.hit_rect.center = self.rect.center
-        self.light_mask = pg.transform.scale(self.game.light_mask_images[2], (600, 600))
+        self.light_mask = pg.transform.scale(self.game.light_mask_images[2], (300, 300))
         self.light_mask_rect = self.light_mask.get_rect()
         self.light_mask_rect.center = self.rect.center
         self.rot = 0
@@ -903,7 +924,7 @@ class Vehicle(pg.sprite.Sprite):
         if self.data['weapons'] or self.data['weapons2']:
             self.driver.pre_reload()
         if self.cat == 'airship':
-            self.light_mask = pg.transform.scale(self.game.light_mask_images[6], (800, 800))
+            self.light_mask = pg.transform.scale(self.game.light_mask_images[6], (400, 400))
             self.light_mask_rect = self.light_mask.get_rect()
             self.light_mask_rect.center = self.rect.center
             self.game.lights.add(self)
@@ -1470,7 +1491,6 @@ class Player(pg.sprite.Sprite):
         self.last_hit = 0 # Used for the time between mob hits to make it so you only get damaged based on the DAMAGE_RATE
         self.last_stat_update = 0 # Used to level stats periodically based on activities
         self.stat_update_delay = 50000
-        self.last_outammosnd = 0
         self.last_shot = 0
         self.last_shot2 = 0
         self.last_shift = 0
@@ -2138,10 +2158,6 @@ class Player(pg.sprite.Sprite):
         self.update_hud_stats('ammo')
 
     def out_of_ammo(self):
-        now = pg.time.get_ticks()
-        if now - self.last_outammosnd > 3000:
-            self.game.effects_sounds['click'].play()
-            self.last_outammosnd = now
         if not self.is_moving():
             self.pre_melee()
         else:
@@ -2662,7 +2678,7 @@ class Player(pg.sprite.Sprite):
                             balls = MAGIC[self.equipped['magic']]['fireballs']
                             damage = MAGIC[self.equipped['magic']]['damage'] + (self.stats['casting'] / 100)
                             for i in range(0, balls):
-                                Fireball(self, self.game, self.pos, self.rot + (36 * i), damage, 30, 1300, 500, self.vel, 'fire', False, self.in_flying_vehicle)
+                                Fireball(self, self.game, self.pos, self.rot + (36 * i), damage, 30, 1300, 250, self.vel, 'fire', False, self.in_flying_vehicle)
                         self.add_magica(-MAGIC[self.equipped['magic']]['cost'])
                         self.stats['casting'] += MAGIC[self.equipped['magic']]['cost'] / 10
 
@@ -2705,8 +2721,8 @@ class Player(pg.sprite.Sprite):
                         self.game.effects_sounds['pee'].play()
                         remove = True
             if 'spell' in ITEMS[self.equipped['items']]:
-                if ITEMS[self.equipped['items']]['spell'] not in self.inventory['magic']:
-                    self.inventory['magic'].append(ITEMS[self.equipped['items']]['spell'])
+                if ITEMS[self.equipped['items']]['spell'] not in self.expanded_inventory['magic']:
+                    self.expanded_inventory['magic'].append(ITEMS[self.equipped['items']]['spell'])
                     self.game.effects_sounds['page turn'].play()
                     self.game.effects_sounds[ITEMS[self.equipped['items']]['sound']].play()
             if 'ammo' in ITEMS[self.equipped['items']]:
@@ -2755,20 +2771,17 @@ class Player(pg.sprite.Sprite):
                     random_dress_top = choice(DRESS_TOPS_LIST)
                     random_dress_skirt = choice(DRESS_BOTTOMS_LIST)
                     random_hair = choice(LONG_HAIR_LIST)
-                    if random_dress_top in self.inventory['tops']:
-                        self.inventory['tops'][random_dress_top] += 1
-
-                    self.inventory['tops'].append(random_dress_top)
-                    self.inventory['bottoms'].append(random_dress_skirt)
-                    self.inventory['hair'].append(random_hair)
+                    self.add_inventory(random_dress_top)
+                    self.add_inventory(random_dress_skirt)
+                    self.expanded_inventory['hair'].append(random_hair)
                     self.equipped['tops'] = random_dress_top
                     self.equipped['bottoms'] = random_dress_skirt
                     self.equipped['hair'] = random_hair
                 else:
                     random_hair = choice(SHORT_HAIR_LIST)
-                    self.inventory['tops'].append('tshirt M')
-                    self.inventory['bottoms'].append('jeans M')
-                    self.inventory['hair'].append(random_hair)
+                    self.add_inventory('tshirt M')
+                    self.add_inventory('jeans M')
+                    self.expanded_inventory['hair'].append(random_hair)
                     self.equipped['tops'] = 'tshirt M'
                     self.equipped['bottoms'] = 'jeans M'
                     self.equipped['hair'] = random_hair
@@ -2782,17 +2795,17 @@ class Player(pg.sprite.Sprite):
                 else: # Makes it so it doesn't try to use a None Type in the other if statements.
                     return
             if 'potion' in self.equipped['items']:
-                self.inventory['items'].append('empty bottle') # lets you keep the bottle to use for creating new potions.
+                self.add_inventory('empty bottle') # lets you keep the bottle to use for creating new potions.
             if 'fuel' in self.equipped['items']:
-                self.inventory['items'].append('empty barrel')
+                self.add_inventory('empty barrel')
             if remove:
-                self.inventory['items'].remove(self.equipped['items'])
+                self.add_inventory(self.equipped['items'], -1)
             if self.equipped['items'] not in self.inventory['items']: # This lets you keep equipping items of the same kind. This way you can use multiple heath potions in a row for example.
                 self.equipped['items'] = None
             self.game.player.calculate_weight()
             return False # Used to verify the item was used. False means it used the item.
 
-    def change_used_item(self, item_type, item, return_new_name = False):
+    def change_used_item(self, item_type, item, return_new_name = False): # This is broken and needs to be repaired.
         # Renames used items to add hp to the end of their names.
         item_dic = eval(item_type.upper())
         if 'hp' in item_dic[item]:
@@ -3524,7 +3537,7 @@ class Animal(pg.sprite.Sprite):
             balls = MAGIC[spell]['fireballs']
             damage = MAGIC[spell]['damage']
             for i in range(0, balls):
-                Fireball(self, self.game, self.pos, self.rot + (36 * i), damage, 30, 1300, 500, self.vel, 'fire', True, self.in_flying_vehicle)
+                Fireball(self, self.game, self.pos, self.rot + (36 * i), damage, 30, 1300, 250, self.vel, 'fire', True, self.in_flying_vehicle)
 
     def update(self):
         if self.living:
@@ -3878,13 +3891,13 @@ class MuzzleFlash(pg.sprite.Sprite):
         self.groups = game.all_sprites, game.lights
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game.group.add(self)
-        size = randint(20, 50)
+        size = randint(10, 25)
         self.image = pg.transform.scale(choice(game.gun_flashes), (size, size))
         self.rect = self.image.get_rect()
         self.pos = pos
         self.rect.center = pos
         self.spawn_time = pg.time.get_ticks()
-        self.light_mask = pg.transform.scale(self.game.light_mask_images[0], (150, 150))
+        self.light_mask = pg.transform.scale(self.game.light_mask_images[0], (75, 75))
         self.light_mask_rect = self.light_mask.get_rect()
         self.light_mask_rect.center = self.rect.center
 
@@ -3991,7 +4004,7 @@ class LightSource(pg.sprite.Sprite):
         self.y = y
         self.rect.x = x
         self.rect.y = y
-        self.light_mask = pg.transform.scale(self.game.light_mask_images[self.kind], (int(w * 7), int(h * 7)))
+        self.light_mask = pg.transform.scale(self.game.light_mask_images[self.kind], (int(w * 3.5), int(h * 3.5)))
         if self.rot != 0:
             self.light_mask = pg.transform.rotate(self.light_mask, self.rot)
         self.light_mask_rect = self.light_mask.get_rect()
@@ -4016,10 +4029,10 @@ class Stationary_Animated(pg.sprite.Sprite): # Used for fires and other stationa
             self.animate_speed = 50
             self.light_radius = FIRE_LIGHT_RADIUS
             if not self.offset:
-                self.center.y -= 40
-                self.center.x -= 8
+                self.center.y -= 20
+                self.center.x -= 4
         elif self.kind == 'shock':
-            self.light_radius = (150, 150)
+            self.light_radius = (75, 75)
             self.image_list = self.game.shock_images
             self.groups = game.all_sprites, game.fires, game.lights #game.shocks
             self.damage = 1
@@ -4416,7 +4429,7 @@ class Explosion(pg.sprite.Sprite):
                     self.light_mask_rect.center = self.rect.center
 
 class Fireball(pg.sprite.Sprite):
-    def __init__(self, mother, game, pos, rot, damage, knockback = 2, lifetime = 1000, speed = 200, source_vel = 0, after_effect = None, enemy = False, sky = False):
+    def __init__(self, mother, game, pos, rot, damage, knockback = 2, lifetime = 1000, speed = 100, source_vel = 0, after_effect = None, enemy = False, sky = False):
         self.game = game
         self.sky = sky
         if self.sky:
@@ -4436,7 +4449,7 @@ class Fireball(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = pos
         self.hit_rect = FIREBALL_HIT_RECT.copy()
-        self.offset = vec(44, 0).rotate(-self.rot)
+        self.offset = vec(22, 0).rotate(-self.rot)
         self.hit_rect.center = vec(pos) + self.offset # A separate hitbox is used bexause the fireball is offset from the center of the image
         self.light_mask = pg.transform.scale(self.game.light_mask_images[1], FIREBALL_LIGHT_RADIUS)
         self.light_mask_rect = self.light_mask.get_rect()

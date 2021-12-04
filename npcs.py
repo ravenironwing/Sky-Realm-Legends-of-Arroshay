@@ -28,31 +28,105 @@ NPC_TYPE_LIST = ['people', 'animals']
 # NPCs Settings
 PEOPLE = {}
 
-# NPCs I have fixed for the new system.
-PEOPLE['generic'] = {'name': 'Villager', 'protected': True, 'health': 100, 'touch damage': False, 'damage': 5, 'knockback': 2, 'acceleration': 5, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'fwp', 'armed': False, 'dual wield': False,
-    'gender': 'random', 'race': 'osidine', 'hair': ['random'], 'magic': [None],
-    'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'}, 'dialogue': 'random VILLAGER_DLG', 'store': None,
-    'inventory':{'weapons': {'lantern':1}, 'hats': {}, 'tops': {'random VILLAGER_':1}, 'bottoms': {'random VILLAGER_':1}, 'gloves': {}, 'shoes': {'brown boots': 1}, 'items': {'gold': 100}, 'blocks': {}},
-    'animations': {None}}
+# Optional NPC keys that need to be searched for
+    # 'is dragon': True
+    # 'corpse': None, 'mountable': False, 'grabable': True, 'item type': 'weapons', 'item': 'live rabbit', 'dropped items': ['dead rabbit'],
+    # 'dialogue': None, 'store': None, 'climbing': True
 
-PEOPLE['villager'] = {'name': 'Villager', 'protected': True, 'health': 100, 'touch damage': False, 'damage': 5, 'knockback': 2, 'acceleration': 5, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'fwp', 'armed': False, 'dual wield': False,
-    'gender': 'random', 'race': 'osidine', 'hair': ['random'], 'magic': [None],
-    'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'}, 'dialogue': 'random VILLAGER_DLG', 'store': None,
+# NPCs I have fixed for the new system.
+PEOPLE['player'] = {'name': 'Adventurer', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'awp', 'is dragon': True,
+    'gender': 'female', 'race': 'osidine', 'hair': [], 'magic': [],
+    'colors':  {'hair': DEFAULT_HAIR_COLOR, 'skin': DEFAULT_SKIN_COLOR},
+    'dialogue': 'random PLAYER_DLG',
+    'inventory':{'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'gold': 100}, 'blocks': {}},
+    'stats': {'health': 100, 'max health': 100, 'stamina': 100, 'max stamina': 100, 'magica': 100, 'max magica': 100,
+              'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 1, 'agility': 1, 'armor': 0,
+              'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0,
+              'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0,
+              'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'acceleration': 28, 'level': 0}}
+
+PEOPLE['generic'] = {'name': 'Villager', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'fwp',
+    'gender': 'female', 'race': 'osidine', 'hair': [], 'magic': [],
+    'colors':  {'hair': DEFAULT_HAIR_COLOR, 'skin': DEFAULT_SKIN_COLOR}, 'dialogue': 'random VILLAGER_DLG', 'store': None,
+    'inventory':{'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'gold': 100}, 'blocks': {}},
+    'stats': {'health': 100, 'max health': 100, 'stamina': 100, 'max stamina': 100, 'magica': 100,'max magica': 100,
+           'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 1,'agility': 1, 'armor': 0,
+           'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0,'marksmanship accuracy': 0, 'melee': 0,
+           'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0,'looting': 0,
+           'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0,'acceleration': 5, 'level': 0}}
+
+PEOPLE['villager'] = {'name': 'Villager', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'fwp',
+    'gender': 'random', 'race': 'osidine', 'hair': ['random'], 'magic': [],
+    'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'},
+    'dialogue': 'random VILLAGER_DLG',
     'inventory':{'weapons': {'lantern':1}, 'hats': {}, 'tops': {'random VILLAGER_':1}, 'bottoms': {'random VILLAGER_':1}, 'gloves': {}, 'shoes': {'brown boots': 1}, 'items': {'gold': 100}, 'blocks': {}},
-    'animations': {None}}
+    'stats': {'health': 100, 'max health': 100, 'stamina': 100, 'max stamina': 100, 'magica': 100,'max magica': 100,
+            'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 1,'agility': 1, 'armor': 0,
+            'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0,'marksmanship accuracy': 0, 'melee': 0,
+            'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0,'looting': 0,
+            'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0,'acceleration': 5, 'level': 0}}
 VILLAGER_TOPS = CASUAL_TOPS_LIST
 VILLAGER_BOTTOMS = CASUAL_BOTTOMS_LIST
-PEOPLE['osidine guard'] = {'name': 'Guard', 'protected': True, 'health': 600, 'touch damage': False, 'damage': 15, 'knockback': 10, 'acceleration': 6, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'awp', 'armed': True, 'dual wield': False,
-    'gender': 'random', 'race': 'osidine', 'hair': ['random'], 'magic': [None],
-    'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'}, 'dialogue': 'random GUARD_DLG', 'store': None,
+PEOPLE['osidine guard'] = {'name': 'Guard', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'awp',
+    'gender': 'random', 'race': 'osidine', 'hair': ['random'], 'magic': [],
+    'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'},
+    'dialogue': 'random GUARD_DLG',
     'inventory': { 'weapons': {'random GUARD_':1, 'lantern':1}, 'hats': {'random GUARD_':1}, 'tops': {'steel guard armor':1}, 'bottoms': {'random GUARD_':1}, 'shoes': {'steel boots':1}, 'gloves': {'random GUARD_':1}, 'items': {'random':1,  'gold': 250}, 'blocks': {}},
-    'animations': {None}}
+    'stats': {'health': 600, 'max health': 100, 'stamina': 100, 'max stamina': 100,'magica': 100,'max magica': 100,
+             'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 15,'agility': 1, 'armor': 0,
+             'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0,'marksmanship accuracy': 0, 'melee': 0,
+             'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0,'magica regen': 0,'looting': 0,
+             'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0,'acceleration': 6, 'level': 0}}
 GUARD_WEAPONS = ['steel broadsword', 'steel mace']
 GUARD_HATS = ['steel guard helmet', 'steel helmet']
 GUARD_GLOVES = ['steel gauntlets', 'leather gauntlets']
 GUARD_BOTTOMS = ['steel chainmail leggings F', 'leather leggings F', 'steel chainmail leggings M', 'leather leggings M']
 
+ANIMALS = {}
+ANIMALS['rabbit'] = {'name': 'Rabbit', 'protected': False, 'hit rect': SMALL_HIT_RECT, 'detect radius': 400, 'avoid radius': 100,'aggression': 'fwd',
+    'gender': 'random', 'race': 'rabbit', 'hair': ['random'], 'magic': [],
+    'colors': {'hair': 'random COLOR_PALETTE', 'skin': 'random COLOR_PALETTE'},
+    'grabable': True, 'item type': 'weapons', 'item': 'live rabbit', 'dropped items': ['dead rabbit'],
+    'inventory': {'weapons': {}, 'hats': {},'tops': {}, 'bottoms': {},'shoes': {}, 'gloves': {}, 'items': {}, 'blocks': {}},
+    'stats': {'health': 10, 'max health': 10, 'stamina': 100, 'max stamina': 100,'magica': 10,'max magica': 10,
+           'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 2,'agility': 1, 'armor': 0,
+           'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0,'marksmanship accuracy': 0, 'melee': 0,
+           'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0,'magica regen': 0,'looting': 0,
+           'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0,'acceleration': 10, 'level': 0}}
 
+#Animation patterns:
+BASIC3 = [1, 2, 3, 2]
+FLY4 = [1, 2, 3, 4, 3, 2]
+ANIMAL_ANIMATIONS = {}
+ANIMAL_ANIMATIONS['garden lizard'] = {'walk': BASIC3}
+ANIMAL_ANIMATIONS['goldfish'] = {'walk':[1, 4, 2, 3, 2, 4]}
+ANIMAL_ANIMATIONS['bluefish'] = {'walk':[1, 4, 2, 3, 2, 4]}
+ANIMAL_ANIMATIONS['leopard shark'] = {'walk':[1, 2, 3, 2, 1, 4, 5, 4]}
+ANIMAL_ANIMATIONS['rabbit'] = {'walk':BASIC3, 'run': [2, 4, 5, 4]}
+ANIMAL_ANIMATIONS['chicken'] = {'walk':BASIC3, 'run': [4, 5, 6, 5]}
+ANIMAL_ANIMATIONS['pink moth'] = {'walk':BASIC3}
+ANIMAL_ANIMATIONS['green moth'] = {'walk':BASIC3}
+ANIMAL_ANIMATIONS['brown bird'] = {'walk':BASIC3}
+ANIMAL_ANIMATIONS['giant ant'] = {'walk':[1, 2, 3, 2, 1, 4, 5, 6, 5, 4]}
+ANIMAL_ANIMATIONS['queen ant'] = {'walk':[1, 2, 3, 2, 1, 4, 5, 6, 5, 4]}
+ANIMAL_ANIMATIONS['butterfly ideopsis'] = {'walk':BASIC3}
+ANIMAL_ANIMATIONS['domestic sheep'] = {'walk':[1, 2, 3, 2, 1, 4, 5, 4]}
+ANIMAL_ANIMATIONS['bighorn sheep'] = {'walk':[1, 2, 3, 2, 1, 4, 5, 4]}
+ANIMAL_ANIMATIONS['snake'] = {'walk':[1, 2, 3, 4, 5, 6, 7, 8]}
+ANIMAL_ANIMATIONS['horse'] = {'walk':[1, 2, 3, 2, 1, 5, 6, 5], 'run': [1, 2, 3, 4, 3, 2, 1, 5, 6, 7, 6, 5], 'swim': [8, 12, 11, 8, 10, 9, 10]}
+ANIMAL_ANIMATIONS['giant spider'] = {'walk':BASIC3}
+ANIMAL_ANIMATIONS['squid'] = {'walk':BASIC3}
+ANIMAL_ANIMATIONS['flying goldfix'] = {'walk':BASIC3}
+ANIMAL_ANIMATIONS['marlin'] = {'walk':BASIC3}
+ANIMAL_ANIMATIONS['hawk'] = {'walk':BASIC3}
+ANIMAL_ANIMATIONS['sea turtle'] = {'walk':BASIC3}
+ANIMAL_ANIMATIONS['red wyvern'] = {'walk':FLY4}
+ANIMAL_ANIMATIONS['blue wyvern'] = {'walk':FLY4}
+ANIMAL_ANIMATIONS['dolphin'] = {'walk':[1, 2, 3, 4, 5, 6, 5, 4, 3, 2]}
+ANIMAL_ANIMATIONS['sfix'] = {'walk':[1, 2, 3, 4, 5, 6, 7], 'swim': [8, 9, 10, 11, 12, 13]}
+ANIMAL_ANIMATIONS['pig'] = {'walk': BASIC3}
+
+"""
 # NPCs I have not fixed:
 
 # Agression variable is used to determine the behavior of NPC when detected and attacked. awd = attack when detected, awp = attack when provoked, fwp = flee when provoked, fwd = flee when detected, fup = flee until provoked, sap = stationary then aggressive when provoked
@@ -338,50 +412,17 @@ PEOPLE['occupied mech suit'] = {'name': 'Mech Guard', 'protected': True, 'health
     'expanded inventory': {'gender': list(GENDER.keys()), 'race': RACE_TYPE_LIST, 'weapons': ['mech peacekeeper'], 'hats': [None], 'hair': [None], 'tops': [None], 'bottoms': [None], 'shoes': [None], 'gloves': [None], 'gold': 0, 'items': ['machine screws', 'machine screws', 'steel pipe', 'aluminum rod', 'steel wire', 'steel ingot', 'steel ingot'], 'magic': [None]},
     'animations': {None}}
 
-#Animation patterns:
-BASIC3 = [1, 2, 3, 2]
-FLY4 = [1, 2, 3, 4, 3, 2]
-ANIMAL_ANIMATIONS = {}
-ANIMAL_ANIMATIONS['garden lizard'] = {'walk': BASIC3}
-ANIMAL_ANIMATIONS['goldfish'] = {'walk':[1, 4, 2, 3, 2, 4]}
-ANIMAL_ANIMATIONS['bluefish'] = {'walk':[1, 4, 2, 3, 2, 4]}
-ANIMAL_ANIMATIONS['leopard shark'] = {'walk':[1, 2, 3, 2, 1, 4, 5, 4]}
-ANIMAL_ANIMATIONS['rabbit'] = {'walk':BASIC3, 'run': [2, 4, 5, 4]}
-ANIMAL_ANIMATIONS['chicken'] = {'walk':BASIC3, 'run': [4, 5, 6, 5]}
-ANIMAL_ANIMATIONS['pink moth'] = {'walk':BASIC3}
-ANIMAL_ANIMATIONS['green moth'] = {'walk':BASIC3}
-ANIMAL_ANIMATIONS['brown bird'] = {'walk':BASIC3}
-ANIMAL_ANIMATIONS['giant ant'] = {'walk':[1, 2, 3, 2, 1, 4, 5, 6, 5, 4]}
-ANIMAL_ANIMATIONS['queen ant'] = {'walk':[1, 2, 3, 2, 1, 4, 5, 6, 5, 4]}
-ANIMAL_ANIMATIONS['butterfly ideopsis'] = {'walk':BASIC3}
-ANIMAL_ANIMATIONS['domestic sheep'] = {'walk':[1, 2, 3, 2, 1, 4, 5, 4]}
-ANIMAL_ANIMATIONS['bighorn sheep'] = {'walk':[1, 2, 3, 2, 1, 4, 5, 4]}
-ANIMAL_ANIMATIONS['snake'] = {'walk':[1, 2, 3, 4, 5, 6, 7, 8]}
-ANIMAL_ANIMATIONS['horse'] = {'walk':[1, 2, 3, 2, 1, 5, 6, 5], 'run': [1, 2, 3, 4, 3, 2, 1, 5, 6, 7, 6, 5], 'swim': [8, 12, 11, 8, 10, 9, 10]}
-ANIMAL_ANIMATIONS['giant spider'] = {'walk':BASIC3}
-ANIMAL_ANIMATIONS['squid'] = {'walk':BASIC3}
-ANIMAL_ANIMATIONS['flying goldfix'] = {'walk':BASIC3}
-ANIMAL_ANIMATIONS['marlin'] = {'walk':BASIC3}
-ANIMAL_ANIMATIONS['hawk'] = {'walk':BASIC3}
-ANIMAL_ANIMATIONS['sea turtle'] = {'walk':BASIC3}
-ANIMAL_ANIMATIONS['red wyvern'] = {'walk':FLY4}
-ANIMAL_ANIMATIONS['blue wyvern'] = {'walk':FLY4}
-ANIMAL_ANIMATIONS['dolphin'] = {'walk':[1, 2, 3, 4, 5, 6, 5, 4, 3, 2]}
-ANIMAL_ANIMATIONS['sfix'] = {'walk':[1, 2, 3, 4, 5, 6, 7], 'swim': [8, 9, 10, 11, 12, 13]}
-ANIMAL_ANIMATIONS['pig'] = {'walk': BASIC3}
 
-ANIMALS = {}
+#ANIMALS = {}
 ANIMALS['garden lizard'] = {'name': 'garden lizard', 'corpse': None, 'mountable': False, 'touch damage': False, 'protected': False, 'hit rect': SMALL_HIT_RECT, 'grabable': True, 'run speed': 300, 'walk speed': 250, 'walk animate speed': 80, 'run animate speed': 180, 'detect radius': 500, 'avoid radius': 45,'aggression': 'fwd', 'health': 10, 'damage': 0, 'knockback': 0, 'item type': 'items', 'item': 'live garden lizard', 'dropped items': ['dead garden lizard'], 'collide': ['obstacles']}
-ANIMALS['rabbit'] = {'name': 'rabbit', 'corpse': None, 'mountable': False, 'touch damage': False, 'protected': False, 'hit rect': SMALL_HIT_RECT, 'grabable': True, 'run speed': 100, 'walk speed': 30, 'walk animate speed': 400, 'run animate speed': 240, 'detect radius': 400, 'avoid radius': 100,'aggression': 'fwd', 'health': 10, 'damage': 0, 'knockback': 0, 'item type': 'weapons', 'item': 'live rabbit', 'dropped items': ['dead rabbit'], 'collide': ['obstacles']}
+#ANIMALS['rabbit'] = {'name': 'rabbit', 'corpse': None, 'mountable': False, 'touch damage': False, 'protected': False, 'hit rect': SMALL_HIT_RECT, 'grabable': True, 'run speed': 100, 'walk speed': 30, 'walk animate speed': 400, 'run animate speed': 240, 'detect radius': 400, 'avoid radius': 100,'aggression': 'fwd', 'health': 10, 'damage': 0, 'knockback': 0, 'item type': 'weapons', 'item': 'live rabbit', 'dropped items': ['dead rabbit'], 'collide': ['obstacles']}
 ANIMALS['chicken'] = {'name': 'chicken', 'corpse': None, 'mountable': False, 'touch damage': False, 'protected': True, 'hit rect': SMALL_HIT_RECT, 'grabable': True, 'run speed': 350, 'walk speed': 50, 'walk animate speed': 400, 'run animate speed': 200, 'detect radius': 300, 'avoid radius': 80, 'aggression': 'fwd', 'health': 20, 'damage': 0, 'knockback': 0, 'item type': 'weapons', 'item': 'live chicken', 'dropped items': ['dead chicken', 'feather', 'feather', 'feather'], 'collide': ['obstacles']}
 ANIMALS['bighorn sheep'] = {'name': 'bighorn sheep', 'corpse': 1, 'mountable': False, 'climbing': True, 'touch damage': True, 'protected': False, 'hit rect': LARGE_HIT_RECT, 'grabable': False, 'run speed': 480, 'walk speed': 100, 'walk animate speed': 300, 'run animate speed': 120, 'detect radius': 300, 'avoid radius': 300,'aggression': 'fup', 'health': 100, 'damage': 8, 'knockback': 25, 'item type': 'items', 'item': 'sheep meat', 'dropped items': ['sheep meat', 'sheep skin', 'sheep horn', 'sheep horn'], 'collide': ['walls', 'water']}
 ANIMALS['domestic sheep'] = {'name': 'domestic sheep', 'corpse': 3, 'mountable': True, 'touch damage': False, 'protected': True, 'hit rect': LARGE_HIT_RECT, 'grabable': False, 'run speed': 200, 'walk speed': 100, 'walk animate speed': 300, 'run animate speed': 200, 'detect radius': 300, 'avoid radius': 300,'aggression': 'fwd', 'health': 50, 'damage': 0, 'knockback': 0, 'item type': 'items', 'item': 'sheep meat', 'dropped items': ['sheep meat', 'sheep skin'], 'collide': ['obstacles']}
 ANIMALS['horse'] = {'name': 'horse', 'corpse': 4, 'mountable': True, 'touch damage': False, 'protected': False, 'hit rect': LARGE_HIT_RECT, 'grabable': False, 'run speed': 480, 'walk speed': 100, 'walk animate speed': 300, 'run animate speed': 100, 'detect radius': 300, 'avoid radius': 300,'aggression': 'fwp', 'health': 280, 'damage': 8, 'knockback': 25, 'item type': 'items', 'item': 'sheep meat', 'dropped items': ['horse skin', 'horse meat'], 'collide': ['walls', 'water']}
 ANIMALS['pig'] = {'name': 'pig', 'corpse': 20, 'mountable': True, 'touch damage': False, 'protected': True, 'hit rect': MEDIUM_HIT_RECT, 'grabable': False, 'run speed': 300, 'walk speed': 150, 'walk animate speed': 220, 'run animate speed': 200, 'detect radius': 300, 'avoid radius': 300,'aggression': 'fwd', 'health': 49, 'damage': 0, 'knockback': 0, 'item type': 'items', 'item': 'pig meat', 'dropped items': ['pig meat', 'pig skin'], 'collide': ['obstacles']}
 
-
 ANIMALS['sfix'] = {'name': 'sfix', 'corpse': None, 'death action': 'explode', 'mountable': False, 'touch damage': False, 'protected': False, 'hit rect': LARGE_HIT_RECT, 'grabable': False, 'run speed': 200, 'walk speed': 180, 'walk animate speed': 180, 'run animate speed': 170, 'detect radius': 500, 'avoid radius': 200,'aggression': 'awd', 'health': 500, 'damage': 25, 'knockback': 0, 'item type': 'items', 'item': 'red crystal', 'dropped items': ['red crystal'], 'collide': ['obstacles'], 'magic': ['fireball']}
-
 
 ANIMALS['red wyvern'] = {'name': 'red wyvern', 'flying': True, 'magic': ['fireball'], 'corpse': 13, 'mountable': False, 'touch damage': False, 'protected': False, 'hit rect': MEDIUM_HIT_RECT, 'grabable': False, 'run speed': 300, 'walk speed': 180, 'walk animate speed': 80, 'run animate speed': 60, 'detect radius': 500, 'avoid radius': 200,'aggression': 'awd', 'health': 260, 'damage': 0, 'knockback': 0, 'item type': 'items', 'item': 'live brown bird', 'dropped items': ['dragon spit', 'red wyvern skin', 'wyvern meat'], 'collide': ['walls']}
 ANIMALS['blue wyvern'] = {'name': 'blue wyvern', 'flying': True, 'magic': ['fireball'], 'corpse': 12, 'mountable': False, 'touch damage': False, 'protected': False, 'hit rect': MEDIUM_HIT_RECT, 'grabable': False, 'run speed': 300, 'walk speed': 180, 'walk animate speed': 80, 'run animate speed': 60, 'detect radius': 500, 'avoid radius': 200,'aggression': 'awd', 'health': 260, 'damage': 0, 'knockback': 0, 'item type': 'items', 'item': 'live brown bird', 'dropped items': ['dragon spit', 'blue wyvern skin', 'wyvern meat'], 'collide': ['walls']}
@@ -438,3 +479,4 @@ PEOPLE['demon queen'] = {'name': 'Demon Queen', 'protected': True, 'health': 666
 PEOPLE['bill'] = {'name': 'Bill', 'protected': True, 'health': 1000, 'touch damage': False, 'damage': 15, 'knockback': 10, 'walk speed': DEFAULT_WALK_SPEED, 'run speed': DEFAULT_RUN_SPEED, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'awp', 'armed': True, 'dual wield': False, 'collide': ['walls'], 'gender': 'male', 'race': 'mech_suit', 'colors': {'hair': (138, 54, 15), 'skin': (224, 224, 4, 255)}, 'dialogue': 'BILL_DLG', 'store': None, 'expanded inventory': {'weapons': ['assault rifle'], 'weapons2': [None], 'tops': [None], 'bottoms': [None], 'hats': [None], 'hair': [None], 'shoes': [None], 'gloves': [None], 'items': ['oregano'], 'magic': [None], 'gold': 1}, 'animations': {None}, 'guarded': False, 'quest': "Bill\'s fish"}
 PEOPLE['jeff'] = {'name': 'Jeff', 'protected': True, 'health': 300, 'touch damage': False, 'damage': 15, 'knockback': 10, 'walk speed': DEFAULT_WALK_SPEED, 'run speed': DEFAULT_RUN_SPEED, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'awp', 'armed': False, 'dual wield': False, 'collide': ['obstacles', 'walls', 'lava'], 'gender': 'male', 'race': 'immortui', 'colors': {'hair': (191, 157, 122, 255), 'skin': (255, 255, 255)}, 'dialogue': 'JEFF_DLG', 'store': None, 'expanded inventory': {'weapons': [None], 'weapons2': [None], 'tops': ['grey decayed shirt M'], 'bottoms': ['jeans M'], 'hats': [None], 'hair': ['short messy'], 'shoes': ['brown boots'], 'gloves': [None], 'items': ['plate'], 'magic': [None], 'gold': 0}, 'animations': {None}, 'guarded': False, 'quest': 'Find a chicken'}
 PEOPLE['cindy'] = {'name': 'Cindy', 'protected': True, 'health': 600, 'touch damage': False, 'damage': 15, 'knockback': 10, 'walk speed': DEFAULT_WALK_SPEED, 'run speed': DEFAULT_RUN_SPEED, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'fwp', 'armed': False, 'dual wield': False, 'collide': ['obstacles', 'walls', 'vehicles', 'lava', 'water', 'shallows'], 'gender': 'female', 'race': 'shaktele', 'colors': {'hair': (138, 54, 15), 'skin': (98, 48, 21)}, 'dialogue': 'CINDY_DLG', 'store': CINDY_STORE, 'expanded inventory': {'weapons': [None], 'weapons2': [None], 'tops': ['blue tshirt F'], 'bottoms': ['red mini dress skirt'], 'hats': [None], 'hair': ['medium messy'], 'shoes': ['brown boots'], 'gloves': [None], 'items': ['chop sticks'], 'magic': ['healing'], 'gold': 250}, 'animations': {None}, 'guarded': True}
+"""

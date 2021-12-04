@@ -665,11 +665,15 @@ def lamp_check(character):
         if not add_light:
             if character in character.game.lights:
                 character.game.lights.remove(character)
-    elif character.equipped['weapons2'] in LIGHTS_LIST:
+        return
+    if character.equipped['weapons2'] in LIGHTS_LIST:
         character.equipped['weapons2'] = None
-        if character in character.game.lights:
-            character.game.lights.remove(character)
-        character.body.update_animations()
+    if character.equipped['weapons'] in LIGHTS_LIST:
+        character.equipped['weapons'] = None
+    if character in character.game.lights:
+        character.game.lights.remove(character)
+    character.body.update_animations()
+
 
 def remove_nones(*my_lists):
     for my_list in my_lists:
@@ -775,9 +779,9 @@ class Turret(pg.sprite.Sprite):
             self.kill()
 
 class Vehicle(pg.sprite.Sprite):
-    def __init__(self, game, center, kind, map, health = None):
+    def __init__(self, game, center, kind):
         self.game = game
-        self.kind = self.race = self.species = kind
+        self.kind = self.race = kind
         self.data = VEHICLES[kind]
         self._layer = eval(self.data['layer'])
         self.mountable = self.data['mountable']
@@ -1447,55 +1451,23 @@ class Body(pg.sprite.Sprite):
         if not self.mother.alive():
             self.kill()
 
-class Player(pg.sprite.Sprite):
-    def __init__(self, game, x = 0, y = 0, kind = 'player', health = None, inventory = None, colors = None):
-        #Graphics and motion setup
+class Character(pg.sprite.Sprite): # Used for things humanoid players and animals have in common so they can inherrit them.
+    def __init__(self, game, x = 0, y = 0, kind = 'player', colors = None, animal = False):
         self.game = game
-        try:
-            self._layer = self.game.map.player_layer
-        except:
-            self._layer = PLAYER_LAYER
-        self.kind = kind
-        if self.kind == 'player':
-            self.npc = False
-            self.groups = game.all_sprites, game.players, game.player_group, game.moving_targets
-        else:
-            self.npc = True
-            if kind == 'mech suit':
-                self.groups = game.all_sprites, game.mobs, game.npcs, game.detectables, game.moving_targets, game.mechsuits
-            else:
-                self.groups = game.all_sprites, game.mobs, game.npcs, game.detectables, game.moving_targets
-            try:  # This makes it so you can load a saved game even if there were new NPCs added.
-                self.kind = self.game.people[kind]
-            except:
-                self.kind = PEOPLE[kind]
-                self.game.people[kind] = self.kind
 
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.has_dragon_body = True # Used to define whether or not a character can transform into a dragon.
-        self.image = self.game.body_surface
-        self.rect = self.image.get_rect()
-        self.hit_rect = copy.deepcopy(PLAYER_HIT_RECT)
-        self.hit_rect.center = self.rect.center
-        self.brightness = 1
-        self.mask_kind = 0
-        self.light_on = False
-        self.light_mask_orig = pg.transform.scale(self.game.light_mask_images[0], (self.brightness, self.brightness))
-        self.light_mask = self.light_mask_orig.copy()
-        self.light_mask_rect = self.light_mask.get_rect()
-        self.light_mask_rect.center = self.rect.center
-        self.lamp_hand = 'weapons'
-        self.elevation = 0
+        # Motion vars
         self.vel = vec(0, 0)
         self.acc = vec(0, 0)
         self.pos = vec(x, y)
+        self.elevation = 0
         self.direction = vec(1, 0) # A unit vector that represents the direction the player is facing.
         self.mouse_direction = vec(0, 0)
         self.mouse_pos = vec(0, 0)
         self.friction = PLAYER_FRIC
-        self.rot = 0
+        self.rot = randrange(0, 360)
         self.rot_speed = 0
-        #time vars
+
+        # Tming vars
         self.last_hit = 0 # Used for the time between mob hits to make it so you only get damaged based on the DAMAGE_RATE
         self.last_stat_update = 0 # Used to level stats periodically based on activities
         self.stat_update_delay = 50000
@@ -1510,54 +1482,12 @@ class Player(pg.sprite.Sprite):
         self.last_fireball = 0
         self.last_fire = 0
         self.last_charge = 0
-        self.melee_playing = False
-        self.dual_melee = False
-        self.is_reloading = False
-        self.gun = True # Says that the player needs reloading animations
-        self.bow = False
-        self.melee_rate = 0
+        self.melee_rate = 800
         self.last_melee_sound = 0
         self.last_throw = 0
         self.last_climb = 0
-        # Player state variables
-        self.e_down = False # Used for the interact button.
-        self.dragon = False
-        self.temp_equipped = None # Used for switching your body to a mech suit or for Wraith possession.
-        self.possessing = None
-        self.transformable = False
-        self.weapon_hand = 'weapons'
-        self.flying = False
-        self.jumping = False
-        self.jump_count = 0
-        self._climbing = False
-        self._swimming = False
-        self.in_shallows = False
-        self.in_grass = False
-        self.driver = None
-        self.falling = False
-        self.in_vehicle = self.in_player_vehicle = False
-        self.in_flying_vehicle = False
-        self.vehicle = None
-        self.moving_melee = False
-        self.living = True
-        self.tile_props = {'material' : '', 'wall': ''}
-        self.next_tile_props = {'material': '', 'wall': ''}
-        self.block_gid = None
-        self.provoked = False
-        self.offensive = False
-        # player stats. You gain skill according to the activities the player does.
-        self.stats = {'health': 100, 'max health': 100, 'stamina': 100, 'max stamina': 100, 'magica': 100, 'max magica': 100, 'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 1, 'agility': 1, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0, 'casting': 0, 'lock picking': 0, 'level': 0}
-        self.fire_damage = self.start_fire_damage = 20
-        self.after_effect = None
-        # Used for equipment perks
-        self.equipped_after_effect = False
-        self.fireball_rate = self.original_fireball_rate = 400
-        self.fireball_rate_perk = 0
-        self.health_perk = self.old_health_perk = 0
-        self.stamina_perk = self.old_stamina_perk = 0
-        self.magica_perk = self.old_magica_perk = 0
-        self.invisible = False
-        self.arrow = None
+        self.eating_corpse = 0
+
         # vars for leveling
         self.last_kills = 0
         self.last_exercise = 0
@@ -1568,90 +1498,242 @@ class Player(pg.sprite.Sprite):
         self.last_casting = 0
         self.last_magica_regen = 0
         self.last_cast = 0
+
+        # Counter vars
+        self.jump_count = 0
+        self.talk_counter = 0  # Used to keep track of how many times you talk to someone. So you can changed the dialogue based on it.
+
+        # State vars
+        self.e_down = False # Used for the interact button.
+        self.dragon = False
+        self.temp_equipped = None # Used for switching your body to a mech suit or for Wraith possession.
+        self.possessing = None
+        self.occupied = False # Used to tell if it's being ridden
+        self.transformable = False # Used to tell if you have the Zhara talisman that lets you transform.
+        self.weapon_hand = self.lamp_hand = 'weapons'
+        self.flying = False
+        self.jumping = False
+        self.running = False
+        self._climbing = False
+        self._swimming = False
+        self.in_shallows = False
+        self._in_grass = False
+        self.driver = None
+        self.falling = False
+        self.melee_playing = False
+        self.dual_melee = False
+        self.is_reloading = False
+        self.in_vehicle = False
+        self.in_player_vehicle = False
+        self.in_flying_vehicle = False
+        self.moving_melee = False
+        self.living = True
+        self.tile_props = {'material' : '', 'wall': ''}
+        self.next_tile_props = {'material': '', 'wall': ''}
+        self.block_gid = None
+        self.provoked = False
+        self.offensive = False
+        self.invisible = False
+
+        # Associated objects
+        self.vehicle = None
+        self.turret = None
+        self.arrow = None
+
+        self.animal = animal
+        self.kind = kind # The name of the character in the npcs.py dictionaries
+        if self.animal:
+            self.npc = True
+            try:  # This makes it so you can load a saved game even if there were new animal variants added.
+                self.kind_dict = self.game.animals_dict[self.kind]
+            except:
+                self.kind_dict = ANIMALS[self.kind]
+                self.game.animals_dict[self.kind] = self.kind_dict
+            # Sets layers and special state vars
+            if 'flying' in self.kind_dict.keys():
+                self.flying = self.kind_dict['flying']
+            if self.flying:
+                self._layer = self.game.map.sky_layer
+                self.in_flying_vehicle = True
+            elif 'horse' in self.kind:
+                self._layer = self.game.map.bullet_layer
+            else:
+                self._layer = self.game.map.mob_layer
+            # Sets groups
+            if 'grabable' in self.kind_dict.keys() and self.kind_dict['grabable']:
+                self.groups = game.all_sprites, game.mobs, game.animals, game.grabable_animals, game.detectables, game.moving_targets
+            else:
+                self.groups = game.all_sprites, game.mobs, game.animals, game.moving_targets
+        else:
+            try:  # This makes it so you can load a saved game even if there were new/changed NPCs added.
+                self.kind_dict = self.game.people[self.kind]
+            except:
+                self.kind_dict = PEOPLE[self.kind]
+                self.game.people[self.kind] = self.kind_dict
+            # Sets layers
+            try:
+                self._layer = self.game.map.player_layer
+            except:
+                self._layer = PLAYER_LAYER
+            # Sets groups
+            if self.kind == 'player':
+                self.npc = False
+                self.groups = game.all_sprites, game.players, game.player_group, game.moving_targets
+            else:
+                self.npc = True
+                if self.kind == 'mech suit':
+                    self.groups = game.all_sprites, game.mobs, game.npcs, game.detectables, game.moving_targets, game.mechsuits
+                else:
+                    self.groups = game.all_sprites, game.mobs, game.npcs, game.detectables, game.moving_targets
+        self.original_layer = self._layer
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game.group.add(self)
+
+
+        # Illuminescensce properties
+        self.brightness = 1
+        self.mask_kind = 0
+        self.light_on = False
+        self.light_mask_orig = pg.transform.scale(self.game.light_mask_images[0], (self.brightness, self.brightness))
+        self.light_mask = self.light_mask_orig.copy()
+        self.light_mask_rect = self.light_mask.get_rect()
+
+        # Creates a blank inventory and generic equipment to be filled later
         self.expanded_inventory = {'gender': list(GENDER.keys()), 'hair': list(HAIR.keys()), 'race': list(RACE.keys()), 'magic': [None]}
         self.equipped = {'gender': 'female', 'race': 'osidine', 'hair': None, 'magic': None, 'weapons': None, 'weapons2': None,
                          'hats': None, 'tops': None, 'bottoms': None, 'shoes': None, 'gloves': None, 'items': None, 'blocks': None}
-        # Differences between player and NPC. Loads in NPCs data from the kind dictionary from npcs.py
-        if self.npc:
-            self.name = self.kind['name']
-            self.ai = AI(self)
-            self.dialogue = self.kind['dialogue']
-            self.touch_damage = self.kind['touch damage']
-            self.aggression = self.kind['aggression']
-            self.protected = self.kind['protected']
-            if 'Guard' in self.kind['name']:
-                self.guard = True
-            else:
-                self.guard = False
-            self.race = self.equipped['race'] = self.kind['race']
-            self.equipped['gender'] = self.kind['gender']
-            if self.equipped['gender'] == 'random':
-                self.equipped['gender'] = choice(['male', 'female'])
-            if self.equipped['race'] in ['blackwraith', 'whitewraith', 'skeleton', 'mechanima']:
-                self.hungers = False
-            else:
-                self.hungers = True
-            if self.race in ['blackwraith', 'whitewraith']:
-                self.immaterial = True
-            else:
-                self.immaterial = False
-            if self.equipped['race'] in ['blackwraith', 'whitewraith', 'skeleton']:
-                self.magical_being = True
-            else:
-                self.magical_being = False
-            self.acceleration = self.kind['acceleration']
-            self.expanded_inventory['magic'] = self.kind['magic']
-            if 'random' in self.kind['hair']:
-                random_hair(self)
-            self.inventory = self.kind['inventory']
-            self.inventory = random_inventory_item(self.inventory, self.equipped['gender']) # assignes random items where it says 'random' in the inventory.
-            change_clothing(self, True)
-            self.colors = copy.deepcopy(self.kind['colors'])
-            if 'random' in self.colors['skin']:
-                skin_list = eval(self.colors['skin'].replace('random', ''))
-                self.colors['skin'] = choice(skin_list)
-            if 'random' in self.colors['hair']:
-                hair_list = eval(self.colors['hair'].replace('random', ''))
-                self.colors['hair'] = choice(hair_list)
-            lamp_check(self)
-        else:
-            self.name = 'Adventurer'  # Change this later so the player can name their character.
-            self.ai = None
-            self.dialogue = ['Hi there.', 'What do you need?', 'We had better get a move on.']
-            self.touch_damage = 0
-            self.aggression = 'player'
-            self.protected = False
-            self.guard = False
-            self.hungers = True
-            self.immaterial = False
-            self.magical_being = False
-            self.acceleration = PLAYER_ACC
-            self.inventory = copy.deepcopy(DEFAULT_INVENTORIES['female osidine'])
-            self.equipped['hair'] = 'medium messy'
-            self.colors = {'hair': DEFAULT_HAIR_COLOR, 'skin': DEFAULT_SKIN_COLOR}
-            self.race = self.equipped['race']
 
+        # Character stats and inventories
+        self.stats = self.kind_dict['stats'].copy()
+        self.inventory = self.kind_dict['inventory'].copy()
+        self.inventory = random_inventory_item(self.inventory, self.equipped['gender']) # assignes random items where it says 'random' in the inventory.
+        self.colors = copy.deepcopy(self.kind_dict['colors'])
+        if 'random' in self.colors['skin']:
+            skin_list = eval(self.colors['skin'].replace('random', ''))
+            self.colors['skin'] = choice(skin_list)
+        if 'random' in self.colors['hair']:
+            hair_list = eval(self.colors['hair'].replace('random', ''))
+            self.colors['hair'] = choice(hair_list)
+        if 'random' in self.kind_dict['hair']:
+            random_hair(self)
+        self.detect_radius = self.default_detect_radius = self.kind_dict['detect radius']
+        self.avoid_radius = self.kind_dict['avoid radius']
+        self.name = self.kind_dict['name']
+        self.touch_damage = self.stats['touch damage']
+        self.touch_knockback = self.stats['touch knockback']
+        self.default_acceleration = self.acceleration = self.stats['acceleration']
+        if 'dialogue' in self.kind_dict.keys():
+            self.dialogue = self.kind_dict['dialogue']
+        else:
+            self.dialogue = None
+        self.aggression = self.kind_dict['aggression']
+        self.protected = self.kind_dict['protected']
+        self.race = self.equipped['race'] = self.kind_dict['race']
+        self.equipped['gender'] = self.kind_dict['gender']
+        if self.equipped['gender'] == 'random':
+            self.equipped['gender'] = choice(['male', 'female'])
+        self.expanded_inventory['magic'] = self.kind_dict['magic']
+        self.last_weapon = self.equipped['weapons'] # This string is used to keep track of what the player's last weapon was for equipping and unequipping toggling weapons and keeping track of bullets from old weapons
+        self.last_weapon2 = self.equipped['weapons2']
+        self.current_weapon = self.equipped['weapons']# weapon you had for autoequipping when your weapon is sheathed.
+        self.current_weapon2 = self.equipped['weapons2']  # weapon you had for autoequipping when your weapon is sheathed.
+
+        # Character qualities
+        self.hungers = True
+        self.guard = False
+        self.magical_being = False
+        self.immaterial = False
+        self.spell_caster = False
+        self.mountable = False
+        self.hideable = False
+        if len(self.expanded_inventory['magic']) > 0:
+            self.spell_caster = True
+        if 'Guard' in self.kind_dict['name']:
+            self.guard = True
+        if self.equipped['race'] in ['blackwraith', 'whitewraith', 'skeleton', 'mechanima']:
+            self.hungers = False
+        if self.race in ['blackwraith', 'whitewraith']:
+            self.immaterial = True
+        if self.equipped['race'] in ['blackwraith', 'whitewraith', 'skeleton']:
+            self.magical_being = True
+
+        self.talk_rect = XLARGE_HIT_RECT.copy()
+        self.hit_rect = copy.deepcopy(self.kind_dict['hit rect'])
+
+    def use_toilet(self):
+        pass
+
+    def sleep_in_bed(self):
+        pass
+
+    def pre_jump(self):
+        pass
+    def jump(self):
+        pass
+
+    def draw_health(self):
+        pass
+
+class Player(Character):  # Used for humanoid NPCs and Players
+    def __init__(self, game, x = 0, y = 0, kind = 'player', colors = None, animal = False):
+        super().__init__(game, x, y, kind, colors, animal)
+        self.image = self.game.body_surface
+        self.rect = self.image.get_rect()
+        self.hit_rect.center = self.rect.center
+        self.talk_rect.center = self.rect.center
+        self.light_mask_rect.center = self.rect.center
+
+        self.gun = True # determines if gun animations are rendered
+        self.bow = True
         self.ammo = {'pistol': 100, 'submachine gun': 100, 'shotgun': 100, 'rifle': 100, 'sniper rifle': 100, 'rocket launcher': 100, 'grenades': 100, 'turret': 1000, 'laser': 100, 'crystals': 100, 'bow': 100}
         self.mag1 = 0
         self.mag2 = 0
         self.ammo_cap1 = 0
         self.ammo_cap2 = 0
-        self.last_weapon = self.equipped['weapons'] # This string is used to keep track of what the player's last weapon was for equipping and unequipping toggling weapons and keeping track of bullets from old weapons
-        self.last_weapon2 = self.equipped['weapons2']
-        self.current_weapon = self.equipped['weapons']# weapon you had for autoequipping when your weapon is sheathed.
-        self.current_weapon2 = self.equipped['weapons2']  # weapon you had for autoequipping when your weapon is sheathed.
+
+        if self.npc:
+            self.ai = AI(self)
+            change_clothing(self, True)
+        else:
+            self.ai = None
+            self.inventory = copy.deepcopy(DEFAULT_INVENTORIES['female osidine'])
+            self.equipped['hair'] = 'medium messy'
+            self.colors = {'hair': DEFAULT_HAIR_COLOR, 'skin': DEFAULT_SKIN_COLOR}
         # Create Body object (keep this as the last attribute.
         self.human_body = Body(self.game, self)
-        if self.has_dragon_body:
+        if 'is dragon' in self.kind_dict.keys():
+            self.has_dragon_body = self.kind_dict[
+                'is dragon']  # Used to define whether or not a character can transform into a dragon.
             self.dragon_body = Body(self.game, self, True)
             self.dragon_body.remove(self.game.all_sprites)
+        else:
+            self.has_dragon_body = False
         self.body = self.human_body
+        if self.npc:
+            lamp_check(self)
         self.animation_playing = self.body.stand_anim
-        self.talk_rect = XLARGE_HIT_RECT.copy()
-        self.talk_rect.center = self.rect.center
-        self.talk_counter = 0  # Used to keep track of how many times you talk to someone. So you can changed the dialogue based on it.
+
+        # Used for breathing fire and the special after effect of the fire.
+        self.fire_damage = self.start_fire_damage = 20
+        self.after_effect = None
+
+        # Used for equipment perks
+        self.equipped_after_effect = False
+        self.fireball_rate = self.original_fireball_rate = 400
+        self.fireball_rate_perk = 0
+        self.health_perk = self.old_health_perk = 0
+        self.stamina_perk = self.old_stamina_perk = 0
+        self.magica_perk = self.old_magica_perk = 0
+
         set_elevation(self)
 
+    @property
+    def in_grass(self):
+        return self._in_grass
+    @in_grass.setter
+    def in_grass(self, value): # Doesn't do anything yet but return the value
+        if value!=self._in_grass:
+            self._in_grass = value
     @property
     def swimming(self):
         return self._swimming
@@ -1663,7 +1745,6 @@ class Player(pg.sprite.Sprite):
             self._swimming = value
         else:
             pass
-
     @property
     def climbing(self):
         return self._climbing
@@ -1752,6 +1833,7 @@ class Player(pg.sprite.Sprite):
 
         # Running
         if keys[self.game.key_map['sprint']] and self.is_moving():
+            self.running = True
             if self.stats['stamina'] > 10 and not self.in_vehicle:
                 if self.arrow == None:
                     if now - self.last_shift > 100:
@@ -1771,6 +1853,7 @@ class Player(pg.sprite.Sprite):
             else:
                 self.acceleration = PLAYER_ACC
         else:
+            self.running = False
             self.acceleration = PLAYER_ACC
 
         #Mouse aiming
@@ -1825,7 +1908,7 @@ class Player(pg.sprite.Sprite):
                 animate_speed = 250
             elif self.is_reloading:
                 animate_speed = 120 # This animation is set up in the reload method
-            elif keys[self.game.key_map['sprint']] and self.stats['stamina'] > 10:
+            elif self.running and self.stats['stamina'] > 10:
                 if self.arrow == None:
                     self.animation_playing = self.body.run_anim
                     animate_speed = 80
@@ -1925,7 +2008,7 @@ class Player(pg.sprite.Sprite):
                 if now - self.last_stam_regen > regen_delay:
                     keys = pg.key.get_pressed()
                     if not (keys[self.game.key_map['climb']] or self.is_attacking()):
-                        if not (keys[self.game.key_map['sprint']] and self.is_moving()):
+                        if not self.running and self.is_moving():
                             self.add_stamina((6 + self.stats['stamina regen']/50) * self.stats['hunger']/self.stats['max hunger']) # Stamina regenerates based off of your hunger level
                             if (self.stats['hunger'] > 75) or not self.hungers:  # You only heal when you're not too hungry.
                                 self.add_health(self.stats['healing'] / 150)
@@ -2664,7 +2747,7 @@ class Player(pg.sprite.Sprite):
                                     self.race = 'blackwraith'
                                     temp_inventory = self.inventory.copy()
                                     drop_all_items(self, True)
-                                    corpse = Npc(self.game, self.pos.x, self.pos.y, map, 'villager')
+                                    corpse = Player(self.game, self.pos.x, self.pos.y, 'villager')
                                     corpse.inventory = temp_inventory
                                     corpse.death()
                                     self.human_body.update_animations()
@@ -2677,10 +2760,10 @@ class Player(pg.sprite.Sprite):
 
                         if 'summon' in MAGIC[self.equipped['magic']]:
                             if MAGIC[self.equipped['magic']]['summon'] in PEOPLE:
-                                summoned = Npc(self.game, self.pos.x + 128, self.pos.y, self.game.map, MAGIC[self.equipped['magic']]['summon'])
+                                summoned = Player(self.game, self.pos.x + 128, self.pos.y, MAGIC[self.equipped['magic']]['summon'])
                                 summoned.make_companion()
                             elif MAGIC[self.equipped['magic']]['summon'] in ANIMALS:
-                                Animal(self.game, pos.x, pos.y, self.game.map, MAGIC[self.equipped['magic']]['summon'])
+                                Animal(self.game, pos.x, pos.y, MAGIC[self.equipped['magic']]['summon'])
                         if 'healing' in MAGIC[self.equipped['magic']]:
                             self.add_health(MAGIC[self.equipped['magic']]['healing'] + (self.stats['healing'] / 20) + (self.stats['casting'] / 100))
                         if 'fireballs' in MAGIC[self.equipped['magic']]:
@@ -3194,132 +3277,62 @@ class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
         self.avoid_mobs()
 
 
-class Animal(pg.sprite.Sprite):
-    def __init__(self, game, x, y, map, species, health = None):
-        self.game = game
-        self.species = self.race = species
-        self.kind = self.cat = ANIMALS[species]
-        self.name = self.kind['name']
-        self.protected = self.kind['protected']
-        self.npc = True
-        if 'flying' in self.kind.keys():
-            self.flying = self.kind['flying']
-        else:
-            self.flying = False
-        if self.flying:
-            self._layer = self.game.map.sky_layer
-            self.in_flying_vehicle = True
-        elif 'horse' in self.name:
-            self._layer = self.game.map.bullet_layer
-            self.in_flying_vehicle = False
-        else:
-            self._layer = self.game.map.mob_layer
-            self.in_flying_vehicle = False
-        if self.kind['grabable']:
-            self.groups = game.all_sprites, game.mobs, game.animals, game.grabable_animals, game.detectables, game.moving_targets
-        else:
-            self.groups = game.all_sprites, game.mobs, game.animals, game.moving_targets
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game.group.add(self)
-        self.original_layer = self._layer
-        self.map = map
-        self.aggression = self.kind['aggression']
-        self.touch_damage = self.kind['touch damage']
-        self.damage = self.kind['damage']
-        self.knockback = self.kind['knockback']
-        self.detect_radius = self.default_detect_radius = self.kind['detect radius']
-        self.avoid_radius = self.kind['avoid radius']
-        if not health:
-            self.stats = {'health': self.kind['health'], 'max health': self.kind['health']}
-        else:
-            self.stats = {'health': health, 'max health': self.kind['health']}
-        self.mountable = self.kind['mountable']
-        self.occupied = False
-        self.run_speed = self.kind['run speed'] * (randrange(7, 10)/10)
-        self.walk_speed = self.kind['walk speed'] * (randrange(7, 10)/10)
-        self.run_animate_speed = self.kind['run animate speed']
-        self.walk_animate_speed = self.kind['walk animate speed']
-        self.item_type = self.kind['item type']
-        if 'magic' in self.kind.keys():
-            self.spells = self.kind['magic']
-        else:
-            self.spells = None
-        self.item = self.kind['item']
-        self.collide_list = []
-        for item in self.kind['collide']:
-            self.collide_list.append(eval("self.game." + item + "_on_screen"))
-        self.walk_image_list = self.game.animal_animations[self.name]['walk']
-        if 'run' in list(self.game.animal_animations[self.name].keys()):
-            self.run_image_list = self.game.animal_animations[self.name]['run']
+class Animal(Character):
+    def __init__(self, game, x=0, y=0, kind='rabbit', colors=None, animal = True):
+        super().__init__(game, x, y, kind, colors, animal)
+
+        self.run_speed = self.acceleration * 20
+        self.walk_speed = self.acceleration * 10
+        self.run_animate_speed = 240
+        self.walk_animate_speed = 400
+        self.rotate_direction = randrange(-1, 1)
+
+        # Animal qualities
+        if 'climbing' in self.kind_dict.keys() and self.kind_dict['climbing']:
+            self.climbing = True
+        if 'mountable' in self.kind_dict.keys():
+            self.mountable = self.kind_dict['mountable']
+        if self.kind_dict['hit rect'] == SMALL_HIT_RECT:
+            if not self.flying:
+                self.hideable = True # Used for animals that can hide in long grass
+
+        self.item = self.kind_dict['item'] # dropped item when it dies
+        self.item_type = self.kind_dict['item type'] # For adding to inventory
+
+        # Images stuff
+        self.walk_image_list = self.game.animal_animations[self.kind]['walk']
+        if 'run' in list(self.game.animal_animations[self.kind].keys()):
+            self.run_image_list = self.game.animal_animations[self.kind]['run']
         else:
             self.run_image_list = self.walk_image_list
-        if 'swim' in list(self.game.animal_animations[self.name].keys()):
-            self.swim_image_list = self.game.animal_animations[self.name]['swim']
+        if 'swim' in list(self.game.animal_animations[self.kind].keys()):
+            self.swim_image_list = self.game.animal_animations[self.kind]['swim']
         else:
             self.swim_image_list = self.walk_image_list
         self.old_run_image_list = None
         self.old_walk_image_list = None
         self.selected_image_list = self.walk_image_list
         self.image = self.walk_image_list[1].copy()
-        self.rot = randrange(0, 360)
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
-        self.elevation = 0
-        self.pos = vec(x, y)
-        self.vel = vec(0, 0)
-        self.acc = vec(0, 0)
-        self.hideable = False
-        if self.kind['hit rect'] == SMALL_HIT_RECT:
-            if not self.flying:
-                self.hideable = True # Used for animals that can hide in long grass
-        self.tile_props = {'material': '', 'wall': ''}
-        self.next_tile_props = {'material': '', 'wall': ''}
-        self.e_down = False
-        self._in_grass = False
-        self.hit_rect = self.kind['hit rect'].copy()
         self.width = self.hit_rect.width
         self.hit_rect.center = self.pos
         self.rect.center = self.pos
+        self.talk_rect.center = self.rect.center
+        self.light_mask_rect.center = self.rect.center
+        self.frame = 0 #used to keep track of what frame the animation is on.
+
+        self.rot_speed = self.orig_rot_speed = 6 * self.walk_speed / self.width
+
+        # AI related
         self.target = game.player
-        self.last_hit = 0
-        self.last_damage = 0
-        self.melee_rate = 800
-        self.last_move = 0
         self.last_wall_hit = 0
-        self.last_fire = 0
-        self.last_charge = 0
         self.last_target_seek = 0
         self.hit_wall = False
-        self.living = True
-        self.immaterial = False
-        self.eating_corpse = 0
-        self.rotate_direction = randrange(-1, 1)
-        self.rot_speed = self.orig_rot_speed = 6 * self.walk_speed / self.width
-        self.frame = 0 #used to keep track of what frame the animation is on.
-        self.running = False
-        self.jumping = False
-        if 'climbing' in self.kind.keys() and self.kind['climbing']:
-            self.climbing = True
-        else:
-            self.climbing = False
-        if 'aquatic' in self.kind.keys() and self.kind['aquatic']:
-            self.aquatic = True
-        else:
-            self.aquatic = False
-        self.swimming = False
-        self.falling = False
-        self.invisible = False
-        self.in_shallows = False
-        self.in_player_vehicle = False
-        self.in_vehicle = False
-        self.turret = None
-        self.driver = None
         if 'a' in self.aggression:
             self.aggressive = self.offensive = True
         else:
-            self.aggressive = self.offensive = False
-        self.provoked = False
-
+            self.aggressive = False
         #Changes animals behavior to be more friendly towards elves. I need to change this because it will make all animals friendly to everyone if you are an elf.
         if 'elf' in self.game.player.race:
             #if self.aggression == 'awd':
@@ -3336,10 +3349,7 @@ class Animal(pg.sprite.Sprite):
             self.approach_vector = vec(choice([1, 0]), choice([1, -1, 0]))
         if self.aggression == 'awp':
             self.approach_vector = vec(0, -1)
-
         set_elevation(self)
-        if wall_check(self): # Kills animals that spawn in wall tiles.
-            self.kill()
 
     @property
     def in_grass(self):
@@ -3357,12 +3367,30 @@ class Animal(pg.sprite.Sprite):
                     self.run_image_list = self.old_run_image_list
                     self.walk_image_list = self.old_walk_image_list
             self._in_grass = value
-
-    def use_toilet(self):
-        pass
-
-    def sleep_in_bed(self):
-        pass
+    @property
+    def swimming(self):
+        return self._swimming
+    @swimming.setter
+    def swimming(self, value):
+        if value!=self._swimming:
+            if not self.in_vehicle:
+                toggle_equip(self, value)
+            self._swimming = value
+        else:
+            pass
+    @property
+    def climbing(self):
+        return self._climbing
+    @climbing.setter
+    def climbing(self, value):
+        if value!=self._climbing:
+            if value:
+                self.last_climb = pg.time.get_ticks()
+                self.pre_jump()
+            toggle_equip(self, value)
+            self._climbing = value
+        else:
+            pass
 
     def avoid_mobs(self):
         for mob in self.game.mobs_on_screen:
@@ -3398,7 +3426,7 @@ class Animal(pg.sprite.Sprite):
                 self.seek_random_target()
 
         elif self.game.player.in_vehicle:
-            if self.game.player.vehicle.kind == 'airship':
+            if self.game.player.vehicle.kind_dict == 'airship':
                 if not self.flying:
                     self.seek_random_target()
             else:
@@ -3509,7 +3537,7 @@ class Animal(pg.sprite.Sprite):
         self.add(self.game.occupied_vehicles)
         self.add(self.game.all_vehicles)
         self.remove(self.game.mobs)
-        if self.species == 'horse':
+        if self.kind == 'horse':
             if self.driver == self.game.player:
                 if 'horse bridle' in self.game.player.inventory['items']:
                     self.make_companion()
@@ -3521,7 +3549,7 @@ class Animal(pg.sprite.Sprite):
         self.rot_speed = self.orig_rot_speed
         self.game.group.change_layer(self, self.original_layer)
         self.occupied = False
-        self.knockback = self.kind['knockback']
+        self.knockback = self.kind_dict['knockback']
         self.driver.in_vehicle = False
         self.driver.friction = PLAYER_FRIC
         self.driver.acceleration = PLAYER_ACC
@@ -3564,7 +3592,7 @@ class Animal(pg.sprite.Sprite):
         self.collide_list = [self.game.walls_on_screen]
 
     def cast_spell(self):
-        spell = choice(self.spells)
+        spell = choice(self.expanded_inventory['magic'])
         self.game.effects_sounds[MAGIC[spell]['sound']].play()
         if 'healing' in MAGIC[spell]:
             Spell_Animation(self.game, spell, self.pos, self.rot, self.vel)
@@ -3609,7 +3637,7 @@ class Animal(pg.sprite.Sprite):
                 if (target_dist.length_squared() < self.detect_radius**2) and (self.target not in self.game.random_targets):
                     #if random() < 0.002:
                     #    choice(self.game.zombie_moan_sounds).play()
-                    if self.spells:
+                    if self.spell_caster:
                         direction_vec = self.pos + vec(self.detect_radius, 0).rotate(-self.rot)
                         difx = abs(self.target.pos.x - direction_vec.x)
                         dify = abs(self.target.pos.y - direction_vec.y)
@@ -3734,7 +3762,7 @@ class Animal(pg.sprite.Sprite):
                     self.approach_vector = vec(1, 0)
                 if self.aggression == 'fup':
                     self.approach_vector = vec(1, 0)
-                self.run_speed = self.kind['run speed'] * 1.5
+                self.run_speed = self.kind_dict['run speed'] * 1.5
 
     def does_melee_damage(self, mob):
         now = pg.time.get_ticks()
@@ -3752,15 +3780,15 @@ class Animal(pg.sprite.Sprite):
         if not silent:
             choice(self.game.zombie_hit_sounds).play()
         self.game.player.stats['kills'] += 1
-        if 'death action' in self.kind.keys():
-            if self.kind['death action'] == 'explode':
+        if 'death action' in self.kind_dict.keys():
+            if self.kind_dict['death action'] == 'explode':
                 Explosion(self.game, self, 0.5, self.damage * 4)
 
-        if self.kind['corpse']:
+        if self.kind_dict['corpse']:
             self.living = False
             # Converts drop list to dictionary for corpses.
             items_dic = {}
-            items = self.kind['dropped items'].copy()
+            items = self.kind_dict['dropped items'].copy()
             for item in items:
                 if item not in items_dic:
                     items_dic[item] = 1
@@ -3772,27 +3800,18 @@ class Animal(pg.sprite.Sprite):
             self.remove(self.game.moving_targets)
             self.add(self.game.corpses)
             self.game.group.change_layer(self, self.game.map.items_layer) # Switches the corpse to items layer
-            self.image = pg.transform.rotate(self.game.corpse_images[self.kind['corpse']], self.rot)
+            self.image = pg.transform.rotate(self.game.corpse_images[self.kind_dict['corpse']], self.rot)
             self.rect = self.image.get_rect()
             self.rect.center = self.pos
         else:
-            for i in self.kind['dropped items']:
+            for i in self.kind_dict['dropped items']:
                 if i:
                     for item_type in ITEM_TYPE_LIST:
                         if i in eval(item_type.upper()).keys():
                             Dropped_Item(self.game, self.pos, item_type, i, self.rot)
-            if self.kind['name'] == 'sea turtle':
-                Breakable(self.game, self.pos, self.pos.x - 60, self.pos.y - 60, 120, 120, BREAKABLES['empty turtle shell'], 'empty turtle shell', self.map)
+            if self.kind_dict['name'] == 'sea turtle':
+                Breakable(self.game, self.pos, self.pos.x - 60, self.pos.y - 60, 120, 120, BREAKABLES['empty turtle shell'], 'empty turtle shell')
             self.kill()
-
-    def pre_jump(self):
-        pass
-    def jump(self):
-        pass
-
-    def draw_health(self):
-        pass
-
 
 # Used for arrows shown in loaded bows (not ones being shot)
 class Arrow(pg.sprite.Sprite):
@@ -3964,7 +3983,6 @@ class Dropped_Item(pg.sprite.Sprite):
             self.groups = game.all_sprites, game.dropped_items, game.detectables
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game.group.add(self)
-        self.map = None
         self.item_type = type
         self.item = self.name = item
         self.rot = rot
@@ -4015,7 +4033,7 @@ class Dropped_Item(pg.sprite.Sprite):
                 fish = Dropped_Item(self.game, self.pos, 'items', 'dead ' + temp_item)
                 fish.dropped_fish = True
             else:
-                Animal(self.game, self.pos.x, self.pos.y, self.map, temp_item)
+                Animal(self.game, self.pos.x, self.pos.y, temp_item)
             self.kill()
 
         # Dropping items in grass
@@ -4729,13 +4747,12 @@ class Falling_Tree(pg.sprite.Sprite): # animation of trees falling when you chop
         self.kill()
 
 class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animated sprites
-    def __init__(self, game, obj_center, w, h, name, map, fixed_rot = None, size = None):
+    def __init__(self, game, obj_center, w, h, name, fixed_rot = None, size = None):
         self.game = game
         under = False
         self._layer = self.game.map.items_layer
-        self.w = w
+        self.w = wmap
         self.h = h
-        self.map = map
         self.center = obj_center
         x = int(self.center.x - (w/2))
         y = int(self.center.y - (h/2))
@@ -4868,7 +4885,7 @@ class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animate
                 drop_number = self.items[thing]
             for i in range(0, drop_number):
                 if thing in ANIMALS:
-                    Animal(self.game, self.center.x, self.center.y, self.map, thing)
+                    Animal(self.game, self.center.x, self.center.y, thing)
                 else:
                     for kind in ITEM_TYPE_LIST:
                         if thing in eval(kind.upper()):
@@ -4879,7 +4896,7 @@ class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animate
             if random_value < 5: # Chance of getting a rare item
                 random_item = choice(self.rare_items)
                 if random_item in ANIMALS:
-                    Animal(self.game, self.center.x, self.center.y, self.map, random_item)
+                    Animal(self.game, self.center.x, self.center.y, random_item)
                 else:
                     Dropped_Item(self.game, self.center, 'items', random_item)
         self.trunk.kill()

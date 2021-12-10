@@ -158,15 +158,15 @@ GAME_HOUR = DAY_PERIOD/24
 WORK_STATION_LIST = ['work bench', 'anvil', 'enchanter', 'smelter', 'tanning rack', 'grinder', 'cooking fire', 'alchemy lab']
 
 # Player settings
-PLAYER_HEALTH = 100
-PLAYER_STAMINA = 100
-PLAYER_STRENGTH = 1
-PLAYER_ACC = 28
-PLAYER_RUN = 38
+#PLAYER_HEALTH = 100
+#PLAYER_STAMINA = 100
+#PLAYER_STRENGTH = 1
+#PLAYER_ACC = 38
+RUN_INCREASE = 12
+#PLAYER_CLIMB = 14
 MAX_RUN = 80
 CLIMB_TIME = 1000
-PLAYER_CLIMB = 14
-PLAYER_FRIC = -.12
+PLAYER_FRIC = -0.17
 PLAYER_ROT_SPEED = 200
 PLAYER_TUR = 'turret.png'
 PLAYER_TANK = 'tank.png'

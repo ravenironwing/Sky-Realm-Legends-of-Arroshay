@@ -1466,6 +1466,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.friction = PLAYER_FRIC
         self.rot = randrange(0, 360)
         self.rot_speed = 0
+        self.approach_vector = vec(1, 0)
 
         # Tming vars
         self.last_hit = 0 # Used for the time between mob hits to make it so you only get damaged based on the DAMAGE_RATE
@@ -1486,7 +1487,6 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.last_melee_sound = 0
         self.last_throw = 0
         self.last_climb = 0
-        self.eating_corpse = 0
 
         # vars for leveling
         self.last_kills = 0
@@ -1622,6 +1622,11 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.touch_damage = self.stats['touch damage']
         self.touch_knockback = self.stats['touch knockback']
         self.default_acceleration = self.acceleration = self.stats['acceleration']
+        self.run_acc = self.default_acceleration + RUN_INCREASE
+        self.jum_acc = self.default_acceleration + RUN_INCREASE
+        self.climb_acc = self.default_acceleration / 2
+        self.grass_acc = self.default_acceleration * (3/4)
+        self.shallows_acc = self.default_acceleration * (2/3)
         if 'dialogue' in self.kind_dict.keys():
             self.dialogue = self.kind_dict['dialogue']
         else:
@@ -1660,11 +1665,80 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.talk_rect = XLARGE_HIT_RECT.copy()
         self.hit_rect = copy.deepcopy(self.kind_dict['hit rect'])
 
+        # Assigns AI to character
+        self.ai = AI(self)
+
+    def accelerate(self, power = 1, direction = "forward"): # Calculates the acceleration, but def move does the moving
+        self.acceleration = self.default_acceleration
+        self.run_acc = self.default_acceleration + RUN_INCREASE + self.stats['agility'] / 4
+        if self.run_acc > MAX_RUN:
+            self.run_acc = MAX_RUN
+        self.jum_acc = self.default_acceleration + RUN_INCREASE
+        self.climb_acc = self.default_acceleration / 2
+        self.grass_acc = self.default_acceleration * (3/4)
+        self.shallows_acc = self.default_acceleration * (2/3)
+
+    def move(self):
+        self.rot = (self.rot + self.rot_speed * self.game.dt) % 360
+        self.direction = self.approach_vector.rotate(-self.rot)
+        self.rect.center = self.pos
+        self.acc += self.vel * self.friction
+        self.vel += self.acc
+        self.pos += self.vel * self.game.dt + 0.5 * self.acc * self.game.dt ** 2
+
+    def rotate_to(self, vec):
+        vector = vec
+        angle = fix_angle(vector.angle_to(self.direction))
+        if self.in_vehicle:
+            rot_speed = self.vehicle.rot_speed/3
+            if self.vehicle.turret == None:
+                self.set_rot_speed(rot_speed, angle)
+        else:
+            rot_speed = PLAYER_ROT_SPEED
+            self.set_rot_speed(rot_speed, angle)
+
+    def set_rot_speed(self, rot_speed, angle):
+        if angle < 0:
+            self.rot_speed = -rot_speed * 10 * abs(angle) / 180
+        else:
+            self.rot_speed = rot_speed * 10 * abs(angle) / 180
+
+    def can_run(self):
+        if (self.arrow == None) and self.is_moving() and (not self.in_vehicle) and (self.stats['stamina'] > 10):
+            return True
+        else:
+            return False
+
     def use_toilet(self):
-        pass
+        self.add_health(5)
+        self.add_stamina(30)
+        self.add_hunger(-4)
+        toilet_sounds = ['fart', 'pee']
+        self.game.effects_sounds[choice(toilet_sounds)].play()
+        if self in self.game.players:
+            sleep(2)
+        self.game.effects_sounds['toilet'].play()
+        self.game.beg = perf_counter()  # resets dt
 
     def sleep_in_bed(self):
-        pass
+        if self in self.game.players:
+            self.game.sleep_in_bed()
+        else: # I will add a sleeping animation later.
+            self.add_health(50)
+            self.add_stamina(50)
+            self.add_magica(50)
+
+    def make_companion(self):
+        self.remove(self.game.mobs)
+        self.game.player_group.add(self)
+        self.game.companions.add(self)
+        self.guard = True
+
+    def unfollow(self):
+        self.game.mobs.add(self)
+        self.remove(self.game.player_group)
+        self.remove(self.game.companions)
+        self.guard = False
 
     def pre_jump(self):
         pass
@@ -1673,6 +1747,248 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
 
     def draw_health(self):
         pass
+
+    def death(self, silent = False):
+        if self in self.game.companions:
+            self.unfollow()
+        if not silent:
+            choice(self.game.zombie_hit_sounds).play()
+        self.living = False
+
+    def does_melee_damage(self, mob):
+        damage_reduction = self.stats['stamina'] / self.stats['max stamina']
+        now = pg.time.get_ticks()
+        if now - self.last_damage > self.melee_rate:
+            if self.equipped[self.weapon_hand] == None:
+                damage = damage_reduction * self.stats['strength']
+                mob.vel = vec(0, 0)
+                choice(self.game.punch_sounds).play()
+                mob.gets_hit(damage, 2, self.rot)
+                self.game.hud_mobhp = mob.stats['health'] / mob.stats['max health']
+                self.game.last_mobhp_update = pg.time.get_ticks()
+                self.game.show_mobhp = True
+            else:
+                weapon_damage = WEAPONS[self.equipped[self.weapon_hand]]['melee damage']
+                damage = damage_reduction * (self.stats['strength'] + weapon_damage) + weapon_damage/4
+                mob.vel = vec(0, 0)
+                knockback = WEAPONS[self.equipped[self.weapon_hand]]['knockback']
+                self.play_weapon_hit_sound()
+                mob.gets_hit(damage, knockback, self.rot)
+                self.game.hud_mobhp = mob.stats['health'] / mob.stats['max health']
+                self.game.last_mobhp_update = pg.time.get_ticks()
+                self.game.show_mobhp = True
+            #choice(mob.hit_sounds).play()
+            self.stats['melee'] += 0.1
+            self.last_damage = now
+            mob.ai.target = self
+        if not self.game.guard_alerted:
+            if mob.protected:
+                self.alert_guard()
+
+    def gets_hit(self, damage, knockback = 0, rot = 0, dam_rate = DAMAGE_RATE):
+        if self.in_vehicle:
+            self.vehicle.gets_hit(damage, knockback, rot)
+        elif self.possessing:
+            self.possessing.gets_hit(damage, knockback, rot)
+        else:
+            now = pg.time.get_ticks()
+            if now - self.last_hit > dam_rate:
+                self.last_hit = now
+                # Player takes damage based on their armor rating/
+                temp_val = (damage + self.stats['armor']) # This part prevents division by 0 in the damage_reduction_factor calculation
+                if temp_val == 0:
+                    temp_val = 1
+                damage_reduction_factor = damage/temp_val
+                damage_done = damage * damage_reduction_factor
+                if damage_done > 0:
+                    if self not in self.game.animals:
+                        if self.equipped['gender'] == 'male':
+                            choice(self.game.male_player_hit_sounds).play()
+                        else:
+                            choice(self.game.female_player_hit_sounds).play()
+                    self.add_health(-damage_done)
+                self.pos += vec(knockback, 0).rotate(-rot)
+                if pg.sprite.spritecollide(self, self.game.barriers, False): #Prevents sprite from being knocked through a wall.
+                    self.pos -= vec(knockback, 0).rotate(-rot)
+                self.rect.center = self.hit_rect.center = self.pos
+                self.stats['hits taken'] += 1
+
+    def cast_spell(self):
+        if self.equipped['magic']:
+            now = pg.time.get_ticks()
+            if now - self.last_cast > self.game.effects_sounds[MAGIC[self.equipped['magic']]['sound']].get_length() * 1000:
+                if self.stats['magica'] >= MAGIC[self.equipped['magic']]['cost']:
+                    if self.check_materials('magic', self.equipped['magic']):
+                        self.game.effects_sounds[MAGIC[self.equipped['magic']]['sound']].play()
+                        Spell_Animation(self.game, self.equipped['magic'], self.pos, self.rot, self.vel)
+                        pos = vec(0, 0)
+                        pos = self.pos + vec(60, 0).rotate(-self.rot)
+                        if 'possession' in MAGIC[self.equipped['magic']]:
+                            if self.possessing == None:
+                                if 'wraith' in self.equipped['race']:
+                                    if self.equipped['race'] == 'whitewraith': # Turns you into a black wraith for using dark magic.
+                                        self.equipped['race'] = 'blackwraith'
+                                        self.race = 'blackwraith'
+                                        self.human_body.update_animations()
+                                        if self.dragon:
+                                            self.dragon_body.update_animations()
+                                    else:
+                                        hits = pg.sprite.spritecollide(self, self.game.npcs, False, False)
+                                        if hits:
+                                            if hits[0].race not in ['whitewraith', 'blackwraith', 'demon', 'skeleton']:
+                                                drop_all_items(self, False)
+                                                hits[0].possess(self, True)
+                                else:
+                                    self.equipped['race'] = 'blackwraith'
+                                    self.race = 'blackwraith'
+                                    temp_inventory = self.inventory.copy()
+                                    drop_all_items(self, True)
+                                    corpse = Player(self.game, self.pos.x, self.pos.y, 'villager')
+                                    corpse.inventory = temp_inventory
+                                    corpse.death()
+                                    self.human_body.update_animations()
+                                    if self.dragon:
+                                        self.dragon_body.update_animations()
+                                    self.game.beg = perf_counter() # resets the counter so dt doesn't get messed up.
+                            else:
+                                self.add_health(self.possessing.stats['health'])
+                                self.possessing.gets_hit(self.stats['stamina'])
+                                self.possessing.depossess()
+
+                        if 'summon' in MAGIC[self.equipped['magic']]:
+                            if MAGIC[self.equipped['magic']]['summon'] in PEOPLE:
+                                summoned = Player(self.game, self.pos.x + 128, self.pos.y, MAGIC[self.equipped['magic']]['summon'])
+                                summoned.make_companion()
+                            elif MAGIC[self.equipped['magic']]['summon'] in ANIMALS:
+                                Animal(self.game, pos.x, pos.y, MAGIC[self.equipped['magic']]['summon'])
+                        if 'healing' in MAGIC[self.equipped['magic']]:
+                            self.add_health(MAGIC[self.equipped['magic']]['healing'] + (self.stats['healing'] / 20) + (self.stats['casting'] / 100))
+                        if 'fireballs' in MAGIC[self.equipped['magic']]:
+                            balls = MAGIC[self.equipped['magic']]['fireballs']
+                            damage = MAGIC[self.equipped['magic']]['damage'] + (self.stats['casting'] / 100)
+                            for i in range(0, balls):
+                                Fireball(self, self.game, self.pos, self.rot + (36 * i), damage, 30, 1300, 250, self.vel, 'fire', False, self.in_flying_vehicle)
+                        self.add_magica(-MAGIC[self.equipped['magic']]['cost'])
+                        self.stats['casting'] += MAGIC[self.equipped['magic']]['cost'] / 10
+
+                        #dir = vec(1, 0).rotate(-self.rot)
+                        self.last_cast = now
+
+    def alert_guard(self):
+        pass
+
+    def update_hud_stats(self, stat = False):
+        if stat == 'health':
+            if self.game.hud_health_stats == self.stats:
+                self.game.hud_health = self.stats['health'] / self.stats['max health']
+        if not self.npc:
+            if stat == 'stamina':
+                self.game.hud_stamina = self.stats['stamina'] / self.stats['max stamina']
+            elif stat == 'magica':
+                self.game.hud_magica = self.stats['magica'] / self.stats['max magica']
+            elif stat == 'hunger':
+                self.game.hud_hunger = self.stats['hunger'] / self.stats['max hunger']
+            elif stat == 'ammo':
+                if self.ammo_cap1 + self.mag1 != 0:
+                    self.game.hud_ammo1 = "Right Ammo: " + str(self.mag1) + '/' + str(self.ammo_cap1)
+                else:
+                    self.game.hud_ammo1 = ""
+                if self.ammo_cap2 + self.mag2 != 0:
+                    self.game.hud_ammo2 = "Left Ammo: " + str(self.mag2) + '/' + str(self.ammo_cap2)
+                else:
+                    self.game.hud_ammo2 = ""
+
+    def add_health(self, amount):
+        if amount > 20:
+            self.stats['healing'] += 1
+        self.stats['health'] += amount
+        if self.stats['health'] > self.stats['max health']:
+            self.stats['health'] = self.stats['max health']
+        if self.stats['health'] < 0:
+            self.death()
+        self.update_hud_stats('health')
+
+    def add_stamina(self, amount, percent = 0):
+        if percent != 0:
+            amount = amount * self.stats['stamina']
+        if amount < 0:
+            self.stats['exercise'] -= amount/10
+        if amount > 20:
+            self.stats['stamina regen'] += 1
+        self.stats['stamina'] += amount
+        if self.stats['stamina'] > self.stats['max stamina']:
+            self.stats['stamina'] = self.stats['max stamina']
+        elif (self.stats['stamina'] < 11) and (self.stats['hunger'] > 50):
+            self.add_hunger(-1) # Makes you more hungry if you use your stamina.
+        elif self.stats['stamina'] < 0:
+            self.add_health(self.stats['stamina']) # Subtracts from your health if your stamina is too low.
+            self.stats['stamina'] = 0
+        self.update_hud_stats('stamina')
+
+    def add_magica(self, amount):
+        if amount > 20:
+            self.stats['magica regen'] += 1
+        self.stats['magica'] += amount
+        if self.stats['magica'] > self.stats['max magica']:
+            if self.magical_being:
+                self.add_health(self.stats['magica regen'] / 80)  # You heal based on your skill if your magic is full if you are a magical being
+            self.stats['magica'] = self.stats['max magica']
+        elif self.stats['magica'] < 0:
+            self.stats['magica'] = 0
+        self.update_hud_stats('magica')
+
+    def add_hunger(self, amount):
+        self.stats['hunger'] += amount
+        if self.stats['hunger'] > self.stats['max hunger']:
+            self.stats['hunger'] = self.stats['max hunger']
+        elif self.stats['hunger'] < 0:
+            self.add_stamina(self.stats['hunger']) # Subtracts from your stamina if you're too hungry.
+            self.stats['hunger'] = 0
+        self.update_hud_stats('hunger')
+
+    def add_inventory(self, item, count = 1):
+        if self.equipped['gender'] == 'male':  # Makes it so looted clothes fit you based on gender by swapping the gender of items before they enter your inventory.
+            item = item.replace(' F', ' M')
+        else:
+            item = item.replace(' M', ' F')
+        return add_inventory(self.inventory, item, count)
+
+    def add_two_inventories(self, new_inventory):
+        num_items = 0 # Used for counting looting points.
+        for item_type in new_inventory:
+            for item, count in new_inventory[item_type].items():
+                if self.add_inventory(item, count):
+                    num_items += count
+        return num_items
+
+    def check_inventory(self, item, count = 1):
+        return check_inventory(self.inventory, item, count)
+
+    def check_materials(self, item_type, chosen_item, subtract_materials = True):
+        if 'materials' not in eval(item_type.upper())[chosen_item]:
+            return True
+        else:
+            materials_list = eval(item_type.upper())[chosen_item]['materials']
+            if self.check_materials_list(materials_list):
+                if subtract_materials:
+                    self.subract_material_list(materials_list)
+                    return True
+
+    def subract_material_list(self, materials_list):
+        for item, count in materials_list.items():
+            self.add_inventory(item, -count)
+
+    def check_materials_list(self, materials_list):
+        for material in materials_list:
+            if material in self.inventory['items']:  # Sees if you have any of the required material
+                if materials_list[material] > self.inventory['items'][material]:  # Sees if you have enough of the required material
+                    return False
+            elif material in self.inventory['blocks']:  # Sees if you have any of the required material
+                if materials_list[material] > self.inventory['blocks'][material]:  # Sees if you have enough of the required material
+                    return False
+            else:
+                return False
+        return True
 
 class Player(Character):  # Used for humanoid NPCs and Players
     def __init__(self, game, x = 0, y = 0, kind = 'player', colors = None, animal = False):
@@ -1692,10 +2008,8 @@ class Player(Character):  # Used for humanoid NPCs and Players
         self.ammo_cap2 = 0
 
         if self.npc:
-            self.ai = AI(self)
             change_clothing(self, True)
         else:
-            self.ai = None
             self.inventory = copy.deepcopy(DEFAULT_INVENTORIES['female osidine'])
             self.equipped['hair'] = 'medium messy'
             self.colors = {'hair': DEFAULT_HAIR_COLOR, 'skin': DEFAULT_SKIN_COLOR}
@@ -1759,23 +2073,46 @@ class Player(Character):  # Used for humanoid NPCs and Players
         else:
             pass
 
-    def add_inventory(self, item, count = 1):
-        if self.equipped['gender'] == 'male':  # Makes it so looted clothes fit you based on gender by swapping the gender of items before they enter your inventory.
-            item = item.replace(' F', ' M')
+    def death(self, silent = False):
+        super().death()
+        self.depossess()
+        if 'dead' in self.game.people[self.kind]: # Keeps track of if special NPCs have been killed or not.
+            self.game.people[self.name.lower()]['dead'] = True
+        self.body.kill()
+        if self.npc:
+            self.remove(self.game.mobs)
+            self.remove(self.game.npcs)
         else:
-            item = item.replace(' M', ' F')
-        return add_inventory(self.inventory, item, count)
+            self.remove(self.game.players)
+            self.game.playing = False
+        self.remove(self.game.moving_targets)
+        self.add(self.game.corpses)
+        self.game.group.add(self)
+        if self.equipped['race'] == 'demon':
+            Player(self.game, self.pos.x, self.pos.y, 'blackwraith')
+        if self.equipped['race'] in RACE_CORPSE_DICT:
+            self.image = pg.transform.rotate(self.game.corpse_images[RACE_CORPSE_DICT[self.equipped['race']]], self.rot)
+        else:
+            self.image = pg.transform.rotate(self.game.corpse_images[0], self.rot)
+        self.rect = self.image.get_rect()
+        self.rect.center = self.pos
 
-    def add_two_inventories(self, new_inventory):
-        num_items = 0 # Used for counting looting points.
-        for item_type in new_inventory:
-            for item, count in new_inventory[item_type].items():
-                if self.add_inventory(item, count):
-                    num_items += count
-        return num_items
+    def make_companion(self):
+        super().make_companion(self)
+        self.game.companion_bodies.add(self.body)
+        self.body.update_animations()
+        #self.target = self.game.player
+        #self.approach_vector = vec(1, 0)
+        #self.default_detect_radius = self.detect_radius = self.game.screen_height
+        #self.speed = self.walk_speed = 400
+        #self.run_speed = 500
 
-    def check_inventory(self, item, count = 1):
-        return check_inventory(self.inventory, item, count)
+    def unfollow(self):
+        super().unfollow()
+        self.body.remove(self.game.companion_bodies)
+        #self.default_detect_radius = self.detect_radius = 250
+        #self.speed = self.walk_speed = 80
+        #self.run_speed = 100
 
     def get_keys(self):
         self.rot_speed = 0
@@ -1832,124 +2169,83 @@ class Player(Character):  # Used for humanoid NPCs and Players
         now = pg.time.get_ticks()
 
         # Running
-        if keys[self.game.key_map['sprint']] and self.is_moving():
+        if keys[self.game.key_map['sprint']] and self.can_run():
             self.running = True
-            if self.stats['stamina'] > 10 and not self.in_vehicle:
-                if self.arrow == None:
-                    if now - self.last_shift > 100:
-                        if self.possessing == None:
-                            self.acceleration = PLAYER_RUN + self.stats['agility']/4
-                            if self.acceleration > MAX_RUN:
-                                self.acceleration = MAX_RUN
-                            self.add_stamina(-0.8)
-                            self.last_shift = now
-                        else:
-                            self.acceleration = self.possessing.run_speed / 6
-                            if 'mech_suit' not in self.equipped['race']:
-                                self.add_stamina(-0.8)
-                                self.last_shift = now
-                else:
-                    self.acceleration = PLAYER_ACC
-            else:
-                self.acceleration = PLAYER_ACC
+            if now - self.last_shift > 100:
+                self.add_stamina(-0.8)
+                self.last_shift = now
         else:
             self.running = False
-            self.acceleration = PLAYER_ACC
 
         #Mouse aiming
         mouse_movement = vec(pg.mouse.get_rel()).length()
         if mouse_movement > 0:
             self.rotate_to(self.mouse_direction)
 
-    def rotate_to(self, vec):
-        vector = vec
-        angle = fix_angle(vector.angle_to(self.direction))
-        if self.in_vehicle:
-            rot_speed = self.vehicle.rot_speed/3
-            if self.vehicle.turret == None:
-                self.set_rot_speed(rot_speed, vector, angle)
-        else:
-            rot_speed = PLAYER_ROT_SPEED
-            self.set_rot_speed(rot_speed, vector, angle)
-
-    def set_rot_speed(self, rot_speed, vector, angle):
-        if angle < 0:
-            self.rot_speed = -rot_speed * 10 * abs(angle) / 180
-        else:
-            self.rot_speed = rot_speed * 10 * abs(angle) / 180
-
-    def accelerate(self, power = 1, direction = "forward"):
+    def accelerate(self, power = 1, direction = "forward"): # Calculates the acceleration, but def move does the moving
+        super().accelerate()
         perp = 0
         if self.melee_playing:
             self.moving_melee = True
         elif self.jumping:
             if self.climbing:
-                self.acceleration = PLAYER_CLIMB
-            elif self.possessing:
-                self.acceleration = self.possessing.run_speed / 6
+                self.acceleration = self.climb_acc
             else:
-                self.acceleration = PLAYER_RUN
+                self.acceleration = self.jum_acc
         else:
             self.moving_melee = False
             #Chooses Character's Walking and Running Animations
+            # Plays sounds based on what you are walking on or swimming in
             now = pg.time.get_ticks()
-            keys = pg.key.get_pressed()
             if self.swimming:
                 self.animation_playing = self.body.swim_anim
                 animate_speed = 120
-            elif self.in_shallows or self.in_grass:
-                self.animation_playing = self.body.shallows_anim
-                animate_speed = 120
-            elif self.climbing:
-                if self.equipped['weapons2'] or self.equipped['weapons']:
-                    self.animation_playing = self.body.climbing_weapon_anim
-                else:
-                    self.animation_playing = self.body.climbing_anim
-                animate_speed = 250
-            elif self.is_reloading:
-                animate_speed = 120 # This animation is set up in the reload method
-            elif self.running and self.stats['stamina'] > 10:
-                if self.arrow == None:
-                    self.animation_playing = self.body.run_anim
-                    animate_speed = 80
-                else:
-                    self.animation_playing = self.body.walk_anim
-                    animate_speed = 120
-            else:
-                self.animation_playing = self.body.walk_anim
-                animate_speed = 120
-
-            if self.in_vehicle:
-                if self.vehicle.mountable:
-                    animate_speed = 200
-
-            # Animates character
-            if not self.is_reloading:
-                self.body.animate(self.animation_playing, animate_speed)
-            # Plays sounds based on what you are walking on or swimming in
-            if self.swimming:
                 if now - self.last_move > self.game.effects_sounds['swim'].get_length() * 1000:
                     self.last_move = now
                     self.game.effects_sounds['swim'].play()
                     if not self.in_vehicle:
                         self.add_stamina(-1)
             elif self.in_shallows:
+                self.acceleration = self.shallows_acc
+                self.animation_playing = self.body.shallows_anim
+                animate_speed = 120
                 if now - self.last_move > self.game.effects_sounds['shallows'].get_length() * 1000:
                     self.last_move = now
                     self.game.effects_sounds['shallows'].play()
-
             elif self.in_grass:
+                self.acceleration = self.grass_acc
+                self.animation_playing = self.body.shallows_anim
+                animate_speed = 120
                 if now - self.last_move > self.game.effects_sounds['grass'].get_length() * 1000:
                     self.last_move = now
                     self.game.effects_sounds['grass'].play()
-
             elif self.climbing:
-                self.acceleration = PLAYER_CLIMB
+                self.acceleration = self.climb_acc
+                if self.equipped['weapons2'] or self.equipped['weapons']:
+                    self.animation_playing = self.body.climbing_weapon_anim
+                else:
+                    self.animation_playing = self.body.climbing_anim
+                animate_speed = 250
                 if now - self.last_move > self.game.effects_sounds['climb'].get_length() * 1000: # I really should reuse this code for parts where I need to end the sound before playing another.
                     self.last_move = now
                     self.game.effects_sounds['climb'].play()
                     if not self.in_vehicle:
                         self.add_stamina(-8)
+            elif self.is_reloading:
+                animate_speed = 120 # This animation is set up in the reload method
+            elif self.running:
+                self.acceleration = self.run_acc
+                self.animation_playing = self.body.run_anim
+                animate_speed = 80
+            else:
+                self.animation_playing = self.body.walk_anim
+                animate_speed = 120
+            if self.in_vehicle:
+                if self.vehicle.mountable:
+                    animate_speed = 200
+            # Animates character
+            if not self.is_reloading:
+                self.body.animate(self.animation_playing, animate_speed)
 
         if not ((self.melee_playing and (self.climbing or self.swimming)) or self.dual_melee):
             if direction == "rev":
@@ -2025,27 +2321,6 @@ class Player(Character):  # Used for humanoid NPCs and Players
         # Process key events and move character
         self.get_keys()
 
-    def update_hud_stats(self, stat = False):
-        if not self.npc:
-            if stat == 'health':
-                if self.game.hud_health_stats == self.stats:
-                    self.game.hud_health = self.stats['health'] / self.stats['max health']
-            elif stat == 'stamina':
-                self.game.hud_stamina = self.stats['stamina'] / self.stats['max stamina']
-            elif stat == 'magica':
-                self.game.hud_magica = self.stats['magica'] / self.stats['max magica']
-            elif stat == 'hunger':
-                self.game.hud_hunger = self.stats['hunger'] / self.stats['max hunger']
-            elif stat == 'ammo':
-                if self.ammo_cap1 + self.mag1 != 0:
-                    self.game.hud_ammo1 = "Right Ammo: " + str(self.mag1) + '/' + str(self.ammo_cap1)
-                else:
-                    self.game.hud_ammo1 = ""
-                if self.ammo_cap2 + self.mag2 != 0:
-                    self.game.hud_ammo2 = "Left Ammo: " + str(self.mag2) + '/' + str(self.ammo_cap2)
-                else:
-                    self.game.hud_ammo2 = ""
-
     def update(self):
         if self.living:
             # This parts synchs the body sprite with the player's soul.
@@ -2066,12 +2341,8 @@ class Player(Character):  # Used for humanoid NPCs and Players
             else:
                 self.update_player_only()
 
-            self.rot = (self.rot + self.rot_speed * self.game.dt) % 360
-            self.direction = vec(1, 0).rotate(-self.rot)
-            self.rect.center = self.pos
-            self.acc += self.vel * self.friction
-            self.vel += self.acc
-            self.pos += (self.vel +0.5 * self.acc) * self.game.dt
+            self.move()
+
             if not self.in_vehicle:
                 if ('wraith' not in self.race) or self.stats['weight'] !=0:
                     collide_with_tile_walls(self)
@@ -2094,334 +2365,6 @@ class Player(Character):  # Used for humanoid NPCs and Players
                 self.light_mask_rect.center = (-2000, -2000) # Moves light off screen when off
             self.check_map_pos() # Used for changing to a new map when you get pass over the edge.
             set_tile_props(self)
-
-    def transform(self):
-        self.invisible = False
-        self.stats['casting'] += 0.5
-        if 'dragon' not in self.equipped['race']:
-            if self.stats['magica'] > 50:
-                if self.transformable:
-                    self.equipped['race'] = self.race + 'dragon'
-                    explosion = Explosion(self.game, self)
-                    self.human_body.remove(self.game.all_sprites)
-                    self.human_body.remove(self.game.npc_bodies)
-                    self.dragon_body.add(self.game.all_sprites)
-                    self.dragon_body.add(self.game.npc_bodies)
-                    self.game.group.add(self.dragon_body)
-                    self.game.group.remove(self.human_body)
-                    self.body = self.dragon_body
-                    self.body.update()
-                    self.stats['magica'] -= 10
-                    self.dragon = True
-        else:
-            self.equipped['race'] = self.race
-            explosion = Explosion(self.game, self)
-            self.dragon_body.remove(self.game.all_sprites)
-            self.dragon_body.remove(self.game.npc_bodies)
-            self.human_body.add(self.game.all_sprites)
-            self.human_body.add(self.game.npc_bodies)
-            self.game.group.add(self.human_body)
-            self.game.group.remove(self.dragon_body)
-            self.body = self.human_body
-            self.body.update()
-            self.dragon = False
-
-    def throw_grenade(self):
-        now = pg.time.get_ticks()
-        if now - self.last_throw > 1000:
-            if self.equipped['weapons'] == None:
-                body_pos = self.body.weapon_pos
-                self.weapon_hand = 'weapons'
-            else:
-                body_pos = self.body.weapon2_pos
-                self.weapon_hand = 'weapons2'
-            if not self.is_moving() and not self.melee_playing:
-                self.pre_melee()
-            dir = vec(1, 0).rotate(-(self.rot))
-
-            pos = self.pos + (body_pos + WEAPONS['grenade']['offset']).rotate(-(self.rot))
-            Bullet(self, self.game, pos, dir, self.rot, 'grenade', False, self.in_flying_vehicle)
-            self.ammo['grenades'] -= 1
-            self.last_throw = now
-
-    def shoot(self):
-        if not self.is_moving():
-            if self.weapon_hand == 'weapons2':
-                self.animation_playing = self.body.l_shoot_anim
-            else:
-                self.animation_playing = self.body.shoot_anim
-            if self.climbing:
-                self.animation_playing = self.body.climbing_shoot_anim
-
-        if self.equipped[self.weapon_hand]:
-            if WEAPONS[self.equipped[self.weapon_hand]]['bullet_count'] > 0:
-                if not WEAPONS[self.equipped[self.weapon_hand]]['gun']: # Makes it so you attack with melee weapons that also shoot things (enchanted weapons, slings, etc.)
-                    self.pre_melee(True)
-                    return
-                keys = pg.key.get_pressed()
-                if not self.is_moving() and not self.melee_playing:
-                    self.body.animate(self.animation_playing, 120)
-                if WEAPONS[self.equipped[self.weapon_hand]]['gun']:
-                    now = pg.time.get_ticks()
-                    if now - self.last_shot > WEAPONS[self.equipped[self.weapon_hand]]['rate']:
-                        self.last_shot = now
-                        self.fire_bullets()
-            else:
-                self.pre_melee()
-        else:
-            self.pre_melee()
-
-    def dual_shoot(self, auto = False):
-        if self.equipped['weapons'] and self.equipped['weapons2']:
-            if WEAPONS[self.equipped['weapons']]['bullet_count'] > 0 and WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0:
-                temp_list = ['weapons', 'weapons2']
-                now = pg.time.get_ticks()
-                for weapon_hand in temp_list:
-                    self.weapon_hand = weapon_hand
-                    if auto:
-                        if WEAPONS[self.equipped[self.weapon_hand]]['auto']:
-                            if weapon_hand == 'weapons':
-                                if now - self.last_shot > WEAPONS[self.equipped[weapon_hand]]['rate']:
-                                    self.last_shot = now
-                                    self.fire_bullets()
-                            else:
-                                if now - self.last_shot2 > WEAPONS[self.equipped[weapon_hand]]['rate']:
-                                    self.last_shot2 = now
-                                    self.fire_bullets()
-                    else:
-                        if weapon_hand == 'weapons':
-                            if now - self.last_shot > WEAPONS[self.equipped[weapon_hand]]['rate']:
-                                self.last_shot = now
-                                self.fire_bullets()
-                        else:
-                            if now - self.last_shot2 > WEAPONS[self.equipped[weapon_hand]]['rate']:
-                                self.last_shot2 = now
-                                self.fire_bullets()
-            else:
-                self.dual_melee = True
-                self.pre_melee()
-
-        else:
-            self.dual_melee = True
-            self.pre_melee()
-
-    def fire_bullets(self):
-        if self.arrow: # Gets rid of arrow shown in bow before firing.
-            self.arrow.kill()
-            self.arrow = None
-
-        if self.weapon_hand == 'weapons':
-            angle = self.body.weapon_angle
-            mag_selected = self.mag1
-        else:
-            angle = self.body.weapon2_angle
-            mag_selected = self.mag2
-        if mag_selected > 0:
-            if not self.in_vehicle:
-                self.vel += vec(-WEAPONS[self.equipped[self.weapon_hand]]['kickback'], 0).rotate(-self.rot)
-            dir = vec(1, 0).rotate(-(self.rot + angle))
-            if self.weapon_hand == 'weapons':
-                pos = self.pos + (self.body.weapon_pos + WEAPONS[self.equipped['weapons']]['offset']).rotate(-(self.rot + angle))
-            else:
-                pos = self.pos + (self.body.weapon2_pos + vec(WEAPONS[self.equipped['weapons2']]['offset'].x, -WEAPONS[self.equipped['weapons2']]['offset'].y)).rotate(-(self.rot + angle))
-            for i in range(WEAPONS[self.equipped[self.weapon_hand]]['bullet_count']):
-                Bullet(self, self.game, pos, dir, self.rot, self.equipped[self.weapon_hand], False, self.in_flying_vehicle)
-                if self.weapon_hand == 'weapons':
-                    self.use_ammo(1)
-                else:
-                    self.use_ammo(2)
-                self.play_weapon_sound()
-                self.stats['marksmanship shots fired'] += 1
-                self.stats['marksmanship accuracy'] = self.stats['marksmanship hits'] / self.stats['marksmanship shots fired']
-            if WEAPONS[self.equipped[self.weapon_hand]]['gun']:
-                MuzzleFlash(self.game, pos)
-        else:
-            self.out_of_ammo()
-
-    def use_ammo(self, mag):
-        if mag == 1:
-            self.mag1 -= 1
-            if self.mag1 < 0:
-                self.mag1 = 0
-        if mag == 2:
-            self.mag2 -= 1
-            if self.mag2 < 0:
-                self.mag2 = 0
-        self.update_hud_stats('ammo')
-
-    def out_of_ammo(self):
-        if not self.is_moving():
-            self.pre_melee()
-        else:
-            self.moving_melee = True
-            self.pre_melee()
-
-    def pre_reload(self):
-        if not (self.melee_playing or self.jumping or self.swimming):
-            if self.arrow:  # Gets rid of arrow shown in bow before reloading them.
-                self.arrow.kill()
-                self.arrow = None
-            if self.equipped['weapons']:
-                if WEAPONS[self.equipped['weapons']]['type'] == 'bow':
-                    self.game.effects_sounds['bow reload'].play()
-            if self.equipped['weapons2']:
-                if WEAPONS[self.equipped['weapons2']]['type'] == 'bow':
-                    self.game.effects_sounds['bow reload'].play()
-            self.is_reloading = True
-            self.body.frame = 0
-            self.reload()
-
-    def reload(self):
-        speed = 100
-        speed1 = 0
-        speed2 = 0
-        delay = 500
-        if self.equipped['weapons'] and WEAPONS[self.equipped['weapons']]['bullet_count'] > 0: # checks if you are holding a gun
-            if self.is_moving():
-                self.animation_playing = self.body.walk_reload_anim
-            else:
-                self.animation_playing = self.body.reload_anim
-            speed1 = WEAPONS[self.equipped['weapons']]['reload speed']
-            speed = speed1
-            right = True
-        else:
-            right = False
-        if self.equipped['weapons2'] and WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0: # checks if you are holding a gun
-            if self.is_moving():
-                self.animation_playing = self.body.l_walk_reload_anim
-            else:
-                self.animation_playing = self.body.l_reload_anim
-            speed2 = WEAPONS[self.equipped['weapons2']]['reload speed']
-            speed = speed2
-            left = True
-        else:
-            left = False
-
-        if left and right:
-            if self.is_moving():
-                self.animation_playing = self.body.walk_dual_reload_anim
-            else:
-                self.animation_playing = self.body.dual_reload_anim
-            speed = speed1 + speed2
-
-        if not(left or right):
-            self.animation_playing = self.body.stand_anim
-
-        now = pg.time.get_ticks()
-        if now - self.last_shot > delay:
-            if self.is_reloading:
-                self.body.animate(self.animation_playing, speed)
-                if self.body.frame > len(self.animation_playing[0]) - 1:
-                    # Reloads magazines
-                    if self.equipped['weapons']:
-                        if 'enchanted' in self.equipped['weapons'] and WEAPONS[self.equipped['weapons']]['gun']:
-                            if self.ammo['crystals'] - (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1) < 0:
-                                self.ammo['crystals'] = 0
-                            else:
-                                self.ammo['crystals'] -= (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1)
-                            if self.ammo[WEAPONS[self.equipped['weapons']]['type']] - (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1) < 0:
-                                self.mag1 = self.mag1 + self.ammo[WEAPONS[self.equipped['weapons']]['type']]
-                                self.ammo[WEAPONS[self.equipped['weapons']]['type']] = 0
-                            else:
-                                self.ammo[WEAPONS[self.equipped['weapons']]['type']] -= (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1)
-                                self.mag1 = WEAPONS[self.equipped['weapons']]['magazine size']
-                            self.ammo_cap1 = self.ammo[WEAPONS[self.equipped['weapons']]['type']]  # Used for HUD display value to improve frame rate by not looking up the value every cycle
-                        else:
-                            if 'enchanted' in self.equipped['weapons'] and WEAPONS[self.equipped['weapons']]['bullet_count'] > 0:
-                                if self.ammo['crystals'] - (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1) < 0:
-                                    self.mag1 = self.mag1 + self.ammo['crystals']
-                                    self.ammo['crystals'] = 0
-                                else:
-                                    self.ammo['crystals'] -= (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1)
-                                    self.mag1 = WEAPONS[self.equipped['weapons']]['magazine size']
-                                self.ammo_cap1 = self.ammo['crystals'] # Used for HUD display value to improve frame rate by not looking up the value every cycle
-
-                            if WEAPONS[self.equipped['weapons']]['gun']:
-                                if self.ammo[WEAPONS[self.equipped['weapons']]['type']] - (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1) < 0:
-                                    self.mag1 = self.mag1 + self.ammo[WEAPONS[self.equipped['weapons']]['type']]
-                                    self.ammo[WEAPONS[self.equipped['weapons']]['type']] = 0
-                                else:
-                                    self.ammo[WEAPONS[self.equipped['weapons']]['type']] -= (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1)
-                                    self.mag1 = WEAPONS[self.equipped['weapons']]['magazine size']
-                                self.ammo_cap1 = self.ammo[WEAPONS[self.equipped['weapons']]['type']]  # Used for HUD display value to improve frame rate by not looking up the value every cycle
-                        if WEAPONS[self.equipped['weapons']]['type'] != 'bow':
-                            self.game.effects_sounds['gun_pickup'].play()
-                        else:
-                            if self.mag1 > 0:
-                                Arrow(self.game, self, self.equipped['weapons'])
-                    else:
-                        self.mag1 = self.ammo_cap1 = 0
-
-                    if self.equipped['weapons2']:
-                        if 'enchanted' in self.equipped['weapons2'] and WEAPONS[self.equipped['weapons2']]['gun']:
-                            if self.ammo['crystals'] - (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2) < 0:
-                                self.ammo['crystals'] = 0
-                            else:
-                                self.ammo['crystals'] -= (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2)
-                            if self.ammo[WEAPONS[self.equipped['weapons2']]['type']] - (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2) < 0:
-                                self.mag2 = self.mag2 + self.ammo[WEAPONS[self.equipped['weapons2']]['type']]
-                                self.ammo[WEAPONS[self.equipped['weapons2']]['type']] = 0
-                            else:
-                                self.ammo[WEAPONS[self.equipped['weapons2']]['type']] -= (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2)
-                                self.mag2 = WEAPONS[self.equipped['weapons2']]['magazine size']
-                            self.ammo_cap2 = self.ammo[WEAPONS[self.equipped['weapons2']]['type']]  # Used for HUD display value to improve frame rate by not looking up the value every cycle
-                        else:
-                            if 'enchanted' in self.equipped['weapons2'] and WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0:
-                                if self.ammo['crystals'] - (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2) < 0:
-                                    self.mag2 = self.mag2 + self.ammo['crystals']
-                                    self.ammo['crystals'] = 0
-                                else:
-                                    self.ammo['crystals'] -= (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2)
-                                    self.mag2 = WEAPONS[self.equipped['weapons2']]['magazine size']
-                                self.ammo_cap2 = self.ammo['crystals'] # Used for HUD display value to improve frame rate by not looking up the value every cycle
-                            if WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0:
-                                if self.equipped['weapons']:
-                                    if 'enchanted' in self.equipped['weapons'] and 'enchanted' in self.equipped['weapons2']:
-                                        self.ammo_cap1 = self.ammo_cap2 # Makes sure if both your weapons use the same ammo they display the same ammo capacity.
-
-                            if WEAPONS[self.equipped['weapons2']]['gun']:
-                                if self.ammo[WEAPONS[self.equipped['weapons2']]['type']] - (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2) < 0:
-                                    self.mag2 = self.mag2 + self.ammo[WEAPONS[self.equipped['weapons2']]['type']]
-                                    self.ammo[WEAPONS[self.equipped['weapons2']]['type']] = 0
-                                else:
-                                    self.ammo[WEAPONS[self.equipped['weapons2']]['type']] -= (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2)
-                                    self.mag2 = WEAPONS[self.equipped['weapons2']]['magazine size']
-                                self.ammo_cap2 = self.ammo[WEAPONS[self.equipped['weapons2']]['type']] # Used for HUD display value to improve frame rate by not looking up the value every cycle
-                        if self.equipped['weapons']:
-                            if not 'enchanted' in self.equipped['weapons'] or not 'enchanted' in self.equipped['weapons2']:
-                                if WEAPONS[self.equipped['weapons']]['bullet_count'] > 0 and WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0:
-                                    if self.ammo[WEAPONS[self.equipped['weapons']]['type']] == self.ammo[WEAPONS[self.equipped['weapons2']]['type']]:
-                                        self.ammo_cap1 = self.ammo_cap2 # Makes sure if both your weapons use the same ammo they display the same ammo capacity.
-                        if WEAPONS[self.equipped['weapons2']]['type'] != 'bow':
-                            self.game.effects_sounds['gun_pickup'].play()
-                        else:
-                            if self.mag2 > 0:
-                                Arrow(self.game, self, self.equipped['weapons2'])
-                    else:
-                        self.mag2 = self.ammo_cap2 = 0
-                    self.is_reloading = False
-                    self.last_shot = pg.time.get_ticks()
-        self.update_hud_stats('ammo')
-
-    def empty_mags(self):
-        # Empties previous weapon mags back into ammo inventory:
-        if self.equipped['weapons']:
-            if 'enchanted' in self.equipped['weapons'] and not WEAPONS[self.equipped['weapons']]['gun']:
-                if self.equipped['weapons'] and WEAPONS[self.equipped['weapons']]['bullet_count'] > 0:
-                    self.ammo['crystals'] += self.mag1
-                    self.mag1 = 0
-        if self.equipped['weapons2']:
-            if 'enchanted' in self.equipped['weapons2'] and not WEAPONS[self.equipped['weapons2']]['gun']:
-                if self.equipped['weapons2'] and WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0:
-                    self.ammo['crystals'] += self.mag2
-                    self.mag2 = 0
-        if self.equipped['weapons'] and WEAPONS[self.equipped['weapons']]['gun']:
-                self.ammo[WEAPONS[self.equipped['weapons']]['type']] += self.mag1
-                self.mag1 = 0
-        if self.equipped['weapons2'] and WEAPONS[self.equipped['weapons2']]['gun']:
-                self.ammo[WEAPONS[self.equipped['weapons2']]['type']] += self.mag2
-                self.mag2 = 0
-        self.update_hud_stats('stats')
 
     def play_weapon_sound(self, default = None):
         if default == None:
@@ -2608,104 +2551,8 @@ class Player(Character):  # Used for humanoid NPCs and Players
                         else:
                             self.jump_count -= 1
 
-
-
-    def gets_hit(self, damage, knockback = 0, rot = 0, dam_rate = DAMAGE_RATE):
-        if self.in_vehicle:
-            self.vehicle.gets_hit(damage, knockback, rot)
-        elif self.possessing:
-            self.possessing.gets_hit(damage, knockback, rot)
-        else:
-            now = pg.time.get_ticks()
-            if now - self.last_hit > dam_rate:
-                self.last_hit = now
-                # Player takes damage based on their armor rating/
-                temp_val = (damage + self.stats['armor']) # This part prevents division by 0 in the damage_reduction_factor calculation
-                if temp_val == 0:
-                    temp_val = 1
-                damage_reduction_factor = damage/temp_val
-                damage_done = damage * damage_reduction_factor
-                if damage_done > 0:
-                    if self.equipped['gender'] == 'male':
-                        choice(self.game.male_player_hit_sounds).play()
-                    else:
-                        choice(self.game.female_player_hit_sounds).play()
-                self.add_health(-damage_done)
-                self.pos += vec(knockback, 0).rotate(-rot)
-                if pg.sprite.spritecollide(self, self.game.barriers, False): #Prevents sprite from being knocked through a wall.
-                    self.pos -= vec(knockback, 0).rotate(-rot)
-                self.rect.center = self.hit_rect.center = self.pos
-                self.stats['hits taken'] += 1
-
-    def does_melee_damage(self, mob):
-        if self.possessing: # Makes it so if you are in a mech suit or possessing an NPC your damage depends on their stats.
-            now = pg.time.get_ticks()
-            if now - self.last_damage > self.melee_rate:
-                if self.equipped[self.weapon_hand] == None:
-                    damage = self.possessing.damage
-                    mob.vel = vec(0, 0)
-                    choice(self.game.punch_sounds).play()
-                    mob.gets_hit(damage, 2, self.rot)
-                    self.game.hud_mobhp = mob.stats['health'] / mob.stats['max health']
-                    self.game.last_mobhp_update = pg.time.get_ticks()
-                    self.game.show_mobhp = True
-                else:
-                    weapon_damage = WEAPONS[self.equipped[self.weapon_hand]]['melee damage']
-                    damage = self.possessing.damage + weapon_damage
-                    mob.vel = vec(0, 0)
-                    knockback = self.possessing.knockback / 2 + WEAPONS[self.equipped[self.weapon_hand]]['knockback']
-                    self.play_weapon_hit_sound()
-                    mob.gets_hit(damage, knockback, self.rot)
-                    self.game.hud_mobhp = mob.stats['health'] / mob.stats['max health']
-                    self.game.last_mobhp_update = pg.time.get_ticks()
-                    self.game.show_mobhp = True
-                self.stats['melee'] += 0.1
-                self.last_damage = now
-                mob.target = self.possessing
-            if not self.game.guard_alerted:
-                if mob.protected:
-                    self.alert_guard()
-
-        else:     # For when you are not in a mech suit or possessing
-            damage_reduction = self.stats['stamina'] / self.stats['max stamina']
-            now = pg.time.get_ticks()
-            if now - self.last_damage > self.melee_rate:
-                if self.equipped[self.weapon_hand] == None:
-                    damage = damage_reduction * self.stats['strength']
-                    mob.vel = vec(0, 0)
-                    choice(self.game.punch_sounds).play()
-                    mob.gets_hit(damage, 2, self.rot)
-                    self.game.hud_mobhp = mob.stats['health'] / mob.stats['max health']
-                    self.game.last_mobhp_update = pg.time.get_ticks()
-                    self.game.show_mobhp = True
-                else:
-                    weapon_damage = WEAPONS[self.equipped[self.weapon_hand]]['melee damage']
-                    damage = damage_reduction * (self.stats['strength'] + weapon_damage) + weapon_damage/4
-                    mob.vel = vec(0, 0)
-                    knockback = WEAPONS[self.equipped[self.weapon_hand]]['knockback']
-                    self.play_weapon_hit_sound()
-                    mob.gets_hit(damage, knockback, self.rot)
-                    self.game.hud_mobhp = mob.stats['health'] / mob.stats['max health']
-                    self.game.last_mobhp_update = pg.time.get_ticks()
-                    self.game.show_mobhp = True
-                #choice(mob.hit_sounds).play()
-                self.stats['melee'] += 0.1
-                self.last_damage = now
-                mob.target = self
-            if not self.game.guard_alerted:
-                if mob.protected:
-                    self.alert_guard()
-
     def alert_guard(self):
-        for npc in self.game.npcs:
-            if 'Guard' in npc.kind['name']:
-                npc.approach_vector = vec(1, 0)
-                npc.speed = npc.kind['walk speed'] * 1.5
-                npc.detect_radius = npc.default_detect_radius = self.game.screen_width * 2
-                npc.offensive = True
-                npc.provoked = True
-                npc.target = self.game.player
-        self.game.guard_alerted = True
+        pass
 
     def toggle_previous_weapons(self):
         if not self.swimming:
@@ -2717,91 +2564,6 @@ class Player(Character):  # Used for humanoid NPCs and Players
             self.current_weapon2 = self.equipped['weapons2']
             self.human_body.update_animations()
             self.dragon_body.update_animations()
-
-    def cast_spell(self):
-        if self.equipped['magic']:
-            now = pg.time.get_ticks()
-            if now - self.last_cast > self.game.effects_sounds[MAGIC[self.equipped['magic']]['sound']].get_length() * 1000:
-                if self.stats['magica'] >= MAGIC[self.equipped['magic']]['cost']:
-                    if self.check_materials('magic', self.equipped['magic']):
-                        self.game.effects_sounds[MAGIC[self.equipped['magic']]['sound']].play()
-                        Spell_Animation(self.game, self.equipped['magic'], self.pos, self.rot, self.vel)
-                        pos = vec(0, 0)
-                        pos = self.pos + vec(60, 0).rotate(-self.rot)
-                        if 'possession' in MAGIC[self.equipped['magic']]:
-                            if self.possessing == None:
-                                if 'wraith' in self.equipped['race']:
-                                    if self.equipped['race'] == 'whitewraith': # Turns you into a black wraith for using dark magic.
-                                        self.equipped['race'] = 'blackwraith'
-                                        self.race = 'blackwraith'
-                                        self.human_body.update_animations()
-                                        self.dragon_body.update_animations()
-                                    else:
-                                        hits = pg.sprite.spritecollide(self, self.game.npcs, False, False)
-                                        if hits:
-                                            if hits[0].race not in ['whitewraith', 'blackwraith', 'demon', 'skeleton']:
-                                                drop_all_items(self, False)
-                                                hits[0].possess(self, True)
-                                else:
-                                    self.equipped['race'] = 'blackwraith'
-                                    self.race = 'blackwraith'
-                                    temp_inventory = self.inventory.copy()
-                                    drop_all_items(self, True)
-                                    corpse = Player(self.game, self.pos.x, self.pos.y, 'villager')
-                                    corpse.inventory = temp_inventory
-                                    corpse.death()
-                                    self.human_body.update_animations()
-                                    self.dragon_body.update_animations()
-                                    self.game.beg = perf_counter() # resets the counter so dt doesn't get messed up.
-                            else:
-                                self.add_health(self.possessing.stats['health'])
-                                self.possessing.gets_hit(self.stats['stamina'])
-                                self.possessing.depossess()
-
-                        if 'summon' in MAGIC[self.equipped['magic']]:
-                            if MAGIC[self.equipped['magic']]['summon'] in PEOPLE:
-                                summoned = Player(self.game, self.pos.x + 128, self.pos.y, MAGIC[self.equipped['magic']]['summon'])
-                                summoned.make_companion()
-                            elif MAGIC[self.equipped['magic']]['summon'] in ANIMALS:
-                                Animal(self.game, pos.x, pos.y, MAGIC[self.equipped['magic']]['summon'])
-                        if 'healing' in MAGIC[self.equipped['magic']]:
-                            self.add_health(MAGIC[self.equipped['magic']]['healing'] + (self.stats['healing'] / 20) + (self.stats['casting'] / 100))
-                        if 'fireballs' in MAGIC[self.equipped['magic']]:
-                            balls = MAGIC[self.equipped['magic']]['fireballs']
-                            damage = MAGIC[self.equipped['magic']]['damage'] + (self.stats['casting'] / 100)
-                            for i in range(0, balls):
-                                Fireball(self, self.game, self.pos, self.rot + (36 * i), damage, 30, 1300, 250, self.vel, 'fire', False, self.in_flying_vehicle)
-                        self.add_magica(-MAGIC[self.equipped['magic']]['cost'])
-                        self.stats['casting'] += MAGIC[self.equipped['magic']]['cost'] / 10
-
-                        #dir = vec(1, 0).rotate(-self.rot)
-                        self.last_cast = now
-
-    def check_materials(self, item_type, chosen_item, subtract_materials = True):
-        if 'materials' not in eval(item_type.upper())[chosen_item]:
-            return True
-        else:
-            materials_list = eval(item_type.upper())[chosen_item]['materials']
-            if self.check_materials_list(materials_list):
-                if subtract_materials:
-                    self.subract_material_list(materials_list)
-                    return True
-
-    def subract_material_list(self, materials_list):
-        for item, count in materials_list.items():
-            self.add_inventory(item, -count)
-
-    def check_materials_list(self, materials_list):
-        for material in materials_list:
-            if material in self.inventory['items']:  # Sees if you have any of the required material
-                if materials_list[material] > self.inventory['items'][material]:  # Sees if you have enough of the required material
-                    return False
-            elif material in self.inventory['blocks']:  # Sees if you have any of the required material
-                if materials_list[material] > self.inventory['blocks'][material]:  # Sees if you have enough of the required material
-                    return False
-            else:
-                return False
-        return True
 
     def use_item(self):
         remove = False
@@ -3028,91 +2790,11 @@ class Player(Character):  # Used for humanoid NPCs and Players
         self.last_casting = self.stats['casting']
         self.last_magica_regen = self.stats['magica regen']
 
-    def add_health(self, amount):
-        if amount > 20:
-            self.stats['healing'] += 1
-        self.stats['health'] += amount
-        if self.stats['health'] > self.stats['max health']:
-            self.stats['health'] = self.stats['max health']
-        if self.stats['health'] < 0:
-            self.death()
-        self.update_hud_stats('health')
-
-    def death(self):
-        self.depossess()
-        if self in self.game.companions:
-            self.unfollow()
-        choice(self.game.zombie_hit_sounds).play()
-        self.living = False
-        self.body.kill()
-        if self.npc:
-            self.remove(self.game.mobs)
-            self.remove(self.game.npcs)
-        else:
-            self.remove(self.game.players)
-            self.game.playing = False
-        self.remove(self.game.moving_targets)
-        self.add(self.game.corpses)
-        self.game.group.add(self)
-        if self.equipped['race'] == 'demon':
-            Player(self.game, self.pos.x, self.pos.y, 'blackwraith')
-        if self.equipped['race'] in RACE_CORPSE_DICT:
-            self.image = pg.transform.rotate(self.game.corpse_images[RACE_CORPSE_DICT[self.equipped['race']]], self.rot)
-        else:
-            self.image = pg.transform.rotate(self.game.corpse_images[0], self.rot)
-        self.rect = self.image.get_rect()
-        self.rect.center = self.pos
-        if 'dead' in self.game.people[self.name.lower()]:
-            self.game.people[self.name.lower()]['dead'] = True
-
     def possess(self):
         pass
     def depossess(self):
         pass
-    def make_companion(self):
-        pass
-    def unfollow(self):
-        pass
 
-
-    def add_stamina(self, amount, percent = 0):
-        if percent != 0:
-            amount = amount * self.stats['stamina']
-        if amount < 0:
-            self.stats['exercise'] -= amount/10
-        if amount > 20:
-            self.stats['stamina regen'] += 1
-        self.stats['stamina'] += amount
-        if self.stats['stamina'] > self.stats['max stamina']:
-            self.stats['stamina'] = self.stats['max stamina']
-        elif (self.stats['stamina'] < 11) and (self.stats['hunger'] > 50):
-            self.add_hunger(-1) # Makes you more hungry if you use your stamina.
-        elif self.stats['stamina'] < 0:
-            self.add_health(self.stats['stamina']) # Subtracts from your health if your stamina is too low.
-            self.stats['stamina'] = 0
-        self.update_hud_stats('stamina')
-
-    def add_magica(self, amount):
-        if amount > 20:
-            self.stats['magica regen'] += 1
-        self.stats['magica'] += amount
-        if self.stats['magica'] > self.stats['max magica']:
-            if self.magical_being:
-                self.add_health(self.stats['magica regen'] / 80)  # You heal based on your skill if your magic is full if you are a magical being
-            self.stats['magica'] = self.stats['max magica']
-        elif self.stats['magica'] < 0:
-            self.stats['magica'] = 0
-        self.update_hud_stats('magica')
-
-    def add_hunger(self, amount):
-        self.stats['hunger'] += amount
-        if self.stats['hunger'] > self.stats['max hunger']:
-            self.stats['hunger'] = self.stats['max hunger']
-        elif self.stats['hunger'] < 0:
-            self.add_stamina(self.stats['hunger']) # Subtracts from your stamina if you're too hungry.
-            self.stats['hunger'] = 0
-        self.update_hud_stats('hunger')
-        
     def calculate_weight(self):
         # Calculates the weight the player is carrying
         self.stats['weight'] = 0
@@ -3123,23 +2805,6 @@ class Player(Character):  # Used for humanoid NPCs and Players
                         if 'weight' in eval(item_type.upper())[item]:
                             self.stats['weight'] += eval(item_type.upper())[item]['weight']
         self.stats['weight'] = round(self.stats['weight'], 1)
-
-    def calculate_fire_power(self):
-        self.fire_damage = self.start_fire_damage + self.stats['casting']
-        if self.fire_damage > 30:
-            self.fire_damage = 30 + self.stats['casting']/10
-        elif self.fire_damage > 80:
-            self.fire_damage = 80 + self.stats['casting']/100
-        elif self.fire_damage > 120:
-            self.fire_damage = 120 + self.stats['casting']/1000
-        if self.fire_damage > 200:
-            self.fire_damage = 200
-        if not self.equipped_after_effect:
-            if self.fire_damage > 75:
-                self.after_effect = 'fire'
-            else:
-                self.after_effect = None
-
     def calculate_perks(self):
         # Calculates equipment based perks:
         fire_perks = 0 # Used to count how many armor items are dragon fire enchanted
@@ -3229,7 +2894,37 @@ class Player(Character):  # Used for humanoid NPCs and Players
         self.fireball_rate = self.original_fireball_rate - self.fireball_rate_perk
         if self.fireball_rate < 1:
             self.fireball_rate = 1
-
+    # dragon related methods
+    def transform(self):
+        self.invisible = False
+        self.stats['casting'] += 0.5
+        if 'dragon' not in self.equipped['race']:
+            if self.stats['magica'] > 50:
+                if self.transformable:
+                    self.equipped['race'] = self.race + 'dragon'
+                    explosion = Explosion(self.game, self)
+                    self.human_body.remove(self.game.all_sprites)
+                    self.human_body.remove(self.game.npc_bodies)
+                    self.dragon_body.add(self.game.all_sprites)
+                    self.dragon_body.add(self.game.npc_bodies)
+                    self.game.group.add(self.dragon_body)
+                    self.game.group.remove(self.human_body)
+                    self.body = self.dragon_body
+                    self.body.update()
+                    self.stats['magica'] -= 10
+                    self.dragon = True
+        else:
+            self.equipped['race'] = self.race
+            explosion = Explosion(self.game, self)
+            self.dragon_body.remove(self.game.all_sprites)
+            self.dragon_body.remove(self.game.npc_bodies)
+            self.human_body.add(self.game.all_sprites)
+            self.human_body.add(self.game.npc_bodies)
+            self.game.group.add(self.human_body)
+            self.game.group.remove(self.dragon_body)
+            self.body = self.human_body
+            self.body.update()
+            self.dragon = False
     def breathe_fire(self):
         now = pg.time.get_ticks()
         if now - self.last_fireball > self.fireball_rate:
@@ -3239,52 +2934,453 @@ class Player(Character):  # Used for humanoid NPCs and Players
                 self.stats['magica'] -= 5
                 if self.stats['magica'] < 0:
                     self.stats['magica'] = 0
+    def calculate_fire_power(self):
+        self.fire_damage = self.start_fire_damage + self.stats['casting']
+        if self.fire_damage > 30:
+            self.fire_damage = 30 + self.stats['casting']/10
+        elif self.fire_damage > 80:
+            self.fire_damage = 80 + self.stats['casting']/100
+        elif self.fire_damage > 120:
+            self.fire_damage = 120 + self.stats['casting']/1000
+        if self.fire_damage > 200:
+            self.fire_damage = 200
+        if not self.equipped_after_effect:
+            if self.fire_damage > 75:
+                self.after_effect = 'fire'
+            else:
+                self.after_effect = None
+    # methods related to guns
+    def throw_grenade(self):
+        now = pg.time.get_ticks()
+        if now - self.last_throw > 1000:
+            if self.equipped['weapons'] == None:
+                body_pos = self.body.weapon_pos
+                self.weapon_hand = 'weapons'
+            else:
+                body_pos = self.body.weapon2_pos
+                self.weapon_hand = 'weapons2'
+            if not self.is_moving() and not self.melee_playing:
+                self.pre_melee()
+            dir = vec(1, 0).rotate(-(self.rot))
 
-    def use_toilet(self):
-        self.add_health(5)
-        self.add_stamina(30)
-        self.add_hunger(-4)
-        toilet_sounds = ['fart', 'pee']
-        self.game.effects_sounds[choice(toilet_sounds)].play()
-        sleep(2)
-        self.game.effects_sounds['toilet'].play()
-        self.game.beg = perf_counter() # resets dt
+            pos = self.pos + (body_pos + WEAPONS['grenade']['offset']).rotate(-(self.rot))
+            Bullet(self, self.game, pos, dir, self.rot, 'grenade', False, self.in_flying_vehicle)
+            self.ammo['grenades'] -= 1
+            self.last_throw = now
+    def shoot(self):
+        if not self.is_moving():
+            if self.weapon_hand == 'weapons2':
+                self.animation_playing = self.body.l_shoot_anim
+            else:
+                self.animation_playing = self.body.shoot_anim
+            if self.climbing:
+                self.animation_playing = self.body.climbing_shoot_anim
 
-    def sleep_in_bed(self):
-        if not self.npc:
-            self.game.sleep_in_bed()
-        else: # I will add a sleeping animation later.
-            self.add_health(50)
-            self.add_stamina(50)
-            self.add_magica(50)
+        if self.equipped[self.weapon_hand]:
+            if WEAPONS[self.equipped[self.weapon_hand]]['bullet_count'] > 0:
+                if not WEAPONS[self.equipped[self.weapon_hand]]['gun']: # Makes it so you attack with melee weapons that also shoot things (enchanted weapons, slings, etc.)
+                    self.pre_melee(True)
+                    return
+                keys = pg.key.get_pressed()
+                if not self.is_moving() and not self.melee_playing:
+                    self.body.animate(self.animation_playing, 120)
+                if WEAPONS[self.equipped[self.weapon_hand]]['gun']:
+                    now = pg.time.get_ticks()
+                    if now - self.last_shot > WEAPONS[self.equipped[self.weapon_hand]]['rate']:
+                        self.last_shot = now
+                        self.fire_bullets()
+            else:
+                self.pre_melee()
+        else:
+            self.pre_melee()
+    def dual_shoot(self, auto = False):
+        if self.equipped['weapons'] and self.equipped['weapons2']:
+            if WEAPONS[self.equipped['weapons']]['bullet_count'] > 0 and WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0:
+                temp_list = ['weapons', 'weapons2']
+                now = pg.time.get_ticks()
+                for weapon_hand in temp_list:
+                    self.weapon_hand = weapon_hand
+                    if auto:
+                        if WEAPONS[self.equipped[self.weapon_hand]]['auto']:
+                            if weapon_hand == 'weapons':
+                                if now - self.last_shot > WEAPONS[self.equipped[weapon_hand]]['rate']:
+                                    self.last_shot = now
+                                    self.fire_bullets()
+                            else:
+                                if now - self.last_shot2 > WEAPONS[self.equipped[weapon_hand]]['rate']:
+                                    self.last_shot2 = now
+                                    self.fire_bullets()
+                    else:
+                        if weapon_hand == 'weapons':
+                            if now - self.last_shot > WEAPONS[self.equipped[weapon_hand]]['rate']:
+                                self.last_shot = now
+                                self.fire_bullets()
+                        else:
+                            if now - self.last_shot2 > WEAPONS[self.equipped[weapon_hand]]['rate']:
+                                self.last_shot2 = now
+                                self.fire_bullets()
+            else:
+                self.dual_melee = True
+                self.pre_melee()
+
+        else:
+            self.dual_melee = True
+            self.pre_melee()
+    def fire_bullets(self):
+        if self.arrow: # Gets rid of arrow shown in bow before firing.
+            self.arrow.kill()
+            self.arrow = None
+
+        if self.weapon_hand == 'weapons':
+            angle = self.body.weapon_angle
+            mag_selected = self.mag1
+        else:
+            angle = self.body.weapon2_angle
+            mag_selected = self.mag2
+        if mag_selected > 0:
+            if not self.in_vehicle:
+                self.vel += vec(-WEAPONS[self.equipped[self.weapon_hand]]['kickback'], 0).rotate(-self.rot)
+            dir = vec(1, 0).rotate(-(self.rot + angle))
+            if self.weapon_hand == 'weapons':
+                pos = self.pos + (self.body.weapon_pos + WEAPONS[self.equipped['weapons']]['offset']).rotate(-(self.rot + angle))
+            else:
+                pos = self.pos + (self.body.weapon2_pos + vec(WEAPONS[self.equipped['weapons2']]['offset'].x, -WEAPONS[self.equipped['weapons2']]['offset'].y)).rotate(-(self.rot + angle))
+            for i in range(WEAPONS[self.equipped[self.weapon_hand]]['bullet_count']):
+                Bullet(self, self.game, pos, dir, self.rot, self.equipped[self.weapon_hand], False, self.in_flying_vehicle)
+                if self.weapon_hand == 'weapons':
+                    self.use_ammo(1)
+                else:
+                    self.use_ammo(2)
+                self.play_weapon_sound()
+                self.stats['marksmanship shots fired'] += 1
+                self.stats['marksmanship accuracy'] = self.stats['marksmanship hits'] / self.stats['marksmanship shots fired']
+            if WEAPONS[self.equipped[self.weapon_hand]]['gun']:
+                MuzzleFlash(self.game, pos)
+        else:
+            self.out_of_ammo()
+    def use_ammo(self, mag):
+        if mag == 1:
+            self.mag1 -= 1
+            if self.mag1 < 0:
+                self.mag1 = 0
+        if mag == 2:
+            self.mag2 -= 1
+            if self.mag2 < 0:
+                self.mag2 = 0
+        self.update_hud_stats('ammo')
+    def out_of_ammo(self):
+        if not self.is_moving():
+            self.pre_melee()
+        else:
+            self.moving_melee = True
+            self.pre_melee()
+    def pre_reload(self):
+        if not (self.melee_playing or self.jumping or self.swimming):
+            if self.arrow:  # Gets rid of arrow shown in bow before reloading them.
+                self.arrow.kill()
+                self.arrow = None
+            if self.equipped['weapons']:
+                if WEAPONS[self.equipped['weapons']]['type'] == 'bow':
+                    self.game.effects_sounds['bow reload'].play()
+            if self.equipped['weapons2']:
+                if WEAPONS[self.equipped['weapons2']]['type'] == 'bow':
+                    self.game.effects_sounds['bow reload'].play()
+            self.is_reloading = True
+            self.body.frame = 0
+            self.reload()
+    def reload(self):
+        speed = 100
+        speed1 = 0
+        speed2 = 0
+        delay = 500
+        if self.equipped['weapons'] and WEAPONS[self.equipped['weapons']]['bullet_count'] > 0: # checks if you are holding a gun
+            if self.is_moving():
+                self.animation_playing = self.body.walk_reload_anim
+            else:
+                self.animation_playing = self.body.reload_anim
+            speed1 = WEAPONS[self.equipped['weapons']]['reload speed']
+            speed = speed1
+            right = True
+        else:
+            right = False
+        if self.equipped['weapons2'] and WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0: # checks if you are holding a gun
+            if self.is_moving():
+                self.animation_playing = self.body.l_walk_reload_anim
+            else:
+                self.animation_playing = self.body.l_reload_anim
+            speed2 = WEAPONS[self.equipped['weapons2']]['reload speed']
+            speed = speed2
+            left = True
+        else:
+            left = False
+
+        if left and right:
+            if self.is_moving():
+                self.animation_playing = self.body.walk_dual_reload_anim
+            else:
+                self.animation_playing = self.body.dual_reload_anim
+            speed = speed1 + speed2
+
+        if not(left or right):
+            self.animation_playing = self.body.stand_anim
+
+        now = pg.time.get_ticks()
+        if now - self.last_shot > delay:
+            if self.is_reloading:
+                self.body.animate(self.animation_playing, speed)
+                if self.body.frame > len(self.animation_playing[0]) - 1:
+                    # Reloads magazines
+                    if self.equipped['weapons']:
+                        if 'enchanted' in self.equipped['weapons'] and WEAPONS[self.equipped['weapons']]['gun']:
+                            if self.ammo['crystals'] - (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1) < 0:
+                                self.ammo['crystals'] = 0
+                            else:
+                                self.ammo['crystals'] -= (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1)
+                            if self.ammo[WEAPONS[self.equipped['weapons']]['type']] - (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1) < 0:
+                                self.mag1 = self.mag1 + self.ammo[WEAPONS[self.equipped['weapons']]['type']]
+                                self.ammo[WEAPONS[self.equipped['weapons']]['type']] = 0
+                            else:
+                                self.ammo[WEAPONS[self.equipped['weapons']]['type']] -= (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1)
+                                self.mag1 = WEAPONS[self.equipped['weapons']]['magazine size']
+                            self.ammo_cap1 = self.ammo[WEAPONS[self.equipped['weapons']]['type']]  # Used for HUD display value to improve frame rate by not looking up the value every cycle
+                        else:
+                            if 'enchanted' in self.equipped['weapons'] and WEAPONS[self.equipped['weapons']]['bullet_count'] > 0:
+                                if self.ammo['crystals'] - (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1) < 0:
+                                    self.mag1 = self.mag1 + self.ammo['crystals']
+                                    self.ammo['crystals'] = 0
+                                else:
+                                    self.ammo['crystals'] -= (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1)
+                                    self.mag1 = WEAPONS[self.equipped['weapons']]['magazine size']
+                                self.ammo_cap1 = self.ammo['crystals'] # Used for HUD display value to improve frame rate by not looking up the value every cycle
+
+                            if WEAPONS[self.equipped['weapons']]['gun']:
+                                if self.ammo[WEAPONS[self.equipped['weapons']]['type']] - (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1) < 0:
+                                    self.mag1 = self.mag1 + self.ammo[WEAPONS[self.equipped['weapons']]['type']]
+                                    self.ammo[WEAPONS[self.equipped['weapons']]['type']] = 0
+                                else:
+                                    self.ammo[WEAPONS[self.equipped['weapons']]['type']] -= (WEAPONS[self.equipped['weapons']]['magazine size'] - self.mag1)
+                                    self.mag1 = WEAPONS[self.equipped['weapons']]['magazine size']
+                                self.ammo_cap1 = self.ammo[WEAPONS[self.equipped['weapons']]['type']]  # Used for HUD display value to improve frame rate by not looking up the value every cycle
+                        if WEAPONS[self.equipped['weapons']]['type'] != 'bow':
+                            self.game.effects_sounds['gun_pickup'].play()
+                        else:
+                            if self.mag1 > 0:
+                                Arrow(self.game, self, self.equipped['weapons'])
+                    else:
+                        self.mag1 = self.ammo_cap1 = 0
+
+                    if self.equipped['weapons2']:
+                        if 'enchanted' in self.equipped['weapons2'] and WEAPONS[self.equipped['weapons2']]['gun']:
+                            if self.ammo['crystals'] - (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2) < 0:
+                                self.ammo['crystals'] = 0
+                            else:
+                                self.ammo['crystals'] -= (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2)
+                            if self.ammo[WEAPONS[self.equipped['weapons2']]['type']] - (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2) < 0:
+                                self.mag2 = self.mag2 + self.ammo[WEAPONS[self.equipped['weapons2']]['type']]
+                                self.ammo[WEAPONS[self.equipped['weapons2']]['type']] = 0
+                            else:
+                                self.ammo[WEAPONS[self.equipped['weapons2']]['type']] -= (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2)
+                                self.mag2 = WEAPONS[self.equipped['weapons2']]['magazine size']
+                            self.ammo_cap2 = self.ammo[WEAPONS[self.equipped['weapons2']]['type']]  # Used for HUD display value to improve frame rate by not looking up the value every cycle
+                        else:
+                            if 'enchanted' in self.equipped['weapons2'] and WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0:
+                                if self.ammo['crystals'] - (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2) < 0:
+                                    self.mag2 = self.mag2 + self.ammo['crystals']
+                                    self.ammo['crystals'] = 0
+                                else:
+                                    self.ammo['crystals'] -= (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2)
+                                    self.mag2 = WEAPONS[self.equipped['weapons2']]['magazine size']
+                                self.ammo_cap2 = self.ammo['crystals'] # Used for HUD display value to improve frame rate by not looking up the value every cycle
+                            if WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0:
+                                if self.equipped['weapons']:
+                                    if 'enchanted' in self.equipped['weapons'] and 'enchanted' in self.equipped['weapons2']:
+                                        self.ammo_cap1 = self.ammo_cap2 # Makes sure if both your weapons use the same ammo they display the same ammo capacity.
+
+                            if WEAPONS[self.equipped['weapons2']]['gun']:
+                                if self.ammo[WEAPONS[self.equipped['weapons2']]['type']] - (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2) < 0:
+                                    self.mag2 = self.mag2 + self.ammo[WEAPONS[self.equipped['weapons2']]['type']]
+                                    self.ammo[WEAPONS[self.equipped['weapons2']]['type']] = 0
+                                else:
+                                    self.ammo[WEAPONS[self.equipped['weapons2']]['type']] -= (WEAPONS[self.equipped['weapons2']]['magazine size'] - self.mag2)
+                                    self.mag2 = WEAPONS[self.equipped['weapons2']]['magazine size']
+                                self.ammo_cap2 = self.ammo[WEAPONS[self.equipped['weapons2']]['type']] # Used for HUD display value to improve frame rate by not looking up the value every cycle
+                        if self.equipped['weapons']:
+                            if not 'enchanted' in self.equipped['weapons'] or not 'enchanted' in self.equipped['weapons2']:
+                                if WEAPONS[self.equipped['weapons']]['bullet_count'] > 0 and WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0:
+                                    if self.ammo[WEAPONS[self.equipped['weapons']]['type']] == self.ammo[WEAPONS[self.equipped['weapons2']]['type']]:
+                                        self.ammo_cap1 = self.ammo_cap2 # Makes sure if both your weapons use the same ammo they display the same ammo capacity.
+                        if WEAPONS[self.equipped['weapons2']]['type'] != 'bow':
+                            self.game.effects_sounds['gun_pickup'].play()
+                        else:
+                            if self.mag2 > 0:
+                                Arrow(self.game, self, self.equipped['weapons2'])
+                    else:
+                        self.mag2 = self.ammo_cap2 = 0
+                    self.is_reloading = False
+                    self.last_shot = pg.time.get_ticks()
+        self.update_hud_stats('ammo')
+    def empty_mags(self):
+        # Empties previous weapon mags back into ammo inventory:
+        if self.equipped['weapons']:
+            if 'enchanted' in self.equipped['weapons'] and not WEAPONS[self.equipped['weapons']]['gun']:
+                if self.equipped['weapons'] and WEAPONS[self.equipped['weapons']]['bullet_count'] > 0:
+                    self.ammo['crystals'] += self.mag1
+                    self.mag1 = 0
+        if self.equipped['weapons2']:
+            if 'enchanted' in self.equipped['weapons2'] and not WEAPONS[self.equipped['weapons2']]['gun']:
+                if self.equipped['weapons2'] and WEAPONS[self.equipped['weapons2']]['bullet_count'] > 0:
+                    self.ammo['crystals'] += self.mag2
+                    self.mag2 = 0
+        if self.equipped['weapons'] and WEAPONS[self.equipped['weapons']]['gun']:
+                self.ammo[WEAPONS[self.equipped['weapons']]['type']] += self.mag1
+                self.mag1 = 0
+        if self.equipped['weapons2'] and WEAPONS[self.equipped['weapons2']]['gun']:
+                self.ammo[WEAPONS[self.equipped['weapons2']]['type']] += self.mag2
+                self.mag2 = 0
+        self.update_hud_stats('stats')
 
 class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
     def __init__(self, sprite):
         self.sprite = sprite
+        self.game = self.sprite.game
         self.target = choice(sprite.game.moving_targets.sprites())
-        self.avoid_radius = 32
-
-    def avoid_mobs(self):
-        for mob in self.sprite.game.mobs_on_screen:
-            if mob != self.sprite:
-                dist = self.sprite.pos - mob.pos
-                if 0 < dist.length() < self.avoid_radius:
-                    self.sprite.acc += dist.normalize()
+        self.avoid_radius = self.sprite.avoid_radius
+        self.detect_radius = self.sprite.detect_radius
+        self.aggression = self.sprite.aggression
+        self.offensive = self.sprite.offensive
+        self.eating_corpse = 0
+        self.last_wall_hit = 0
+        self.last_target_seek = 0
+        self.hit_wall = False
+        if 'a' in self.aggression:
+            self.aggressive = self.offensive = True
+        else:
+            self.aggressive = False
+        #Changes animals behavior to be more friendly towards elves. I need to change this because it will make all animals friendly to everyone if you are an elf.
+        #if 'elf' in self.game.player.race:
+            #if self.aggression == 'awd':
+            #    self.aggression = 'awp'
+        #    if self.aggression == 'fwd':
+        #        self.aggression = 'fwp'
+        if self.aggression in ['fwd', 'fup']:
+            self.detect_vector = vec(-1, 0)
+        if self.aggression == 'fup':
+            self.detect_vector = vec(-1, 0)
+        if self.aggression in ['awd', 'fwp', 'awp']:
+            self.detect_vector  = vec(1, 0)
 
     def update(self):
         self.sprite.rotate_to(self.target.pos - self.sprite.pos)
         self.sprite.accelerate()
         self.avoid_mobs()
 
+    def avoid_mobs(self):
+        for mob in self.game.mobs_on_screen:
+            if mob != self.sprite:
+                dist = self.sprite.pos - mob.pos
+                if 0 < dist.length() < self.avoid_radius:
+                    self.sprite.acc += dist.normalize()
+        # Makes it so non aggressive mobs don't cling to you.
+        if not self.aggressive:
+            dist = self.sprite.pos - self.game.player.pos
+            if 0 < dist.length() < self.avoid_radius:
+                self.sprite.acc += dist.normalize()
+
+    def seek_random_target(self):
+        self.target = choice(list(self.game.random_targets))
+        self.detect_radius = self.game.map.height / 2
+        temp_dist = self.target.pos - self.pos
+        temp_dist = temp_dist.length()
+        if temp_dist > self.detect_radius:
+            self.target = choice(list(self.game.random_targets))
+        if temp_dist < 200:
+            self.target = choice(list(self.game.random_targets))
+
+    def seek_mobs(self):
+        last_dist = 100000
+        player_dist = self.game.player.pos - self.sprite.pos
+        player_dist = player_dist.length()
+
+        # Used for setting random NPC targets if the player isn't visible.
+        if self.game.player.invisible:
+            if self.target == self.game.player:
+                self.seek_random_target()
+
+        elif self.game.player.in_vehicle:
+            if self.game.player.vehicle.kind_dict == 'airship':
+                if not self.flying:
+                    self.seek_random_target()
+            else:
+                if player_dist < self.detect_radius:
+                    self.target = self.game.player.vehicle
+                else:
+                    if self.target == self.game.player.vehicle:
+                        self.seek_random_target()
+        else:
+            if self.target not in self.game.npcs:
+                if player_dist < self.detect_radius * 2:
+                    self.target = self.game.player
+                else:
+                    if self.target == self.game.player:
+                        self.seek_random_target()
+
+        if self.aggression == 'awd':
+            self.offensive = True
+            for mob in self.game.moving_targets_on_screen: # Only looks at mobs that are on screen
+                if mob != self:
+                    if mob.aggression != 'awd' or mob in self.game.npcs_on_screen:
+                        dist = self.sprite.pos - mob.pos
+                        dist = dist.length()
+                        if 0 < dist < self.detect_radius:
+                            if last_dist > dist:  # Finds closest NPC
+                                if player_dist > dist: # Only targets player if you are closer than the others NPCs
+                                    self.target = mob
+                                    self.approach_vector = vec(1, 0)
+                                    last_dist = dist
+                                else:
+                                    if self.game.player.invisible:
+                                        self.target = mob
+                                    else:
+                                        self.target = self.game.player
+
+            if self.target == self.game.player or not self.target.living:
+                for item in self.game.dropped_items_on_screen:# animals target dead animals
+                    if 'dead' in item.name:
+                        dist = self.sprite.pos - item.pos
+                        dist = dist.length()
+                        if 0 < dist < self.detect_radius:
+                            if last_dist > dist:  # Finds closest item
+                                if player_dist > dist: # Only targets player if you are closer than the others NPCs
+                                    self.target = item
+                                    self.approach_vector = vec(1, 0)
+                                    last_dist = dist
+
+            if not self.target.living: # Kills corps after so many hits.
+                if self.target in self.game.animals_on_screen:
+                    self.target.kill()
+                    self.target = self.game.player
+                else:
+                    self.eating_corpse += 1
+                    if self.eating_corpse > 4:
+                        self.target.kill()
+                        self.target = self.game.player
+                        self.eating_corpse = 0
+                        self.sprite.stats['health']= self.sprite.stats['max health'] # heals animal
+            else:
+                self.eating_coprse = 0
+
+        if self.target not in self.game.random_targets:
+            self.detect_radius = self.default_detect_radius
+
+
+
 
 class Animal(Character):
     def __init__(self, game, x=0, y=0, kind='rabbit', colors=None, animal = True):
         super().__init__(game, x, y, kind, colors, animal)
 
-        self.run_speed = self.acceleration * 20
-        self.walk_speed = self.acceleration * 10
-        self.run_animate_speed = 240
-        self.walk_animate_speed = 400
+        self.walk_animate_speed = self.default_acceleration * 15
+        self.run_animate_speed = self.default_acceleration + 100
         self.rotate_direction = randrange(-1, 1)
 
         # Animal qualities
@@ -3322,33 +3418,8 @@ class Animal(Character):
         self.light_mask_rect.center = self.rect.center
         self.frame = 0 #used to keep track of what frame the animation is on.
 
-        self.rot_speed = self.orig_rot_speed = 6 * self.walk_speed / self.width
+        self.rot_speed = self.orig_rot_speed = 6 * self.default_acceleration / self.width
 
-        # AI related
-        self.target = game.player
-        self.last_wall_hit = 0
-        self.last_target_seek = 0
-        self.hit_wall = False
-        if 'a' in self.aggression:
-            self.aggressive = self.offensive = True
-        else:
-            self.aggressive = False
-        #Changes animals behavior to be more friendly towards elves. I need to change this because it will make all animals friendly to everyone if you are an elf.
-        if 'elf' in self.game.player.race:
-            #if self.aggression == 'awd':
-            #    self.aggression = 'awp'
-            if self.aggression == 'fwd':
-                self.aggression = 'fwp'
-        if self.aggression == 'fwd':
-            self.approach_vector = vec(-1, 0)
-        if self.aggression == 'fup':
-            self.approach_vector = vec(-1, 0)
-        if self.aggression == 'awd':
-            self.approach_vector = vec(1, 0)
-        if self.aggression == 'fwp':
-            self.approach_vector = vec(choice([1, 0]), choice([1, -1, 0]))
-        if self.aggression == 'awp':
-            self.approach_vector = vec(0, -1)
         set_elevation(self)
 
     @property
@@ -3392,119 +3463,97 @@ class Animal(Character):
         else:
             pass
 
-    def avoid_mobs(self):
-        for mob in self.game.mobs_on_screen:
-            if mob != self:
-                dist = self.pos - mob.pos
-                if 0 < dist.length() < self.avoid_radius:
-                    self.acc += dist.normalize()
-
-        # Makes it so non aggressive animals don't cling to you.
-        if not self.aggressive:
-            dist = self.pos - self.game.player.pos
-            if 0 < dist.length() < self.avoid_radius:
-                self.acc += dist.normalize()
-
-    def seek_random_target(self):
-        self.target = choice(list(self.game.random_targets))
-        self.detect_radius = self.game.map.height / 2
-        temp_dist = self.target.pos - self.pos
-        temp_dist = temp_dist.length()
-        if temp_dist > self.detect_radius:
-            self.target = choice(list(self.game.random_targets))
-        if temp_dist < 200:
-            self.target = choice(list(self.game.random_targets))
-
-    def seek_mobs(self):
-        last_dist = 100000
-        player_dist = self.game.player.pos - self.pos
-        player_dist = player_dist.length()
-
-        # Used for setting random NPC targets if the player isn't visible.
-        if self.game.player.invisible:
-            if self.target == self.game.player:
-                self.seek_random_target()
-
-        elif self.game.player.in_vehicle:
-            if self.game.player.vehicle.kind_dict == 'airship':
-                if not self.flying:
-                    self.seek_random_target()
-            else:
-                if player_dist < self.detect_radius:
-                    self.target = self.game.player.vehicle
+    def death(self, silent = False):
+        super().death()
+        if self.occupied:
+            self.unmount()
+        if 'dead' in self.game.animals_dict[self.kind]: # Keeps track of if special NPCs have been killed or not.
+            self.game.animals_dict[self.name.lower()]['dead'] = True
+        if 'corpse' in self.kind_dict.keys() and self.kind_dict['corpse']:
+            # Converts drop list to dictionary for corpses.
+            items_dic = {}
+            items = self.kind_dict['dropped items'].copy()
+            for item in items:
+                if item not in items_dic:
+                    items_dic[item] = 1
                 else:
-                    if self.target == self.game.player.vehicle:
-                        self.seek_random_target()
+                    items_dic[item] += 1
+            self.inventory = {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': items_dic, 'blocks': {}}
+            self.remove(self.game.mobs)
+            self.remove(self.game.animals)
+            self.remove(self.game.moving_targets)
+            self.add(self.game.corpses)
+            self.game.group.change_layer(self, self.game.map.items_layer) # Switches the corpse to items layer
+            self.image = pg.transform.rotate(self.game.corpse_images[self.kind_dict['corpse']], self.rot)
+            self.rect = self.image.get_rect()
+            self.rect.center = self.pos
         else:
-            if self.target not in self.game.npcs:
-                if player_dist < self.detect_radius * 2:
-                    self.target = self.game.player
-                else:
-                    if self.target == self.game.player:
-                        self.seek_random_target()
+            for i in self.kind_dict['dropped items']:
+                if i:
+                    for item_type in ITEM_TYPE_LIST:
+                        if i in eval(item_type.upper()).keys():
+                            Dropped_Item(self.game, self.pos, item_type, i, self.rot)
+            if self.kind_dict['name'] == 'sea turtle':
+                Breakable(self.game, self.pos, self.pos.x - 60, self.pos.y - 60, 120, 120, BREAKABLES['empty turtle shell'], 'empty turtle shell')
+            self.kill()
 
-        if self.aggression == 'awd':
-            self.offensive = True
-            for mob in self.game.moving_targets_on_screen: # Only looks at mobs that are on screen
-                if mob != self:
-                    if mob.aggression != 'awd' or mob in self.game.npcs_on_screen:
-                        dist = self.pos - mob.pos
-                        dist = dist.length()
-                        if 0 < dist < self.detect_radius:
-                            if last_dist > dist:  # Finds closest NPC
-                                if player_dist > dist: # Only targets player if you are closer than the others NPCs
-                                    self.target = mob
-                                    self.approach_vector = vec(1, 0)
-                                    last_dist = dist
-                                else:
-                                    if self.game.player.invisible:
-                                        self.target = mob
-                                    else:
-                                        self.target = self.game.player
+    def make_companion(self):
+        super().make_companion(self)
+        self.update_collide_list()
+        self.target = self.game.player
+        self.approach_vector = vec(1, 0)
+        self.aggression = 'awp'
+        self.default_detect_radius = self.detect_radius = self.game.screen_height
+        self.guard = True
+        #self.speed = self.walk_speed = 200
+        #self.run_speed = 480
 
-            if self.target == self.game.player or not self.target.living:
-                for item in self.game.dropped_items_on_screen:# animals target dead animals
-                    if 'dead' in item.name:
-                        dist = self.pos - item.pos
-                        dist = dist.length()
-                        if 0 < dist < self.detect_radius:
-                            if last_dist > dist:  # Finds closest item
-                                if player_dist > dist: # Only targets player if you are closer than the others NPCs
-                                    self.target = item
-                                    self.approach_vector = vec(1, 0)
-                                    last_dist = dist
-
-            if not self.target.living: # Kills corps after so many hits.
-                if self.target in self.game.animals_on_screen:
-                    self.target.kill()
-                    self.target = self.game.player
-                else:
-                    self.eating_corpse += 1
-                    if self.eating_corpse > 4:
-                        self.target.kill()
-                        self.target = self.game.player
-                        self.eating_coprse = 0
-                        self.stats['health']= self.stats['max health'] # heals animal
-            else:
-                self.eating_coprse = 0
-
-        if self.target not in self.game.random_targets:
-            self.detect_radius = self.default_detect_radius
+    def unfollow(self):
+        super().unfollow(self)
+        self.default_detect_radius = self.detect_radius = 250
+        #self.speed = self.walk_speed = 80
+        #self.run_speed = 100
 
     def animate(self, images):
         self.frame += 1
         if self.frame > len(images) - 1:
             self.frame = 0
 
-    def accelerate(self, speed):
-        try:
-            self.acc.scale_to_length(speed)
-        except:
-            self.acc = vec(0, 0)
-        self.acc += self.vel * -0.75 # Velocity times friction
-        self.vel += self.acc * self.game.dt
-        #self.vel = vec(speed, 0).rotate(-self.rot)
-        self.pos += self.vel * self.game.dt + 0.5 * self.acc * self.game.dt ** 2
+    def rotate_image(self, image_list):
+        self.image = pg.transform.rotate(image_list[self.frame], self.rot)
+        old_center = self.rect.center
+        self.rect = self.image.get_rect()
+        self.rect.center = self.pos
+        self.hit_rect.center = vec(old_center) #+ self.rect_offset.rotate(-self.rot)
+
+    def accelerate(self):
+        super().accelerate()
+        self.selected_image_list = self.walk_image_list
+        animate_speed = self.walk_animate_speed
+        if self.running:
+            self.selected_image_list = self.run_image_list
+            self.acceleration = self.run_acc
+            animate_speed = self.run_animate_speed
+        elif self.in_shallows:
+            self.acceleration = self.shallows_acc
+            animate_speed = self.walk_animate_speed - 50
+        elif self.in_grass:
+            self.acceleration = self.grass_acc
+            animate_speed = self.walk_animate_speed - 40
+        elif self.climbing:
+            self.acceleration = self.climb_acc
+            animate_speed = self.walk_animate_speed - 50
+        elif self.jumping:
+            self.acceleration = self.jump_acc
+        elif self.swimming:
+            self.selected_image_list = self.swim_image_list
+        self.acc = vec(self.acceleration, 0).rotate(-self.rot)
+        now = pg.time.get_ticks()
+        if now - self.last_move > animate_speed:  # animates animal
+            self.animate(self.selected_image_list)
+            self.last_move = now
+        if self.frame > len(self.selected_image_list) - 1:
+            self.frame = 0
 
     def get_keys(self):
         keys = pg.key.get_pressed()
@@ -3570,52 +3619,20 @@ class Animal(Character):
         self.frame = 0
         self.game.beg = perf_counter()  # resets dt
 
-    def make_companion(self):
-        self.game.companions.add(self)
-        self.update_collide_list()
-        self.target = self.game.player
-        self.approach_vector = vec(1, 0)
-        self.aggression = 'awp'
-        self.default_detect_radius = self.detect_radius = self.game.screen_height
-        self.guard = True
-        self.speed = self.walk_speed = 200
-        self.run_speed = 480
-
-    def unfollow(self):
-        self.remove(self.game.companions)
-        self.default_detect_radius = self.detect_radius = 250
-        self.guard = False
-        self.speed = self.walk_speed = 80
-        self.run_speed = 100
-
     def update_collide_list(self):
         self.collide_list = [self.game.walls_on_screen]
-
-    def cast_spell(self):
-        spell = choice(self.expanded_inventory['magic'])
-        self.game.effects_sounds[MAGIC[spell]['sound']].play()
-        if 'healing' in MAGIC[spell]:
-            Spell_Animation(self.game, spell, self.pos, self.rot, self.vel)
-            self.add_health(MAGIC[spell]['healing'])
-        if 'fireballs' in MAGIC[spell]:
-            balls = MAGIC[spell]['fireballs']
-            damage = MAGIC[spell]['damage']
-            for i in range(0, balls):
-                Fireball(self, self.game, self.pos, self.rot + (36 * i), damage, 30, 1300, 250, self.vel, 'fire', True, self.in_flying_vehicle)
 
     def update(self):
         if self.living:
             if not self.occupied:
-                now0 = pg.time.get_ticks()
-                if now0 - self.last_target_seek > 4000:
-                    self.seek_mobs()
-                    self.last_target_seek = now0
-                target_dist = self.target.pos - self.pos
-
-                if self.swimming:
-                    self.selected_image_list = self.swim_image_list
-                else:
-                    self.selected_image_list = self.run_image_list
+                self.ai.update()
+                self.move()
+                self.rotate_image(self.selected_image_list)
+                #now0 = pg.time.get_ticks()
+                #if now0 - self.last_target_seek > 4000:
+                #    self.seek_mobs()
+                #    self.last_target_seek = now0
+                #target_dist = self.target.pos - self.pos
 
                 # This part makes the animal avoid walls
                 #if self.climbing:
@@ -3634,6 +3651,7 @@ class Animal(Character):
                 #    self.avoid_mobs()
                 #    self.accelerate(self.walk_speed)
 
+                """
                 if (target_dist.length_squared() < self.detect_radius**2) and (self.target not in self.game.random_targets):
                     #if random() < 0.002:
                     #    choice(self.game.zombie_moan_sounds).play()
@@ -3645,6 +3663,7 @@ class Animal(Character):
                             if dify < 300:
                                 magic_chance = randrange(0, 10)
                                 if magic_chance == 1:
+                                    self.equipped['magic'] = choice(self.expanded_inventory['magic'])
                                     self.cast_spell()
 
                     now = pg.time.get_ticks()
@@ -3659,26 +3678,10 @@ class Animal(Character):
                     self.rotate_image(self.selected_image_list)
                     self.acc = vec(1, 0).rotate(-self.rot)
                     self.avoid_mobs()
-                    self.accelerate(self.run_speed)
-
-                else:
-                    if self.swimming:
-                        self.selected_image_list = self.swim_image_list
-                    else:
-                        self.selected_image_list = self.walk_image_list
-                    now = pg.time.get_ticks()
-                    if now - self.last_move > self.walk_animate_speed:  # animates animal
-                        self.animate(self.selected_image_list)
-                        self.last_move = now
-                        if random() < 0.25:
-                            self.rotate_direction = choice([-1, 0, 1])
-                        self.rot += (self.rot_speed * self.rotate_direction) % 360
-                    if self.frame > len(self.selected_image_list) - 1:
-                        self.frame = 0
-                    self.rotate_image(self.selected_image_list)
-                    self.acc = vec(1, 0).rotate(-self.rot)
-                    self.avoid_mobs()
-                    self.accelerate(self.walk_speed)
+                    self.accelerate(self.run_speed)"""
+                #self.acc = vec(1, 0).rotate(-self.rot)
+                #self.avoid_mobs()
+                #self.accelerate(self.walk_speed)
 
             else: # This is what the animal does if you are riding it
                 # Increases animal friction when not accelerating
@@ -3706,7 +3709,7 @@ class Animal(Character):
                         animate_speed = self.walk_animate_speed
                         self.selected_image_list = self.walk_image_list
 
-                    if now - self.last_move > animate_speed:  # animates animal
+                    if now - self.last_move > walk_animate_speed:  # animates animal
                         self.animate(self.selected_image_list)
                         self.last_move = now
                     if self.frame > len(self.selected_image_list) - 1:
@@ -3716,101 +3719,14 @@ class Animal(Character):
                 self.rot = self.driver.rot
                 self.pos = self.driver.pos
                 self.rotate_image(self.selected_image_list)
-
                 self.get_keys()  # this needs to be last in this method to avoid executing the rest of the update section if you exit
             if not self.flying:
                 collide_with_tile_walls(self)
                 collide_with_moving_targets(self)
         set_tile_props(self)
 
-    def check_empty(self):
+    def check_empty(self): # Gets rid of empty carcases
         if len(self.inventory['items']) == 0 or (self.inventory['items'][0] == None and len(self.inventory['items']) == 1):
-            self.kill()
-
-    def rotate_image(self, image_list):
-        self.image = pg.transform.rotate(image_list[self.frame], self.rot)
-        old_center = self.rect.center
-        self.rect = self.image.get_rect()
-        self.rect.center = self.pos
-        self.hit_rect.center = vec(old_center) #+ self.rect_offset.rotate(-self.rot)
-
-    def add_health(self, amount):
-        self.stats['health']+= amount
-        if self.stats['health'] > self.stats['max health']:
-            self.stats['health'] = self.stats['max health']
-        if self.stats['health'] <= 0:
-            self.living = False
-            self.death()
-        if self.game.hud_health_stats == self.stats:
-            self.game.hud_health = self.stats['health'] / self.stats['max health']
-
-    def gets_hit(self, damage, knockback = 0, rot = 0, dam_rate = DAMAGE_RATE):
-        now = pg.time.get_ticks()
-        if now - self.last_hit > dam_rate:
-            self.last_hit = now
-            self.add_health(-damage)
-            self.pos += vec(knockback, 0).rotate(-rot)
-            if pg.sprite.spritecollide(self, self.game.barriers, False):  # Prevents sprite from being knocked through a wall.
-                self.pos -= vec(knockback, 0).rotate(-rot)
-            self.rect.center = self.hit_rect.center = self.pos
-            if self.game.hud_health_stats == self.stats:
-                self.game.hud_health = self.stats['health'] / self.stats['max health']
-            if damage > 0:
-                if self.aggression == 'fwp':
-                    self.approach_vector = vec(-1, 0)
-                if self.aggression == 'awp':
-                    self.approach_vector = vec(1, 0)
-                if self.aggression == 'fup':
-                    self.approach_vector = vec(1, 0)
-                self.run_speed = self.kind_dict['run speed'] * 1.5
-
-    def does_melee_damage(self, mob):
-        now = pg.time.get_ticks()
-        if now - self.last_damage > self.melee_rate:
-            mob.gets_hit(self.damage, self.knockback, self.rot)
-            self.last_damage = now
-            mob.target = self
-            self.melee_rate = randrange(800, 2000)
-
-    def death(self, silent = False):
-        if self in self.game.companions:
-            self.unfollow()
-        if self.occupied:
-            self.unmount()
-        if not silent:
-            choice(self.game.zombie_hit_sounds).play()
-        self.game.player.stats['kills'] += 1
-        if 'death action' in self.kind_dict.keys():
-            if self.kind_dict['death action'] == 'explode':
-                Explosion(self.game, self, 0.5, self.damage * 4)
-
-        if self.kind_dict['corpse']:
-            self.living = False
-            # Converts drop list to dictionary for corpses.
-            items_dic = {}
-            items = self.kind_dict['dropped items'].copy()
-            for item in items:
-                if item not in items_dic:
-                    items_dic[item] = 1
-                else:
-                    items_dic[item] += 1
-            self.inventory = {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': items_dic, 'blocks': {}}
-            self.remove(self.game.mobs)
-            self.remove(self.game.animals)
-            self.remove(self.game.moving_targets)
-            self.add(self.game.corpses)
-            self.game.group.change_layer(self, self.game.map.items_layer) # Switches the corpse to items layer
-            self.image = pg.transform.rotate(self.game.corpse_images[self.kind_dict['corpse']], self.rot)
-            self.rect = self.image.get_rect()
-            self.rect.center = self.pos
-        else:
-            for i in self.kind_dict['dropped items']:
-                if i:
-                    for item_type in ITEM_TYPE_LIST:
-                        if i in eval(item_type.upper()).keys():
-                            Dropped_Item(self.game, self.pos, item_type, i, self.rot)
-            if self.kind_dict['name'] == 'sea turtle':
-                Breakable(self.game, self.pos, self.pos.x - 60, self.pos.y - 60, 120, 120, BREAKABLES['empty turtle shell'], 'empty turtle shell')
             self.kill()
 
 # Used for arrows shown in loaded bows (not ones being shot)

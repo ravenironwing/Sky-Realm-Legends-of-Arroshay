@@ -43,7 +43,7 @@ PEOPLE['player'] = {'name': 'Adventurer', 'protected': True, 'hit rect': PLAYER_
               'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 1, 'agility': 1, 'armor': 0,
               'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0,
               'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0,
-              'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'acceleration': 28, 'level': 0}}
+              'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'acceleration': 38, 'level': 0}}
 
 PEOPLE['generic'] = {'name': 'Villager', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'fwp',
     'gender': 'female', 'race': 'osidine', 'hair': [], 'magic': [],
@@ -67,7 +67,7 @@ PEOPLE['villager'] = {'name': 'Villager', 'protected': True, 'hit rect': PLAYER_
             'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0,'acceleration': 5, 'level': 0}}
 VILLAGER_TOPS = CASUAL_TOPS_LIST
 VILLAGER_BOTTOMS = CASUAL_BOTTOMS_LIST
-PEOPLE['osidine guard'] = {'name': 'Guard', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'awp',
+PEOPLE['osidine guard'] = {'name': 'Osidine Guard', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'awp',
     'gender': 'random', 'race': 'osidine', 'hair': ['random'], 'magic': [],
     'colors':  {'hair': 'random COLOR_PALETTE', 'skin': 'random OSIDINE_SKIN_TONES'},
     'dialogue': 'random GUARD_DLG',
@@ -92,7 +92,7 @@ ANIMALS['rabbit'] = {'name': 'Rabbit', 'protected': False, 'hit rect': SMALL_HIT
            'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 2,'agility': 1, 'armor': 0,
            'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0,'marksmanship accuracy': 0, 'melee': 0,
            'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0,'magica regen': 0,'looting': 0,
-           'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0,'acceleration': 10, 'level': 0}}
+           'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0,'acceleration': 15, 'level': 0}}
 
 #Animation patterns:
 BASIC3 = [1, 2, 3, 2]

@@ -1,5 +1,9 @@
-PALETE_IMAGES = {'osidine': 1, 'shaktele': 1, 'elf': 1, 'immortui': 3, 'miewdra': 0, 'skeleton': 1, 'mechanima': 6, 'lacertolian': 2, 'blackwraith': 5, 'whitewraith': 4}
-HAIR_PALETE_IMAGES = {'osidine': 0, 'shaktele': 0, 'elf': 0, 'immortui': 0, 'miewdra': 0, 'skeleton': 0, 'mechanima': 7, 'lacertolian': 0, 'blackwraith': 0, 'whitewraith': 0}
+def Merge(dict1, dict2):
+    res = {**dict1, **dict2}
+    return res
+
+PALETE_IMAGES = {'osidine': 1, 'shaktele': 1, 'elf': 1, 'immortui': 3, 'miewdra': 0, 'skeleton': 8, 'mechanima': 6, 'lacertolian': 2, 'wraith': 5, 'spirit': 4}
+HAIR_PALETE_IMAGES = {'osidine': 0, 'shaktele': 0, 'elf': 0, 'immortui': 0, 'miewdra': 0, 'skeleton': 0, 'mechanima': 7, 'lacertolian': 0, 'wraith': 5, 'spirit': 4}
 
 # define some colors (R, G, B)
 WHITE = (255, 255, 255)
@@ -14,57 +18,105 @@ BROWN = (106, 55, 5)
 CYAN = (0, 255, 255)
 TRANSPARENT = (255, 0, 255)
 SHADOW = (0, 0, 0, 150)
-DEFAULT_HAIR_COLOR = (138,54,15)
-DEFAULT_SKIN_COLOR = (255, 255, 255)
 LIGHT_BLUE = (148, 242, 255)
 LIGHT_RED = (255, 180, 180)
+DULL_RED = (245, 96, 66)
+SKY_BLUE = (138, 232, 255)
+BABY_BLUE = (66, 114, 245)
+DARK_BLUE = (14, 64, 87)
+VIOLET = (127, 0, 255)
+FUCHSIA = (255, 0, 255)
+PINK = (250, 105, 216)
+DARK_GREEN = (21, 66, 24)
+GREY = (128, 128, 128)
+DARK_BROWN= (94, 58, 21)
+TAN = (217, 171, 124)
+GOLD = (255, 233, 87)
+DARK_ORANGE = (156, 79, 0)
+ORANGE = (245, 156, 66)
+MAGENTA = (255, 0, 255)
+
+CRYSTAL_COLORS = {
+    'red': (245, 96, 66),
+    'blue': (66, 114, 245),
+    'yellow': (245, 224, 66),
+    'pink': (250, 105, 216),
+    'black': (60, 60, 60),
+    'white': (255, 255, 255),
+    'green': (92, 191, 78)}
+
+FLOWER_COLORS = {
+    'red': (245, 96, 66),
+    'blue': (66, 114, 245),
+    'yellow': (245, 224, 66),
+    'pink': (250, 105, 216),
+    'black': (60, 60, 60),
+    'white': (255, 255, 255),
+    'sky blue': (138, 232, 255),
+    'orange': (245, 156, 66),
+    'fuchsia': (255, 0, 255)}
 
 CLOTHING_COLORS = {
     'red': (245, 96, 66),
     'sky blue': (138, 232, 255),
-    'blue': (66, 114, 245),
     'dark blue': (14, 64, 87),
+    'light blue': (148, 242, 255),
+    'blue': (66, 114, 245),
     'violet': (127, 0, 255),
     'yellow': (245, 224, 66),
     'fuchsia': (255, 0, 255),
     'pink': (250, 105, 216),
     'black': (60, 60, 60),
     'white': (255, 255, 255),
-    'green': (92, 191, 78),
     'dark green': (21, 66, 24),
+    'green': (92, 191, 78),
     'grey':  (128, 128, 128),
-    'brown': (168, 120, 52),
     'dark brown': (94, 58, 21),
+    'brown': (168, 120, 52),
     'tan': (217, 171, 124),
     'gold': (255, 233, 87),
     'dark orange': (156, 79, 0),
     'orange': (245, 156, 66)}
 
+BOOT_COLORS = {
+    'dark brown': (94, 58, 21),
+    'tan': (217, 171, 124),
+    'dark green': (21, 66, 24),
+    'brown': (168, 120, 52),
+    'black': (60, 60, 60)}
+
+ALL_ITEM_COLORS = Merge(Merge(Merge(CLOTHING_COLORS, BOOT_COLORS), FLOWER_COLORS), CRYSTAL_COLORS)
+
+"""
 ARMOR_COLORS = {
     'iron': (104, 105, 105),
     'steel': (205, 207, 208),
     'brass': (71, 65, 26),
     'bronze': (80, 50, 20),
-    'golden': (197, 179, 88),
+    'gold': (197, 179, 88),
     'aluminum': (177, 178, 180),
     'tin': (211, 212, 213),
     'copper': (72, 45, 20),
     'lead': (68, 79, 83),
     'silver': (170, 168, 173),
     'ebony': (40, 44, 52)
-}
+}"""
 
-MATERIALS = {}
-MATERIALS['steel'] = {'color': (225, 227, 228), 'hardness': 1, 'weight': 1, 'value': 1.2}
-MATERIALS['iron'] = {'color': (104, 105, 105), 'hardness': 0.9, 'weight': 1.2, 'value': 1}
-MATERIALS['bronze'] = {'color': (168, 163, 59), 'hardness': 0.7, 'weight': 1.5, 'value': 0.9}
-MATERIALS['brass'] = {'color': (197, 179, 88), 'hardness': 0.6, 'weight': 1.5, 'value': 0.8}
+MATERIALS = {} # Make sure to order from longest words to shortest because of things like tin being in platinum or steel being in wraith steel.
+MATERIALS['wraith steel'] = {'color': (35, 37, 38), 'hardness': 1.2, 'weight': 0.1, 'value': 2.5}
+MATERIALS['platinum'] = {'color': (229, 228, 246), 'hardness': 1.8, 'weight': 3.8, 'value': 5}
+MATERIALS['titanium'] = {'color': (135, 134, 129), 'hardness': 1.4, 'weight': 0.3, 'value': 2.1}
 MATERIALS['aluminum'] = {'color': (197, 198, 200), 'hardness': 0.5, 'weight': 0.4, 'value': 0.4}
 MATERIALS['copper'] = {'color': (142, 115, 90), 'hardness': 0.3, 'weight': 1.7, 'value': 0.5}
 MATERIALS['silver'] = {'color': (180, 178, 183), 'hardness': 0.2, 'weight': 2.1, 'value': 2}
-MATERIALS['golden'] = {'color': (255, 233, 87), 'hardness': 0.1, 'weight': 4, 'value': 4}
-MATERIALS['tin'] = {'color': (211, 212, 213), 'hardness': 0.1, 'weight': 1, 'value': 0.7}
+MATERIALS['bronze'] = {'color': (168, 163, 59), 'hardness': 0.7, 'weight': 1.5, 'value': 0.9}
+MATERIALS['brass'] = {'color': (197, 179, 88), 'hardness': 0.6, 'weight': 1.5, 'value': 0.8}
+MATERIALS['steel'] = {'color': (225, 227, 228), 'hardness': 1, 'weight': 1, 'value': 1.2}
+MATERIALS['iron'] = {'color': (104, 105, 105), 'hardness': 0.9, 'weight': 1.2, 'value': 1}
+MATERIALS['gold'] = {'color': (255, 233, 87), 'hardness': 0.1, 'weight': 4, 'value': 4}
 MATERIALS['lead'] = {'color': (78, 89, 93), 'hardness': 0.1, 'weight': 2.4, 'value': 0.1}
+MATERIALS['tin'] = {'color': (211, 212, 213), 'hardness': 0.1, 'weight': 1, 'value': 0.7}
+
 
 COLOR_PALETTE = MIEWDRA_SKIN_TONES = [
 (249, 255, 241),
@@ -553,7 +605,7 @@ LACERTOLIAN_SKIN_TONES = MECHANIMA_SKIN_TONES = [
 (194, 72, 98)
 ]
 
-BLACKWRAITH_SKIN_TONES=[
+WRAITH_SKIN_TONES=[
 (17, 32, 53),
 (12, 30, 40),
 (11, 25, 28),
@@ -563,7 +615,7 @@ BLACKWRAITH_SKIN_TONES=[
 (0, 0, 0)
 ]
 
-WHITEWRAITH_SKIN_TONES=[
+SPIRIT_SKIN_TONES=[
 (249, 255, 241),
 (251, 250, 220),
 (251, 252, 195),
@@ -599,3 +651,18 @@ SKELETON_SKIN_TONES = [
 (226, 202, 178),
 (223, 191, 166)
 ]
+
+DEFAULT_RACE_COLORS = {
+    'osidine': {'hair': (138,54,15), 'skin': OSIDINE_SKIN_TONES[3]},
+    'shaktele': {'hair': (108,24,5), 'skin': SHAKTELE_SKIN_TONES[20]},
+    'lacertolian': {'hair': (138, 54, 15), 'skin': LACERTOLIAN_SKIN_TONES[3]},
+    'miewdra': {'hair': (108, 24, 5), 'skin': MIEWDRA_SKIN_TONES[2]},
+    'immortui': {'hair': (138, 54, 15), 'skin': IMMORTUI_SKIN_TONES[25]},
+    'mechanima': {'hair': (240, 240, 255), 'skin': MECHANIMA_SKIN_TONES[11]},
+    'skeleton': {'hair': (138, 54, 15), 'skin': SKELETON_SKIN_TONES[0]},
+    'wraith': {'hair': WRAITH_SKIN_TONES[0], 'skin': WRAITH_SKIN_TONES[0]},
+    'spirit': {'hair': SPIRIT_SKIN_TONES[0], 'skin': SPIRIT_SKIN_TONES[0]},
+    'elf': {'hair': (108, 24, 5), 'skin': ELF_SKIN_TONES[1]}}
+
+DEFAULT_HAIR_COLOR = (138,54,15)
+DEFAULT_SKIN_COLOR = OSIDINE_SKIN_TONES[0]

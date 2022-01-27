@@ -1,14 +1,15 @@
 import pygame as pg
 import os
 from os import path
-from weapons import *
-from armor import *
+from hair import *
 from magic import *
 from interactables import *
-from items import *
+from new_items import *
 from chests import *
 from race_info import *
 from color_palettes import *
+#from weapons import *
+#from armor import *
 
 vec = pg.math.Vector2
 vec3 = pg.math.Vector3
@@ -26,10 +27,10 @@ map_folder = path.join(game_folder, 'maps')
 male_mech_suit_parts_folder = female_mech_suit_parts_folder = path.join(img_folder, 'mech_suit')
 male_golem_parts_folder = female_golem_parts_folder = path.join(img_folder, 'golem_parts')
 male_icegolem_parts_folder = female_icegolem_parts_folder = path.join(img_folder, 'icegolem_parts')
-male_blackwraith_parts_folder = female_blackwraith_parts_folder = path.join(img_folder, 'blackwraith_parts')
-male_whitewraith_parts_folder = female_whitewraith_parts_folder = path.join(img_folder, 'whitewraith_parts')
-male_blackwraithdragon_parts_folder = female_blackwraithdragon_parts_folder = path.join(img_folder, 'blackwraithdragon_parts')
-male_whitewraithdragon_parts_folder = female_whitewraithdragon_parts_folder = path.join(img_folder, 'whitewraithdragon_parts')
+male_wraith_parts_folder = female_wraith_parts_folder = path.join(img_folder, 'wraith_parts')
+male_spirit_parts_folder = female_spirit_parts_folder = path.join(img_folder, 'spirit_parts')
+male_wraithdragon_parts_folder = female_wraithdragon_parts_folder = path.join(img_folder, 'wraithdragon_parts')
+male_spiritdragon_parts_folder = female_spiritdragon_parts_folder = path.join(img_folder, 'spiritdragon_parts')
 male_skeleton_parts_folder = female_skeleton_parts_folder = path.join(img_folder, 'skeleton_parts')
 male_skeletondragon_parts_folder = female_skeletondragon_parts_folder = path.join(img_folder, 'skeletondragon_parts')
 female_shaktele_parts_folder = female_osidine_parts_folder = path.join(img_folder, 'female_osidine_parts')
@@ -63,7 +64,8 @@ female_demon_parts_folder = path.join(img_folder, 'female_demon_parts')
 male_goblin_parts_folder = path.join(img_folder, 'male_goblin_parts')
 female_goblin_parts_folder = path.join(img_folder, 'female_goblin_parts')
 animals_folder = path.join(img_folder, 'animals')
-items_folder = path.join(img_folder, 'items')
+book_animation_folder = path.join(img_folder, 'book_animation')
+new_items_folder = path.join(img_folder, 'new_items')
 doors_folder = path.join(img_folder, 'doors')
 door_break_folder = path.join(img_folder, 'door_break_animation')
 bullets_folder = path.join(img_folder, 'bullets')
@@ -74,13 +76,14 @@ shock_folder = path.join(img_folder, 'shock_animation')
 electric_door_folder = path.join(img_folder, 'electric_door_animation')
 fireball_folder = path.join(img_folder, 'fireball')
 explosion_folder = path.join(img_folder, 'explosion')
-weapons_folder = path.join(img_folder, 'weapons')
-hats_folder = path.join(img_folder, 'hats')
+#items_folder = path.join(img_folder, 'items')
+#weapons_folder = path.join(img_folder, 'weapons')
+#hats_folder = path.join(img_folder, 'hats')
+#tops_folder = path.join(img_folder, 'tops')
+#bottoms_folder = path.join(img_folder, 'bottoms')
+#shoes_folder = path.join(img_folder, 'shoes')
+#gloves_folder = path.join(img_folder, 'gloves')
 hair_folder = path.join(img_folder, 'hair')
-tops_folder = path.join(img_folder, 'tops')
-bottoms_folder = path.join(img_folder, 'bottoms')
-shoes_folder = path.join(img_folder, 'shoes')
-gloves_folder = path.join(img_folder, 'gloves')
 magic_folder = path.join(img_folder, 'magic')
 gender_folder = path.join(img_folder, 'gender')
 race_folder = path.join(img_folder, 'race')
@@ -99,9 +102,14 @@ MENU_FONT = path.join(fonts_folder, 'LinBiolinum_Rah.ttf')
 WRITING_FONT = path.join(fonts_folder, 'DancingScript-Regular.ttf')
 KAWTHI_FONT = path.join(fonts_folder, 'Kawthi.ttf')
 
-ITEM_TYPE_LIST = ['weapons', 'tops', 'bottoms', 'hats', 'shoes', 'gloves', 'items', 'blocks']
-EQUIP_DRAW_LIST = ['shoes', 'shoes', 'bottoms', 'gloves', 'gloves', None, None, 'tops']
-EQUIP_IMG_LIST = ['shoe', 'shoe', 'bottom', 'glove', 'glove', None, None, 'top']
+# Menu Related stuff
+ICON_SIZE = 71
+HUD_ICON_SIZE = 40
+DOUBLE_CLICK_TIME = 200
+
+#ITEM_TYPE_LIST = ['weapons', 'tops', 'bottoms', 'hats', 'shoes', 'gloves', 'items', 'blocks']
+EQUIP_DRAW_LIST = ['feet', 'feet', 'bottom', 'gloves', 'gloves', None, None, 'torso']
+#EQUIP_IMG_LIST = ['shoe', 'shoe', 'bottom', 'glove', 'glove', None, None, 'top']
 
 #print(len([name for name in os.listdir(body_parts_folder) if os.path.isfile(os.path.join(body_parts_folder, name))]))
 
@@ -118,6 +126,7 @@ MODES = pg.display.list_modes()
 #if (WIDTH < 960) and (infoObject.current_w > 960):
 WIDTH = 960
 HEIGHT = 540
+SOUND_SOURCE_DISTANCE = int(WIDTH/2) + 100
 #elif WIDTH > 1920:
 #    WIDTH = 1920
 #    HEIGHT = 1080
@@ -146,7 +155,7 @@ TILESIZE = 32
 START_WORLD = 'worldmap.tmx'
 UPGRADE_FACTOR = 1.2 # This number determines how much item value increases when upgrading armor and weapons. The higher the number the lower the value.
 
-KEY_MAP = {'jump': pg.K_SPACE, 'sprint': pg.K_LSHIFT, 'forward': pg.K_w, 'back': pg.K_s, 'rot left': pg.K_a, 'rot right': pg.K_d, 'strafe left': pg.K_z, 'strafe right': pg.K_c, 'dismount': pg.K_x, 'cast': pg.K_q, 'interact': pg.K_e, 'reload': pg.K_r, 'fire': pg.K_f, 'climb': pg.K_v, 'use': pg.K_b, 'lamp': pg.K_n, 'transform': pg.K_t, 'grenade': pg.K_g, 'place': pg.K_y, 'overmap': pg.K_o, 'minimap': pg.K_m, 'pause': pg.K_p, 'skill': pg.K_k, 'quest': pg.K_j, 'craft': pg.K_l, 'up': pg.K_u, 'hitbox': pg.K_h, 'inventory': pg.K_i, 'melee': pg.K_TAB, 'block': pg.K_LALT}
+KEY_MAP = {'jump': pg.K_SPACE, 'sprint': pg.K_LSHIFT, 'forward': pg.K_w, 'back': pg.K_s, 'rot left': pg.K_a, 'rot right': pg.K_d, 'strafe left': pg.K_z, 'strafe right': pg.K_c, 'dismount': pg.K_x, 'cast': pg.K_q, 'interact': pg.K_e, 'reload': pg.K_r, 'fire': pg.K_f, 'climb': pg.K_v, 'use': pg.K_b, 'lamp': pg.K_n, 'transform': pg.K_t, 'grenade': pg.K_g, 'place': pg.K_y, 'minimap': pg.K_m, 'pause': pg.K_p, 'up': pg.K_u, 'hitbox': pg.K_h, 'inventory': pg.K_i, 'melee': pg.K_TAB, 'block': pg.K_LALT}
 
 # Day/Night
 DAY_LENGTH = 15 * 60 * 1000
@@ -155,7 +164,12 @@ DAY_PERIOD = DAY_LENGTH + NIGHT_LENGTH
 NIGHTFALL_SPEED = 100 # The higher the slower. In ms.
 GAME_HOUR = DAY_PERIOD/24
 
-WORK_STATION_LIST = ['work bench', 'anvil', 'enchanter', 'smelter', 'tanning rack', 'grinder', 'cooking fire', 'alchemy lab']
+
+WORKSTATIONS = ['Crafting', 'Work Bench', 'Anvil', 'Enchanter', 'Smelter', 'Tanning Rack', 'Grinder', 'Cooking Fire', 'Alchemy Lab']
+WORK_STATION_LIST = []
+for item in WORKSTATIONS:
+    WORK_STATION_LIST.append(item.lower())
+WORK_STATION_DICT = {'crafting': 'Crafting', 'work bench': 'Work Bench', 'anvil': 'Anvil', 'enchanter': 'Enchanter', 'smelter': 'Smelter', 'tanning rack': 'Tanning Rack', 'grinder': 'Grinder', 'cooking fire': 'Cooking Fire', 'alchemy Lab': 'Alchemy Lab', 'looting': 'Looting'}
 
 # Player settings
 #PLAYER_HEALTH = 100
@@ -305,6 +319,26 @@ for i in range(0, number_of_files):
     filename = 'door{}.png'.format(i)
     DOOR_BREAK_IMAGES.append(filename)
 
+HAIR_IMAGES = {} # Loads all item filepaths
+for name in os.listdir(hair_folder):
+    if os.path.isfile(os.path.join(hair_folder, name)):
+        item_name = name.replace('.png', '')
+        HAIR_IMAGES[item_name] = name
+
+RACE_IMAGES = {} # Loads all item filepaths
+for name in os.listdir(race_folder):
+    if os.path.isfile(os.path.join(race_folder, name)):
+        item_name = name.replace('.png', '')
+        RACE_IMAGES[item_name] = name
+
+NEW_ITEM_IMAGES = {} # Loads all item filepaths
+for name in os.listdir(new_items_folder):
+    if os.path.isfile(os.path.join(new_items_folder, name)):
+        item_name = name.replace('.png', '')
+        NEW_ITEM_IMAGES[item_name] = name
+
+
+"""
 ITEM_IMAGES = []
 number_of_files = len([name for name in os.listdir(items_folder) if os.path.isfile(os.path.join(items_folder, name))])
 for i in range(0, number_of_files):
@@ -322,12 +356,6 @@ number_of_files = len([name for name in os.listdir(hats_folder) if os.path.isfil
 for i in range(0, number_of_files):
     filename = 'hat{}.png'.format(i)
     HAT_IMAGES.append(filename)
-
-HAIR_IMAGES = []
-number_of_files = len([name for name in os.listdir(hair_folder) if os.path.isfile(os.path.join(hair_folder, name))])
-for i in range(0, number_of_files):
-    filename = 'hair{}.png'.format(i)
-    HAIR_IMAGES.append(filename)
 
 TOP_IMAGES = []
 number_of_files = len([name for name in os.listdir(tops_folder) if os.path.isfile(os.path.join(tops_folder, name))])
@@ -351,13 +379,13 @@ GLOVE_IMAGES = []
 number_of_files = len([name for name in os.listdir(gloves_folder) if os.path.isfile(os.path.join(gloves_folder, name))])
 for i in range(0, number_of_files):
     filename = 'glove{}.png'.format(i)
-    GLOVE_IMAGES.append(filename)
+    GLOVE_IMAGES.append(filename)"""
 
-MAGIC_IMAGES = []
-number_of_files = len([name for name in os.listdir(magic_folder) if os.path.isfile(os.path.join(magic_folder, name))])
-for i in range(0, number_of_files):
-    filename = 'magic{}.png'.format(i)
-    MAGIC_IMAGES.append(filename)
+MAGIC_IMAGES = {} # Loads all magic filepaths
+for name in os.listdir(magic_folder):
+    if os.path.isfile(os.path.join(magic_folder, name)):
+        item_name = name.replace('.png', '')
+        MAGIC_IMAGES[item_name] = name
 
 ENCHANTMENT_IMAGES = []
 number_of_files = len([name for name in os.listdir(enchantments_folder) if os.path.isfile(os.path.join(enchantments_folder, name))])
@@ -370,12 +398,6 @@ number_of_files = len([name for name in os.listdir(gender_folder) if os.path.isf
 for i in range(0, number_of_files):
     filename = 'gender{}.png'.format(i)
     GENDER_IMAGES.append(filename)
-
-RACE_IMAGES = []
-number_of_files = len([name for name in os.listdir(race_folder) if os.path.isfile(os.path.join(race_folder, name))])
-for i in range(0, number_of_files):
-    filename = 'race{}.png'.format(i)
-    RACE_IMAGES.append(filename)
 
 CORPSE_IMAGES = []
 number_of_files = len([name for name in os.listdir(corpse_folder) if os.path.isfile(os.path.join(corpse_folder, name))])
@@ -452,15 +474,6 @@ LIGHTS_LIST = []
 for x in ITEMS:
     if 'brightness' in ITEMS[x]:
         LIGHTS_LIST.append(x)
-for x in WEAPONS:
-    if 'brightness' in WEAPONS[x]:
-        LIGHTS_LIST.append(x)
-
-NON_GUN_LIGHTS = []
-for x in WEAPONS:
-    if not WEAPONS[x]['gun']:
-        if 'brightness' in WEAPONS[x]:
-            NON_GUN_LIGHTS.append(x)
 
 # Layers
 BASE_LAYER = 0
@@ -503,8 +516,8 @@ ZOMBIE_MOAN_SOUNDS = ['brains2.ogg', 'brains3.ogg', 'zombie-roar-1.ogg', 'zombie
                       'zombie-roar-3.ogg', 'zombie-roar-5.ogg', 'zombie-roar-6.ogg', 'zombie-roar-7.ogg']
 ZOMBIE_HIT_SOUNDS = ['splat-15.ogg']
 WRAITH_SOUNDS = ['wraith1.ogg', 'wraith2.ogg', 'wraith3.ogg', 'wraith4.ogg']
-EFFECTS_SOUNDS = {'tree fall': 'tree_fall.ogg', 'chopping wood': 'chopping_wood.ogg', 'eat': 'eat.ogg', 'door close': 'door_close.ogg', 'door open': 'door_open.ogg', 'charge': 'charge.ogg', 'bow reload': 'bow reload.ogg', 'level_start': 'Day_1_v2_mod.ogg', 'click': 'click.ogg', 'fanfare': 'fanfare.ogg', 'rustle': 'rustle.ogg', 'pickaxe': 'pickaxe.ogg', 'rocks': 'rocks.ogg', 'rock_hit': 'rock_hit.ogg', 'fart': 'fart.ogg', 'pee': 'pee.ogg', 'toilet': 'toilet.ogg',
-                  'health_up': 'health_pack.ogg', 'casting healing': 'casting_healing.ogg', 'page turn': 'page_turn.ogg',
+EFFECTS_SOUNDS = {'tree fall': 'tree_fall.ogg', 'chopping wood': 'chopping_wood.ogg', 'eat': 'eat.ogg', 'door close': 'door_close.ogg', 'door open': 'door_open.ogg', 'charge': 'charge.ogg', 'bow reload': 'bow reload.ogg', 'level_start': 'Day_1_v2_mod.ogg', 'click': 'click.ogg', 'clickup': 'clickup.ogg', 'fanfare': 'fanfare.ogg', 'rustle': 'rustle.ogg', 'pickaxe': 'pickaxe.ogg', 'rocks': 'rocks.ogg', 'rock_hit': 'rock_hit.ogg', 'fart': 'fart.ogg', 'pee': 'pee.ogg', 'toilet': 'toilet.ogg',
+                  'health_up': 'health_pack.ogg', 'casting healing': 'casting_healing.ogg', 'page turn': 'page_turn.ogg', 'close book': 'close_book.ogg',
                   'gun_pickup': 'gun_pickup.ogg', 'jump': 'jump.ogg', 'tank': 'tank.ogg', 'tank engine': 'tank_engine.ogg','splash': 'splash.ogg', 'grass': 'grass.ogg', 'swim': 'swim.ogg', 'shallows': 'shallows.ogg', 'climb': 'climb.ogg', 'unlock': 'unlock.ogg', 'lock click': 'lock_click.ogg', 'fire blast': 'fire_blast.ogg', 'knock':
                   'knock.ogg', 'metal hit': 'metal_hit.ogg', 'anvil': 'anvil.ogg', 'scrape': 'scrape.ogg', 'grindstone': 'grindstone.ogg', 'hammering': 'hammering.ogg', 'snore': 'snore.ogg', 'cashregister': 'cashregister.ogg', 'alchemy': 'alchemy.ogg', 'enchant': 'enchant.ogg', 'fire crackle': 'fire_crackling.ogg'}
 
@@ -521,71 +534,68 @@ GENDER['male'] = {'armor': 1,
 GENDER['other'] = {'armor': 1,
                               'image': 2}
 RACE = {}
-RACE['osidine'] = {'armor': 1, 'image': 0, 'start map': (1, 2), 'start pos': (570, 655),
-                   'start_stats': {'health': 100, 'max health': 100, 'stamina': 100, 'max stamina': 100, 'magica': 100, 'max magica': 100, 'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 2, 'agility': 1.5, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0, 'casting': 0, 'lock picking': 0, 'smithing': 0},
-                   'description': 'The Osidines are descendants of the ancients who fought along side the dragons of Zhara for the liberation of Arroshay during the great war. They specialize in the construction of armor and melee weapons.'}
-RACE['shaktele'] = {'armor': 1, 'image': 9, 'start map': (3, 1), 'start pos': (500, 500),
-                    'start_stats': {'health': 100, 'max health': 100, 'stamina': 100, 'max stamina': 100, 'magica': 100, 'max magica': 100, 'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 2.2, 'agility': 1, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0, 'casting': 0, 'lock picking': 0, 'smithing': 0},
+RACE['osidine'] = {'name': 'osidine', 'start map': (1, 2), 'start pos': (570, 655),
+                   'perks': {'strength': -0.2, 'agility': 0.2, 'magica': 5},
+                   'description': 'The Osidine are descendants of the ancients who fought along side the dragons of Zhara for the liberation of Arroshay during the great war. They specialize in the construction of armor and melee weapons.'}
+RACE['shaktele'] = {'name': 'shaktele', 'start map': (1, 2), 'start pos': (570, 655),
+                    'perks': {'strength': 0.2, 'agility': -0.2},
                     'description': 'The Shaktele are a technologically advanced race that live in a modernized post-apocalyptic land created by biological warfare gone wrong. They specialize in the usage and construction of firearms and advanced weaponry.'}
-RACE['elf'] = {'armor': 1, 'image': 2, 'start map': (1, 4), 'start pos': (500, 500),
-               'start_stats': {'health': 90, 'max health': 90, 'stamina': 120, 'max stamina': 120, 'magica': 120, 'max magica': 120, 'hunger': 120, 'max hunger': 120, 'weight': 0, 'max weight': 75, 'strength': 1, 'agility': 2, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0.2, 'magica regen': 0.2, 'looting': 0, 'casting': 0, 'lock picking': 0, 'smithing': 0},
+RACE['elf'] = {'name': 'elf', 'armor': 1, 'start map': (1, 2), 'start pos': (570, 655),
+               'perks': {'health': -10, 'stamina': 20, 'magica': 20, 'hunger': 20, 'strength': -0.5, 'agility': 1, 'stamina regen': 0.2, 'magica regen': 0.2},
                 'description': 'The elves of Arroshay live in harmony with the forces of nature. Animals are less fearful of elves and usually only attack them if provoked.'}
-RACE['immortui'] = {'armor': 1, 'image': 1, 'start map': (3, 1), 'start pos': (500, 500),
-                    'start_stats': {'health': 200, 'max health': 200, 'stamina': 60, 'max stamina': 60, 'magica': 100, 'max magica': 100, 'hunger': 110, 'max hunger': 110, 'weight': 0, 'max weight': 90, 'strength': 1, 'agility': 0.5, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0, 'casting': 0, 'lock picking': 0, 'smithing': 0},
+RACE['immortui'] = {'name': 'immortui', 'start map': (1, 2), 'start pos': (570, 655),
+                    'perks': {'health': 100, 'stamina': -40, 'hunger': 10, 'strength': -1, 'agility': -0.5},
                     'description': 'The Immortui are the undead either raised from the grave by dark magic or created in biological warfare gone wrong. They are slow but hard to kill and have the advantage of not attracting the attention of other Immortui.'}
-RACE['lacertolian'] = {'armor': 20, 'image': 3, 'start map': (5, 5), 'start pos': (500, 500),
-                       'start_stats': {'health': 120, 'max health': 120, 'stamina': 110, 'max stamina': 110, 'magica': 90, 'max magica': 90, 'hunger': 200, 'max hunger': 200, 'weight': 0, 'max weight': 125, 'strength': 2.5, 'agility': 2, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 0.5, 'stamina regen': 2, 'magica regen': 0, 'looting': 0, 'casting': 0, 'lock picking': 0, 'smithing': 0},
+RACE['lacertolian'] = {'name': 'lacertolian', 'start map': (1, 2), 'start pos': (570, 655),
+                       'perks': {'health': 20, 'magica': -10, 'hunger': 100, 'strength': 1, 'agility': 1, 'healing': 0.5, 'stamina regen': 2, 'armor': 20},
                         'description': 'The Lacertolians are a peaceful people who are expert mariners. They can go for long periods without eating, have naturally armored skin and are immune to venom.'}
-RACE['miewdra'] = {'armor': 4, 'image': 4, 'start map': (3, 3), 'start pos': (500, 500),
-                   'start_stats': {'health': 95, 'max health': 95, 'stamina': 150, 'max stamina': 150, 'magica': 105, 'max magica': 105, 'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 90, 'strength': 1, 'agility': 2.5, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 1, 'magica regen': 0, 'looting': 0, 'casting': 0, 'lock picking': 0, 'smithing': 0},
+RACE['miewdra'] = {'name': 'miewdra', 'start map': (1, 2), 'start pos': (570, 655),
+                   'perks': {'health': -5, 'stamina': 50, 'magica': 10, 'agility': 1.5, 'armor': 4, 'stamina regen': 1},
                     'description': 'The Miewdra live near Arroshay\'s north pole. They are resistant to cold, have high stamina, and can run quickly.'}
-RACE['mechanima'] = {'armor': 35, 'image': 5, 'start map': (5, 2), 'start pos': (500, 500),
-                     'start_stats': {'health': 110, 'max health': 110, 'stamina': 100, 'max stamina': 100, 'magica': 70, 'max magica': 70, 'hunger': 1, 'max hunger': 1, 'weight': 0, 'max weight': 200, 'strength': 3.5, 'agility': 1.2, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0.2, 'magica regen': 0, 'looting': 0, 'casting': 0, 'lock picking': 0, 'smithing': 0},
+RACE['mechanima'] = {'name': 'mechanima', 'start map': (1, 2), 'start pos': (570, 655),
+                     'perks': {'health': 10, 'magica': -30, 'hunger': 0, 'strength': 2.5, 'agility': 0.2, 'stamina regen': 0.2, 'armor': 35},
                     'description': 'The Mechanima are the remnants of an advanced race who were driven into extinction who were able to preserve their souls in robot bodies. They are strong, naturally armored, immune to poison, and recharged by energy attacks. They do not need to eat, but can.'}
-RACE['blackwraith'] = {'armor': 0, 'image': 8, 'start map': (3, 5), 'start pos': (500, 500),
-                       'start_stats': {'health': 300, 'max health': 300, 'stamina': 150, 'max stamina': 150, 'magica': 150, 'max magica': 150, 'hunger': 1, 'max hunger': 1, 'weight': 0, 'max weight': 50, 'strength': 0.2, 'agility': 1, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 2, 'stamina regen': 0, 'magica regen': 2, 'looting': 0, 'casting': 0, 'lock picking': 0, 'smithing': 0},
+RACE['wraith'] = {'name': 'wraith', 'start map': (1, 2), 'start pos': (570, 655),
+                       'perks': {'health': 200, 'stamina': 50, 'magica': 50, 'hunger': 0, 'strength': -0.8, 'healing': 2, 'magica regen': 2},
                         'description': 'Black wraiths are disembodied practitioners of dark magic. They are immune to unenchanted melee weapons, bullets, cannot eat, and can walk through walls when not carrying any weight.'}
-RACE['whitewraith'] = {'armor': 0, 'image': 7, 'start map': (3, 5), 'start pos': (500, 500),
-                       'start_stats': {'health': 200, 'max health': 200, 'stamina': 160, 'max stamina': 160, 'magica': 220, 'max magica': 220, 'hunger': 1, 'max hunger': 1, 'weight': 0, 'max weight': 50, 'strength': 0.1, 'agility': 1, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 2, 'stamina regen': 0, 'magica regen': 2.5, 'looting': 0, 'casting': 0, 'lock picking': 0, 'smithing': 0},
+RACE['spirit'] = {'name': 'spirit', 'start map': (1, 2), 'start pos': (570, 655),
+                       'perks': {'health': 100, 'stamina': 60, 'magica': 120, 'hunger': 0, 'strength': -0.9, 'healing': 2, 'magica regen': 2.5},
                         'description': 'White wraiths are disembodied practitioners of white magic. They are immune to unenchanted melee weapons, bullets, cannot eat, and can walk through walls when not carrying any weight.'}
-RACE['skeleton'] = {'armor': 12, 'image': 6, 'start map': (2, 2), 'start pos': (500, 500),
-                    'start_stats': {'health': 50, 'max health': 50, 'stamina': 50, 'max stamina': 50, 'magica': 300, 'max magica': 300, 'hunger': 1, 'max hunger': 1, 'weight': 0, 'max weight': 60, 'strength': 2, 'agility': 1, 'armor': 0, 'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0, 'hits taken': 0, 'exercise': 0, 'healing': 4, 'stamina regen': 4, 'magica regen': 4, 'looting': 0, 'casting': 0, 'lock picking': 0, 'smithing': 0},
+RACE['skeleton'] = {'name': 'skeleton', 'armor': 12, 'start map': (1, 2), 'start pos': (570, 655),
+                    'perks': {'health': -50, 'stamina': -50, 'magica': 200, 'hunger': 0, 'strength': 1, 'healing': 4, 'stamina regen': 4, 'magica regen': 4},
                     'description': 'Skeletons are undead beings who are reanimated by magic. They cannot eat, and are immune to poison and magic attacks'}
-RACE['osidinedragon'] = {'armor': 20, 'image': 0}
-RACE['shakteledragon'] = {'armor': 20, 'image': 9}
-RACE['elfdragon'] = {'armor': 20, 'image': 2}
-RACE['immortuidragon'] = {'armor': 30, 'image': 1}
-RACE['lacertoliandragon'] = {'armor': 40, 'image': 3}
-RACE['miewdradragon'] = {'armor': 22, 'image': 4}
-RACE['mechanimadragon'] = {'armor': 40, 'image': 5}
-#RACE['blackwraithdragon'] = {'armor': 40, 'image': 8}
-RACE['whitewraithdragon'] = {'armor': 40, 'image': 7}
-RACE['skeletondragon'] = {'armor': 40, 'image': 6}
+RACE['osidinedragon'] = {'name': 'osidinedragon', 'armor': 20}
+RACE['shakteledragon'] = {'name': 'shakteledragon', 'armor': 20}
+RACE['elfdragon'] = {'name': 'elfdragon', 'armor': 20}
+RACE['immortuidragon'] = {'name': 'immortuidragon', 'armor': 30}
+RACE['lacertoliandragon'] = {'name': 'lacertoliandragon', 'armor': 40}
+RACE['miewdradragon'] = {'name': 'miewdradragon', 'armor': 22}
+RACE['mechanimadragon'] = {'name': 'mechanimadragon', 'armor': 40}
+RACE['wraithdragon'] = {'name': 'wraithdragon', 'armor': 40}
+RACE['spiritdragon'] = {'name': 'spiritdragon', 'armor': 40}
+RACE['skeletondragon'] = {'name': 'skeletondragon', 'armor': 40}
+
+BASIC_RACES = []
+for race, value in RACE.items():
+    if 'dragon' not in race:
+        BASIC_RACES.append(value)
+
+#TEST_INVENTORY = {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}, 'blocks': {}}
+#slot = {'item type': 'weapons', 'name': 'sword', 'hp': 100, 'stack': 1, 'enchanted'}
 
 EMPTY_INVENTORY = {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}, 'blocks': {}}
-
+EMPTY_EQUIP = {'gender': 'female', 'race': 'osidine', 'hair': None, 'weapons': None, 'weapons2': None, 'head': {}, 'torso': {}, 'bottom': {}, 'feet': {}, 'gloves': {}, 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}}
 DEFAULT_INVENTORIES = {}
-DEFAULT_INVENTORIES['male osidine'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1, 'Zhara Talisman':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['female osidine'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1, 'Zhara Talisman':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['male shaktele'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['female shaktele'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['male elf'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['female elf'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['male lacertolian'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['female lacertolian'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['male immortui'] =  {'weapons': {}, 'hats': {}, 'tops': {'orange decayed shirt M':1}, 'bottoms': {'jeans M':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['female immortui'] =  {'weapons': {}, 'hats': {}, 'tops': {'blue decayed shirt F':1}, 'bottoms': {'jeans F':1}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['male miewdra'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['female miewdra'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['male mechanima'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['female mechanima'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['male whitewraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['female whitewraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['male skeleton'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['female skeleton'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['male blackwraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-DEFAULT_INVENTORIES['female blackwraith'] =  {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {'Guide book to Arroshay':1}, 'blocks': {}}
-
+DEFAULT_INVENTORIES['osidine'] = {'orange burlap shirt': 1, 'brown pants': 1, 'Guide to Arroshay':1}
+DEFAULT_INVENTORIES['shaktele'] = {'blue burlap shirt': 1, 'brown pants': 1, 'Guide to Arroshay':1}
+DEFAULT_INVENTORIES['elf'] = {'green burlap shirt': 1, 'brown pants': 1, 'Guide to Arroshay':1}
+DEFAULT_INVENTORIES['lacertolian'] = {'red burlap shirt': 1, 'brown pants': 1, 'Guide to Arroshay':1}
+DEFAULT_INVENTORIES['immortui'] = {'grey burlap shirt': 1, 'brown pants': 1, 'Guide to Arroshay':1}
+DEFAULT_INVENTORIES['miewdra'] = {'light blue burlap shirt': 1, 'blue pants': 1, 'Guide to Arroshay':1}
+DEFAULT_INVENTORIES['mechanima'] = {'Guide to Arroshay':1}
+DEFAULT_INVENTORIES['spirit'] = {'Guide to Arroshay':1}
+DEFAULT_INVENTORIES['skeleton'] = {'Guide to Arroshay':1}
+DEFAULT_INVENTORIES['wraith'] = {'Guide to Arroshay':1}
 
 ENCHANTMENTS = {}
 ENCHANTMENTS['explosive'] = {'materials':{'gun powder':1, 'black crystal':1}, 'equip kind': ['weapons'], 'image': 3}
@@ -597,3 +607,35 @@ ENCHANTMENTS['reinforced stamina'] = {'materials':{'potion of major stamina':1, 
 ENCHANTMENTS['reinforced magica'] = {'materials':{'potion of major magica':1, 'white crystal':1}, 'equip kind': ['hats', 'tops', 'bottoms', 'gloves', 'shoes'], 'image': 6}
 
 #ENCHANTMENTS['dragon fire '] = {'materials':{'red crystal':10}, 'equip kind': ['weapons'], 'image': 2}
+
+# Defs used throughout all the files
+def fix_inventory(container, kind = 'player'):
+    if kind == 'player':
+        slots = 36
+    elif kind == 'chest':
+        slots = 36
+    else:
+        slots = 9
+    new_inventory = []
+    for i in range(0, slots):
+        new_inventory.append({})
+
+    if kind == 'chest':
+        inventory = container['inventory']
+    else:
+        inventory = container
+
+    i = 0
+    for key, value in inventory.items():
+        new_inventory[i] = ITEMS[key].copy()
+        if 'number' in ITEMS[key]:
+            new_inventory[i]['number'] = value
+        i += 1
+
+    if kind != 'chest':
+        return new_inventory
+
+    else:
+        new_container = container.copy()
+        new_container['inventory'] = new_inventory
+        return new_container

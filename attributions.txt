@@ -122,7 +122,8 @@ https://fontlibrary.org/
 Wyrvin image:
 https://www.freepngimg.com/png/27255-flying-dragon-transparent
 
-Old Paper Texture Used for Books:
-<a href="https://www.freepik.com/free-photos-vectors/background">Background photo created by aopsan - www.freepik.com</a>
-Old Book image (edited with other texture)
-<a href="https://www.freepik.com/free-photos-vectors/background">Background photo created by aopsan - www.freepik.com</a>
+Armor icon images:
+https://opengameart.org/content/medieval-armor-pixel-art
+
+Book page turn animations:
+https://opengameart.org/content/old-pagesflip-with-sound

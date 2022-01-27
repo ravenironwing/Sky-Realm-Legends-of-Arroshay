@@ -29,6 +29,7 @@ class TiledMap:
     def __init__(self, game, map_name):
         self.game = game
         self.filename = path.join(map_folder, map_name)
+        self.map_name = map_name
         self.name, _ = map_name.split(".")
         tm = pytmx.load_pygame(self.filename)
         self.width = tm.width * tm.tilewidth
@@ -80,6 +81,18 @@ class TiledMap:
 
     def gid_to_nearest_angle(self, gid, angle):
         nearest = 90 * round(angle / 90)
+        if nearest in [0, 360]:
+            return gid
+        elif nearest == 270:
+            return self.get_new_rotated_gid(gid, True, False, True)
+        elif nearest == 180:
+            return self.get_new_rotated_gid(gid, True, True, False)
+        elif nearest == 90:
+            return self.get_new_rotated_gid(gid, False, True, True)
+
+    """
+    def gid_to_nearest_angle(self, gid, angle):
+        nearest = 90 * round(angle / 90)
         if nearest == 90:
             return gid
         elif nearest == 180:
@@ -87,7 +100,7 @@ class TiledMap:
         elif nearest == 270:
             return self.get_new_rotated_gid(gid, True, True, False)
         elif nearest in [0, 360]:
-            return self.get_new_rotated_gid(gid, False, True, True)
+            return self.get_new_rotated_gid(gid, False, True, True)"""
 
     def set_map_tiles_props(self):
         self.walls = []
@@ -131,11 +144,11 @@ class TiledMap:
                         for chest in CHESTS.keys():
                             if (chest == (x, y)) and (CHESTS[chest]['map'] == self.name):
                                 if not self.chests[y][x]: # Assigns the chest dictionary to the chest array if it hasn't been assigned yet.
-                                    self.chests[y][x] = CHESTS[chest]
+                                    self.chests[y][x] = fix_inventory(CHESTS[chest], 'chest')
                                 chest_found = True
                         if not chest_found: # If not chest is found in the chests.py CHESTS then an empty chest is created and the map name assigned.
-                            self.chests[y][x] = copy.deepcopy(EMPTY_CHEST)
-                            self.chests[y][x]['map'] = self.filename
+                            self.chests[y][x] = fix_inventory(EMPTY_CHEST.copy(), 'chest')
+                            self.chests[y][x]['map'] = self.map_name
                 if 'plant' in props:
                     tile_props['plant'] = props['plant']
                     tile_props['plant layer'] = layer

@@ -17,6 +17,7 @@ from tilemap import *
 import datetime
 from time import sleep, perf_counter
 import math
+from menu import Item_Icon
 
 
 from pygame.locals import *
@@ -206,10 +207,11 @@ class Game:
             self.screen.fill(BLACK)
             pg.display.flip()
         self.channel3 = pg.mixer.Channel(2)
-        self.channel4 = pg.mixer.Channel(3) # Fire, water fall
-        self.channel5 = pg.mixer.Channel(4) # breaking sounds and other effects
-        self.channel6 = pg.mixer.Channel(5) # vehicle sounds
-        self.channel7 = pg.mixer.Channel(6) # explosions
+        self.channel4 = pg.mixer.Channel(3) # sound effects 1st layer
+        self.channel5 = pg.mixer.Channel(4) # sound effects 2nd layer
+        self.channel6 = pg.mixer.Channel(5) # sound effects 3rd layer
+        self.channel7 = pg.mixer.Channel(6) # sound effects 4th layer
+        self.channel_list = [self.channel4, self.channel5, self.channel6, self.channel7]
 
     def on_screen(self, sprite, threshold = 50):
         rect = self.camera.apply(sprite)
@@ -305,7 +307,7 @@ class Game:
         if self.player.in_vehicle:
             vehicle_name = self.player.vehicle.kind
 
-        updated_equipment = [UPGRADED_WEAPONS, UPGRADED_HATS, UPGRADED_TOPS, UPGRADED_GLOVES, UPGRADED_BOTTOMS, UPGRADED_SHOES, UPGRADED_ITEMS]
+        #updated_equipment = [UPGRADED_WEAPONS, UPGRADED_HATS, UPGRADED_TOPS, UPGRADED_GLOVES, UPGRADED_BOTTOMS, UPGRADED_SHOES, UPGRADED_ITEMS]
         save_list = [self.player.inventory, self.player.equipped, self.player.stats, [self.player.pos.x, self.player.pos.y], self.previous_map, [self.world_location.x, self.world_location.y], self.chests, self.overworld_map, updated_equipment, self.people, self.quests, self.player.colors, vehicle_name, companion_list, self.map_sprite_data_list, self.underworld_sprite_data_dict, self.key_map, self.animals_dict]
         if not path.isdir(saves_folder): makedirs(saves_folder)
 
@@ -328,21 +330,21 @@ class Game:
         self.map_sprite_data_list = load_file[14]
         self.underworld_sprite_data_dict = load_file[15]
         self.key_map = load_file[16]
-        updated_equipment = load_file[8]
-        UPGRADED_WEAPONS.update(updated_equipment[0])
-        UPGRADED_HATS.update(updated_equipment[1])
-        UPGRADED_TOPS.update(updated_equipment[2])
-        UPGRADED_GLOVES.update(updated_equipment[3])
-        UPGRADED_BOTTOMS.update(updated_equipment[4])
-        UPGRADED_SHOES.update(updated_equipment[5])
-        UPGRADED_ITEMS.update(updated_equipment[6])
-        WEAPONS.update(UPGRADED_WEAPONS)
-        HATS.update(UPGRADED_HATS)
-        TOPS.update(UPGRADED_TOPS)
-        BOTTOMS.update(UPGRADED_BOTTOMS)
-        GLOVES.update(UPGRADED_GLOVES)
-        SHOES.update(UPGRADED_SHOES)
-        ITEMS.update(UPGRADED_ITEMS)
+        #updated_equipment = load_file[8]
+        #UPGRADED_WEAPONS.update(updated_equipment[0])
+        #UPGRADED_HATS.update(updated_equipment[1])
+        #UPGRADED_TOPS.update(updated_equipment[2])
+        #UPGRADED_GLOVES.update(updated_equipment[3])
+        #UPGRADED_BOTTOMS.update(updated_equipment[4])
+        #UPGRADED_SHOES.update(updated_equipment[5])
+        #UPGRADED_ITEMS.update(updated_equipment[6])
+        #WEAPONS.update(UPGRADED_WEAPONS)
+        #HATS.update(UPGRADED_HATS)
+        #TOPS.update(UPGRADED_TOPS)
+        #BOTTOMS.update(UPGRADED_BOTTOMS)
+        #GLOVES.update(UPGRADED_GLOVES)
+        #SHOES.update(UPGRADED_SHOES)
+        #ITEMS.update(UPGRADED_ITEMS)
         self.player.inventory = load_file[0]
         self.player.equipped = load_file[1]
         self.player.race = self.player.equipped['race']
@@ -403,20 +405,20 @@ class Game:
         self.quests = QUESTS # Updates Quests from save
         self.key_map = KEY_MAP
         updated_equipment = load_file[8]
-        UPGRADED_WEAPONS.update(updated_equipment[0])
-        UPGRADED_HATS.update(updated_equipment[1])
-        UPGRADED_TOPS.update(updated_equipment[2])
-        UPGRADED_GLOVES.update(updated_equipment[3])
-        UPGRADED_BOTTOMS.update(updated_equipment[4])
-        UPGRADED_SHOES.update(updated_equipment[5])
-        UPGRADED_ITEMS.update(updated_equipment[6])
-        WEAPONS.update(UPGRADED_WEAPONS)
-        HATS.update(UPGRADED_HATS)
-        TOPS.update(UPGRADED_TOPS)
-        BOTTOMS.update(UPGRADED_BOTTOMS)
-        GLOVES.update(UPGRADED_GLOVES)
-        SHOES.update(UPGRADED_SHOES)
-        ITEMS.update(UPGRADED_ITEMS)
+        #UPGRADED_WEAPONS.update(updated_equipment[0])
+        #UPGRADED_HATS.update(updated_equipment[1])
+        #UPGRADED_TOPS.update(updated_equipment[2])
+        #UPGRADED_GLOVES.update(updated_equipment[3])
+        #UPGRADED_BOTTOMS.update(updated_equipment[4])
+        #UPGRADED_SHOES.update(updated_equipment[5])
+        #UPGRADED_ITEMS.update(updated_equipment[6])
+        #WEAPONS.update(UPGRADED_WEAPONS)
+        #HATS.update(UPGRADED_HATS)
+        #TOPS.update(UPGRADED_TOPS)
+        #BOTTOMS.update(UPGRADED_BOTTOMS)
+        #GLOVES.update(UPGRADED_GLOVES)
+        #SHOES.update(UPGRADED_SHOES)
+        #ITEMS.update(UPGRADED_ITEMS)
         self.player.inventory = load_file[0]
         self.player.equipped = load_file[1]
         self.player.race = self.player.equipped['race']
@@ -464,6 +466,18 @@ class Game:
         self.lock_pick_image = pg.image.load(path.join(img_folder, 'lock_pick.png')).convert_alpha()
         self.swim_shadow_image = pg.image.load(path.join(img_folder, 'swim_shadow.png')).convert_alpha()
         self.mech_back_image = pg.image.load(path.join(img_folder, 'mech_back_lights.png')).convert_alpha()
+        self.black_box_image = pg.image.load(path.join(img_folder, 'black_box.png')).convert()
+        self.dark_grey_box_image = pg.image.load(path.join(img_folder, 'dark_grey_box.png')).convert()
+        self.grey_box_image = pg.image.load(path.join(img_folder, 'grey_box.png')).convert()
+        self.start_icon_image = pg.image.load(path.join(img_folder, 'start_icon.png')).convert()
+        self.right_arrow_image = pg.transform.scale(pg.image.load(path.join(img_folder, 'right_arrow.png')).convert(), (ICON_SIZE, ICON_SIZE))
+        self.back_arrow_image = pg.transform.scale(pg.image.load(path.join(img_folder, 'back_arrow.png')).convert(), (ICON_SIZE, ICON_SIZE))
+        self.trash_image = pg.image.load(path.join(img_folder, 'trash.png')).convert()
+        self.book_images = []
+        for i in range(0, 6):
+            image = pg.image.load(path.join(book_animation_folder, 'book{}.png'.format(i))).convert()
+            image = pg.transform.scale(image, (self.screen_width, self.screen_height))
+            self.book_images.append(image)
         #self.rock_shadow_image = pg.image.load(path.join(img_folder, 'rock_shadow.png')).convert_alpha()
         self.invisible_image = pg.image.load(path.join(img_folder, 'invisible.png')).convert_alpha()
         # creates a dictionary of animal images. This is not in the settings file like the others because of the order it needs to import info.
@@ -515,14 +529,27 @@ class Game:
         for i, item in enumerate(DOOR_BREAK_IMAGES):
             img = pg.image.load(path.join(door_break_folder, DOOR_BREAK_IMAGES[i])).convert_alpha()
             self.door_break_images.append(img)
-        self.item_images = []
-        for i, item in enumerate(ITEM_IMAGES):
-            img = pg.image.load(path.join(items_folder, ITEM_IMAGES[i])).convert_alpha()
-            self.item_images.append(img)
         self.enchantment_images = []
         for i, item in enumerate(ENCHANTMENT_IMAGES):
             img = pg.image.load(path.join(enchantments_folder, ENCHANTMENT_IMAGES[i])).convert_alpha()
             self.enchantment_images.append(img)
+
+        self.hair_images = {}
+        for item in HAIR_IMAGES:
+            img = pg.image.load(path.join(hair_folder, HAIR_IMAGES[item])).convert_alpha()
+            self.hair_images[item] = img
+
+        self.race_images = {}
+        for item in RACE_IMAGES:
+            img = pg.image.load(path.join(race_folder, RACE_IMAGES[item])).convert_alpha()
+            self.race_images[item] = img
+
+        self.item_images = {}
+        for item in NEW_ITEM_IMAGES:
+            img = pg.image.load(path.join(new_items_folder, NEW_ITEM_IMAGES[item])).convert_alpha()
+            self.item_images[item] = img
+
+        """
         self.weapon_images = []
         for i, weapon in enumerate(WEAPON_IMAGES):
             img = pg.image.load(path.join(weapons_folder, WEAPON_IMAGES[i])).convert_alpha()
@@ -531,10 +558,6 @@ class Game:
         for i, hat in enumerate(HAT_IMAGES):
             img = pg.image.load(path.join(hats_folder, HAT_IMAGES[i])).convert_alpha()
             self.hat_images.append(img)
-        self.hair_images = []
-        for i, hair in enumerate(HAIR_IMAGES):
-            img = pg.image.load(path.join(hair_folder, HAIR_IMAGES[i])).convert_alpha()
-            self.hair_images.append(img)
         self.top_images = []
         for i, top in enumerate(TOP_IMAGES):
             img = pg.image.load(path.join(tops_folder, TOP_IMAGES[i])).convert_alpha()
@@ -550,11 +573,8 @@ class Game:
         self.glove_images = []
         for i, glove in enumerate(GLOVE_IMAGES):
             img = pg.image.load(path.join(gloves_folder, GLOVE_IMAGES[i])).convert_alpha()
-            self.glove_images.append(img)
-        self.magic_images = []
-        for i, magic in enumerate(MAGIC_IMAGES):
-            img = pg.image.load(path.join(magic_folder, MAGIC_IMAGES[i])).convert_alpha()
-            self.magic_images.append(img)
+            self.glove_images.append(img)"""
+
         self.light_mask_images = []
         for i, val in enumerate(LIGHT_MASK_IMAGES):
             img = pg.image.load(path.join(light_masks_folder, LIGHT_MASK_IMAGES[i])).convert_alpha()
@@ -566,10 +586,15 @@ class Game:
             new_image = pg.transform.rotate(temp_img, rot*3)
             self.flashlight_masks.append(new_image)
 
-        self.magic_animation_images = []
-        for image in self.magic_images:
+        self.magic_images = {}
+        for item in MAGIC_IMAGES:
+            img = pg.image.load(path.join(magic_folder, MAGIC_IMAGES[item])).convert_alpha()
+            self.magic_images[item] = img
+
+        self.magic_animation_images = {}
+        for key, image in self.magic_images.items():
             image_list = []
-                # enlarge image animation
+            # enlarge image animation
             for i in range(0, 5):
                 new_image = pg.transform.scale(image, (13*i, 13*i))
                 image_list.append(new_image)
@@ -577,7 +602,7 @@ class Game:
             for i in range(1, 10):
                 new_image = pg.transform.scale(image, (int(70/i), int(70/i)))
                 image_list.append(new_image)
-            self.magic_animation_images.append(image_list)
+            self.magic_animation_images[key] = image_list
 
         self.gender_images = []
         for i, gender in enumerate(GENDER_IMAGES):
@@ -595,10 +620,6 @@ class Game:
         for i, x in enumerate(COLOR_SWATCH_IMAGES):
             img = pg.image.load(path.join(color_swatches_folder, COLOR_SWATCH_IMAGES[i])).convert()
             self.color_swatch_images.append(img)
-        self.race_images = []
-        for i, race in enumerate(RACE_IMAGES):
-            img = pg.image.load(path.join(race_folder, RACE_IMAGES[i])).convert_alpha()
-            self.race_images.append(img)
         self.fire_images = []
         for i, x in enumerate(FIRE_IMAGES):
             img = pg.image.load(path.join(fire_folder, FIRE_IMAGES[i])).convert_alpha()
@@ -720,9 +741,6 @@ class Game:
         title_image = pg.transform.scale(title_image, (self.screen_width, self.screen_height))
         self.map = None
         self.continued_game = False
-        self.in_load_menu = False
-        self.in_npc_menu = False
-        self.in_settings_menu = False
         waiting = True
         i = 0
         while waiting:
@@ -743,12 +761,11 @@ class Game:
                 if event.type == pg.KEYDOWN:
                     if event.key == pg.K_c:
                         waiting = False
-                        self.in_load_menu = True
+                        #self.in_load_menu = True
                         self.continued_game = True
                     elif event.key == pg.K_n:  # Enters the NPC creation tool
                         if event.mod & pg.KMOD_CTRL:
-                            waiting = False
-                            self.in_npc_menu = True
+                            pass  # I removed this but will add it again later.
                         else:
                             waiting = False
 
@@ -787,8 +804,6 @@ class Game:
         self.previous_music = TITLE_MUSIC
         self.portal_location = vec(0, 0)
         self.portal_combo = ''
-        self.load_menu = Load_Menu(self)
-        self.settings_menu = Settings_Menu(self)
         self.guard_alerted = False
         self.hud_map = False
         self.hud_overmap = False
@@ -796,9 +811,10 @@ class Game:
         self.message_text = True
         self.message = ''
         self.map_type = None
-        self.group = PyscrollGroup()
+        self.group = PyscrollGroup(0) # 0 is the map base layer, but I set it later to self.map.map_layer.
         self.all_sprites = pg.sprite.LayeredUpdates() # Used for all non_static sprites
         self.all_static_sprites = pg.sprite.Group() # used for all static sprites
+        self.inventory_hud_icons = pg.sprite.Group()
         self.sprites_on_screen = pg.sprite.Group()
         self.moving_targets = pg.sprite.Group() # Used for all moving things bullets interact with
         self.moving_targets_on_screen = pg.sprite.Group()
@@ -872,6 +888,7 @@ class Game:
         self.turrets = pg.sprite.Group()
         self.occupied_vehicles = pg.sprite.Group()
         self.random_targets = pg.sprite.Group()
+        self.clicked_sprites = []
         self.target_list = [self.random_targets, self.entryways, self.work_stations, self.moving_targets,  self.aipaths]
         self.new_game = True
         self.respawn = False
@@ -880,34 +897,15 @@ class Game:
         self.underworld_sprite_data_dict = {}
         self.player = Player(self) # Creates initial player object
         if self.new_game:  # Why do I have to variables: new_game and conitnued_game
-            self.in_character_menu = True
-        self.character_menu = Character_Design_Menu(self)
-        self.generic_npc = Player(self, 0, 0, 'generic')  # Spawns a generic villager npc to be modified
-        self.npc_menu = Npc_Design_Menu(self, self.generic_npc)
-        if self.in_npc_menu:
-            self.npc_menu.update()
-        self.generic_npc.kill()
-        if not self.continued_game:
-            self.character_menu.update()
-        self.in_character_menu = False
+            self.character_menu = MainMenu(self, self.player, 'Character')
         self.overworld_map = START_WORLD
         if not self.continued_game:
             self.load_over_map(self.overworld_map) # Loads world map for first world. This will allow me to load other world maps later.
         if not self.continued_game:
             self.change_map(None, RACE[self.player.race]['start map'], RACE[self.player.race]['start pos'])
-        self.menu = Inventory_Menu(self)
-        self.stats_menu = Stats_Menu(self)
-        self.quest_menu = None
         self.fly_menu = None
         self.in_menu = False
-        self.in_inventory_menu = False
-        self.store_menu = None
-        self.in_store_menu = False
-        self.in_stats_menu = False
-        self.in_loot_menu = False
         self.in_lock_menu = False
-        self.in_station_menu = False
-        self.in_quest_menu = False
         self.in_dialogue_menu = False
         self.dialogue_menu = None
         self.dialogue_menu_npc = None
@@ -919,6 +917,7 @@ class Game:
         self.hud_stamina = self.hud_health_stats['stamina'] / self.hud_health_stats['max stamina']
         self.hud_magica = self.hud_health_stats['magica'] / self.hud_health_stats['max magica']
         self.hud_mobhp = 0
+        self.selected_hud_item = None
         self.show_mobhp = False
         self.last_mobhp_update = 0
         self.hud_hunger = 1
@@ -928,7 +927,7 @@ class Game:
         self.paused = False
         self.effects_sounds['level_start'].play()
         if self.continued_game:
-            self.load_menu.update()
+            pass
 
     @property
     def portal_combo(self):  # This is the method that is called whenever you access portal_combo
@@ -1119,17 +1118,12 @@ class Game:
             companion.map = selected_map
         self.load_map(selected_map)
 
-    def make_loot_menu(self, inventory):
-        self.loot_menu = Loot_Menu(self, inventory)
+    def make_work_station_menu(self, station_type, inventory = None):
+        station = WORK_STATION_DICT[station_type]
+        MainMenu(self, self.player, station, inventory)
 
     def make_lock_menu(self, lock):
         self.lock_menu = Lock_Menu(self, lock)
-
-    def make_lock_menu(self, lock, kind):
-        self.lock_menu = Lock_Menu(self, lock, kind)
-
-    def make_work_station_menu(self, station_type):
-        self.station_menu = Work_Station_Menu(self, station_type)
 
     def sleep_in_bed(self):
         self.screen.fill(BLACK)
@@ -1191,6 +1185,8 @@ class Game:
         self.sprite_data = self.map_sprite_data_list[int(self.world_location.x)][int(self.world_location.y)]
         self.compass_rot = -math.atan2(49 - self.world_location.y, 89 - self.world_location.x)
         self.compass_rot = math.degrees(self.compass_rot)
+        map = self.map_data_list[int(self.world_location.y)][int(self.world_location.x)]
+        self.minimap_image = pg.image.load(path.join(map_folder, str(map - 1) + '.png')).convert()
 
         # Checks to see if the map is bellow the main world level
         map = temp_map
@@ -1205,7 +1201,12 @@ class Game:
         if not self.new_game:
             self.garbage_collect()
         self.map = TiledMap(self, map)
-        self.group._map_layer = self.map.map_layer # Sets the map as the Pyscroll group base layer.
+        self.group = PyscrollGroup(self.map.map_layer)
+        self.group.add(self.player)
+        self.group.add(self.player.human_body)
+        self.group.add(self.player.dragon_body)
+        #self.group.change_layer(self.player, self.original_layer)
+        #self.group._map_layer = self.map.map_layer # Sets the map as the Pyscroll group base layer.
         self.camera = Camera(self, self.map.width, self.map.height)
 
         # This block of code is supposed to save edited tile maps, but it's all gooped up.
@@ -1238,10 +1239,10 @@ class Game:
                 Vehicle(self, vehicle['location'], vehicle['name'])
             for breakable in self.sprite_data.breakable:
                 Breakable(self, breakable['location'], breakable['w'], breakable['h'], breakable['name'], breakable['rotation'])
-            for item in self.sprite_data.items:
-                for item_type in ITEM_TYPE_LIST:
-                    if item['name'] in eval(item_type.upper()):
-                        Dropped_Item(self, item['location'], item_type, item['name'], item['rotation'])
+            #for item in self.sprite_data.items:
+            #    for item_type in ITEM_TYPE_LIST:
+            #        if item['name'] in eval(item_type.upper()):
+            #            Dropped_Item(self, item['location'], item_type, item['name'], item['rotation'])
         else: # Loads animals and NPCs that have moved onto unvisited maps.
             companion_names = []
             for companion in self.companions:
@@ -1361,16 +1362,16 @@ class Game:
                         if vehicle == tile_object.name:
                             Vehicle(self, obj_center, vehicle)
                     # Loads items, weapons, and armor placed on the map
-                    for item_type in ITEM_TYPE_LIST:
-                        if tile_object.name in eval(item_type.upper()):
-                            Dropped_Item(self, obj_center, item_type, tile_object.name)
+                    #for item_type in ITEM_TYPE_LIST:
+                    #    if tile_object.name in eval(item_type.upper()):
+                    #        Dropped_Item(self, obj_center, item_type, tile_object.name)
                     # Loads fixed rotated items:
-                    if '@' in tile_object.name:
-                        item, rot = tile_object.name.split('@')
-                        rot = int(rot)
-                        for item_type in ITEM_TYPE_LIST:
-                            if item in eval(item_type.upper()):
-                                Dropped_Item(self, obj_center, item_type, item, rot)
+                    #if '@' in tile_object.name:
+                    #    item, rot = tile_object.name.split('@')
+                    #    rot = int(rot)
+                    #    for item_type in ITEM_TYPE_LIST:
+                    #        if item in eval(item_type.upper()):
+                    #            Dropped_Item(self, obj_center, item_type, item, rot)
                     # Used for destructable plants, rocks, ore veins, walls, etc
                     for item in BREAKABLES:
                         if item in tile_object.name:
@@ -1398,9 +1399,9 @@ class Game:
                         if quest_item in self.people:
                             if self.is_living(quest_item):
                                 Player(self, obj_center.x, obj_center.y, quest_item)
-                        for item_type in ITEM_TYPE_LIST:
-                            if quest_item in eval(item_type.upper()):
-                                Dropped_Item(self, obj_center, item_type, quest_item)
+                        #for item_type in ITEM_TYPE_LIST:
+                        #    if quest_item in eval(item_type.upper()):
+                        #        Dropped_Item(self, obj_center, item_type, quest_item)
                 # Loads items/npcs that should only be there if a quest hasn't been completed
                 if 'QU' in tile_object.name:
                     _, quest, quest_item = tile_object.name.split('_')
@@ -1412,9 +1413,9 @@ class Game:
                         if quest_item in self.people:
                             if self.is_living(quest_item):
                                 Player(self, obj_center.x, obj_center.y, quest_item)
-                        for item_type in ITEM_TYPE_LIST:
-                            if quest_item in eval(item_type.upper()):
-                                Dropped_Item(self, obj_center, item_type, quest_item)
+                        #for item_type in ITEM_TYPE_LIST:
+                        #    if quest_item in eval(item_type.upper()):
+                        #        Dropped_Item(self, obj_center, item_type, quest_item)
                 # Loads items/npcs that only appear after a quest has been accepted.
                 if 'QA' in tile_object.name:
                     _, quest, quest_item = tile_object.name.split('_')
@@ -1426,9 +1427,9 @@ class Game:
                         if quest_item in self.people:
                             if self.is_living(quest_item):
                                 Player(self, obj_center.x, obj_center.y, quest_item)
-                        for item_type in ITEM_TYPE_LIST:
-                            if quest_item in eval(item_type.upper()):
-                                Dropped_Item(self, obj_center, item_type, quest_item)
+                        #for item_type in ITEM_TYPE_LIST:
+                        #    if quest_item in eval(item_type.upper()):
+                        #        Dropped_Item(self, obj_center, item_type, quest_item)
                 # Loads items/npcs that should only be there if a quest hasn't been accepted
                 if 'QN' in tile_object.name:
                     _, quest, quest_item = tile_object.name.split('_')
@@ -1440,9 +1441,9 @@ class Game:
                         if quest_item in self.people:
                             if self.is_living(quest_item):
                                 Player(self, obj_center.x, obj_center.y, quest_item)
-                        for item_type in ITEM_TYPE_LIST:
-                            if quest_item in eval(item_type.upper()):
-                                Dropped_Item(self, obj_center, item_type, quest_item)
+                        #for item_type in ITEM_TYPE_LIST:
+                        #    if quest_item in eval(item_type.upper()):
+                        #        Dropped_Item(self, obj_center, item_type, quest_item)
                 if 'COMMAND' in tile_object.name: # I used this block of code for killing Alex's body: the character that the black wraith comes out of in the beginning.
                     _, command, npc = tile_object.name.split('_')
                     if npc != 'None':
@@ -1557,6 +1558,7 @@ class Game:
 
 
         # Generates random drop items
+        """
         if self.map_type in ['mountain', 'forest', 'grassland', 'desert', 'beach']:
             for i in range(0, randrange(1, 15)):
                 for item in ITEMS:
@@ -1565,7 +1567,7 @@ class Game:
                             centerx = randrange(200, self.map.width - 200)
                             centery = randrange(200, self.map.height - 200)
                             center = vec(centerx, centery)
-                            Dropped_Item(self, center, 'items', item)
+                            Dropped_Item(self, center, 'items', item)"""
 
         # Generates random animals/Npcs on maps that don't have existing animals on them. The type of animal depends on the maptype object in the tmx file.
         if (len(self.mobs) - len(self.companions)) < 4:
@@ -1787,26 +1789,26 @@ class Game:
         self.camera.update(self.player)
         self.group.center(self.player.rect.center)
 
-        # Used for playing fire sounds at set distances:
-        closest_fire = None
-        previous_distance = 30000
-        for sprite in self.fires_on_screen:    # Finds the closest fire and ignores the others.
-            player_dist = self.player.pos - sprite.pos
-            player_dist = player_dist.length()
-            if previous_distance > player_dist:
-                closest_fire = sprite
-                previous_distance = player_dist
+        ## Used for playing fire sounds at set distances:
+        #closest_fire = None
+        #previous_distance = 30000
+        #for sprite in self.fires_on_screen:    # Finds the closest fire and ignores the others.
+        #    player_dist = self.player.pos - sprite.pos
+        #    player_dist = player_dist.length()
+        #    if previous_distance > player_dist:
+        #        closest_fire = sprite
+        #        previous_distance = player_dist
 
-        if closest_fire:
-            if previous_distance < 400:  # This part makes it so the fire volume decreases as you walk away from it.
-                volume = 150 / (previous_distance * 2 + 0.001)
-                self.channel4.set_volume(volume)
-                if not self.channel4.get_busy():
-                    self.channel4.play(self.effects_sounds['fire crackle'], loops=-1)
-            else:
-                self.channel4.stop()
-        else:
-            self.channel4.stop()
+        #if closest_fire:
+        #    if previous_distance < 400:  # This part makes it so the fire volume decreases as you walk away from it.
+        #        volume = 150 / (previous_distance * 2 + 0.001)
+        #        self.channel4.set_volume(volume)
+        #        if not self.channel4.get_busy():
+        #            self.channel4.play(self.effects_sounds['fire crackle'], loops=-1)
+        #    else:
+        #        self.channel4.stop()
+        #else:
+        #    self.channel4.stop()
 
         # The following are hit checks between moving objects. All tile-based hit checks are done in teh sprites.py using each sprites tile_props/next_tile_props
         # These hit checks only happen if the player insn't in a flying vehicle.
@@ -1870,12 +1872,9 @@ class Game:
                 self.message_text = True
                 self.message = pg.key.name(self.key_map['interact']).upper() + " to loot"
                 if self.player.e_down:
-                    if not self.in_loot_menu:
-                        self.in_loot_menu = True
-                        self.in_menu = True
-                        self.loot_menu = Loot_Menu(self, hits[0].inventory)
-                        self.message_text = False
-                        self.player.e_down = False
+                    MainMenu(self, self.player, 'Looting', hits[0].inventory)
+                    self.message_text = False
+                    self.player.e_down = False
 
             # Player is in talking range of NPC
             if True not in [self.message_text, self.in_menu]:
@@ -2123,7 +2122,7 @@ class Game:
                                     mob.gets_hit(bullet.damage, bullet.knockback, bullet.rot)
                                     bullet.death(mob)
                             else:
-                                if not mob.immaterial or bullet.energy or (self.player.stats['weight'] != 0):
+                                if not mob.immaterial or bullet.energy:
                                     if not mob.immaterial or bullet.energy:
                                         mob.gets_hit(bullet.damage, bullet.knockback, bullet.rot)
                                     bullet.death(mob)
@@ -2330,7 +2329,11 @@ class Game:
         pg.display.set_caption("Legends of Zhara")
         #self.group.draw(self.screen, self) # Used with my monkey patched version of the old pyscroll.
         self.group.draw(self.screen)
-        if self.player.block_gid:
+        self.inventory_hud_icons.draw(self.screen)
+        if self.selected_hud_item:
+            pg.draw.rect(self.screen, YELLOW, self.selected_hud_item.rect, 1)
+
+        if ('type' in self.player.hand2_item) and (self.player.hand2_item['type'] == 'block') or ('type' in self.player.hand_item) and (self.player.hand_item['type'] == 'block'):
             x, y = get_next_tile_pos(self.player)
             pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(pg.Rect(x * self.map.tile_size, y * self.map.tile_size,  self.map.tile_size,  self.map.tile_size)), 1)
         if self.draw_debug:
@@ -2411,30 +2414,22 @@ class Game:
         if self.dt > 0.2: # Caps dt at 200 ms.
             self.dt = 0.2
         self.beg = perf_counter()
-        if self.in_inventory_menu:
-            self.menu.update()
-        if self.in_quest_menu:
-            self.quest_menu.update()
-        if self.in_store_menu:
-            self.store_menu.update()
-        if self.in_stats_menu:
-            self.stats_menu.update()
-        if self.in_character_menu:
-            self.character_menu.update()
-        if self.in_npc_menu:
-            self.npc_menu.update()
-        if self.in_loot_menu:
-            self.loot_menu.update()
         if self.in_lock_menu:
             self.lock_menu.update()
-        if self.in_load_menu:
-            self.load_menu.update()
-        if self.in_settings_menu:
-            self.settings_menu.update()
-        if self.in_station_menu:
-            self.station_menu.update()
         if self.in_dialogue_menu:
             self.dialogue_menu.update()
+
+    def change_right_equipped(self, slot):
+        self.player.hand_item = self.player.equipped[slot]
+        self.player.human_body.update_animations()  # Updates animations for newly equipped or removed weapons etc.
+        self.player.dragon_body.update_animations()
+        if ('type' in self.player.hand_item) and (self.player.hand_item['type'] in WEAPON_TYPES):
+            self.player.equipped['weapons2'] = self.player.hand_item
+        else:
+            self.player.equipped['weapons2'] = None
+        for icon in self.inventory_hud_icons:
+            if int(icon.slot_text) == slot + 1:
+                self.selected_hud_item = icon
 
     def events(self):
         # catch all events here
@@ -2443,14 +2438,22 @@ class Game:
                 self.quit()
             # Shooting/attacking
             if event.type == pg.MOUSEBUTTONDOWN:
+                pos = pg.mouse.get_pos()
+                # get a list of all heading sprites that are under the mouse cursor
+                self.clicked_sprites = [s for s in self.inventory_hud_icons if s.rect.collidepoint(pos)]
+                if self.clicked_sprites:
+                    self.change_right_equipped(int(self.clicked_sprites[0].slot_text) - 1)
                 if pg.mouse.get_pressed() == (1, 0, 1):
                     self.player.dual_shoot()
                 elif pg.mouse.get_pressed() == (0, 0, 1) or pg.mouse.get_pressed() == (0, 1, 1):
-                    self.player.weapon_hand = 'weapons'
-                    self.player.shoot()
+                    if ('type' in self.player.hand_item) and (self.player.hand_item['type'] == 'block'):
+                        self.player.place_block(1)
+                    else:
+                        self.player.weapon_hand = 'weapons'
+                        self.player.shoot()
                 elif pg.mouse.get_pressed() == (1, 0, 0) or pg.mouse.get_pressed() == (1, 1, 0):
-                    if self.player.block_gid:
-                        self.player.place_block()
+                    if ('type' in self.player.hand2_item) and (self.player.hand2_item['type'] == 'block'):
+                        self.player.place_block(2)
                     else:
                         self.player.weapon_hand = 'weapons2'
                         self.player.shoot()
@@ -2464,25 +2467,29 @@ class Game:
                 else: # Prevents e_down from getting stuck on true
                     self.player.e_down = False
             if event.type == pg.KEYDOWN:
+                if event.key == pg.K_1:
+                    self.change_right_equipped(0)
+                elif event.key == pg.K_2:
+                    self.change_right_equipped(1)
+                elif event.key == pg.K_3:
+                    self.change_right_equipped(2)
+                elif event.key == pg.K_4:
+                    self.change_right_equipped(3)
+                elif event.key == pg.K_5:
+                    self.change_right_equipped(4)
+                elif event.key == pg.K_6:
+                    self.change_right_equipped(5)
                 if event.key == pg.K_ESCAPE:
-                    self.in_settings_menu = True
-                    self.in_menu = True
-                    self.hud_overmap = False
+                    MainMenu(self, self.player, 'Game')
                 if event.key == self.key_map['inventory']:
                     self.player.empty_mags() # This makes sure the bullets in your clip don't transfer to the wrong weapons if you switch weapons in your inventory
-                    self.in_inventory_menu = True
-                    self.in_menu = True
+                    MainMenu(self, self.player)
                 if event.key == self.key_map['interact']:
                     self.player.e_down = True
                 else:
                     self.player.e_down = False
                 #if event.key == pg.K_BACKQUOTE:  # Switches to last weapon
                 #    self.player.toggle_previous_weapons()
-                if event.key == self.key_map['skill']:
-                    self.in_stats_menu = True
-                if event.key == self.key_map['quest']:
-                    self.in_quest_menu = self.in_menu = True
-                    self.quest_menu = Quest_Menu(self)
                 if event.key == self.key_map['reload']:
                     self.player.pre_reload()
                 if event.key == self.key_map['hitbox']:
@@ -2497,11 +2504,8 @@ class Game:
                     self.map.minimap.resize(False)
                 if event.key == self.key_map['minimap']: # Toggles hud mini map
                     self.hud_map = not self.hud_map
-                if event.key == self.key_map['overmap']: # Toggles overworld map
-                    self.hud_overmap = not self.hud_overmap
                 if event.key == self.key_map['use']:
-                    if not self.in_store_menu:
-                        self.player.use_item()
+                    self.player.use_item()
                 if event.key == self.key_map['place']:
                     self.player.place_item()
                 if event.key == self.key_map['block']:
@@ -2517,10 +2521,6 @@ class Game:
                 if event.key == self.key_map['fire']:
                     if self.player.dragon:
                         self.player.breathe_fire()
-                if event.key == self.key_map['craft']:
-                    self.in_station_menu = True
-                    self.in_menu = True
-                    self.station_menu = Work_Station_Menu(self, 'crafting')
                 if event.key == self.key_map['lamp']:
                     self.player.light_on = not self.player.light_on
                 if event.key == self.key_map['up']:
@@ -2543,7 +2543,7 @@ class Game:
                         self.save()
                 if event.key ==  pg.K_l: # loads game
                     if event.mod & pg.KMOD_CTRL:
-                        self.in_load_menu = True
+                        pass
                 if event.key == self.key_map['jump']:
                     self.player.pre_jump()
 
@@ -2573,7 +2573,7 @@ class Game:
                     elif event.key == pg.K_c:
                         waiting = False
                         self.player.stats['health'] = self.player.stats['max health']
-                        self.in_load_menu = True
+                        #self.in_load_menu = True
                         self.run()
                     elif event.key == pg.K_n:
                         waiting = False

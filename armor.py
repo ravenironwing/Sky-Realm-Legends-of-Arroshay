@@ -30,59 +30,6 @@ HATS['turtle plate helmet'] = {'armor': 34, 'image': 17, 'weight': 3.5, 'materia
 HATS['dark wizard hood'] = {'armor': 3, 'image': 16, 'weight': 0.7, 'reinforce magica': 200, 'value': 3000}
 HATS['aetherial helmet'] = {'armor': 25, 'reinforce magica': 25, 'reinforce stamina': 25, 'image': 15, 'gender': 'other', 'weight': 0, 'value': 1100, 'materials': {'demon dust': 2, 'ectoplasm': 2, 'sage': 1, 'blue crystal': 1}, 'upgrade': {'demon dust': 1, 'ectoplasm': 1}}
 
-HAIR = {}
-HAIR['long pony'] = {'races': ['osidine', 'shaktele', 'elf'], 'image': 1, 'gender': 'female'}
-HAIR['long straight'] = {'races': ['osidine', 'shaktele', 'immortui'],'image': 8, 'gender': 'female'}
-HAIR['long curly'] = {'races': ['osidine', 'shaktele'], 'image': 2, 'gender': 'female'}
-HAIR['medium messy'] = {'races': ['osidine', 'shaktele', 'immortui'], 'image': 3, 'gender': 'female'}
-HAIR['long side pony'] = {'races': ['osidine', 'shaktele', 'elf'], 'image': 6, 'gender': 'female'}
-HAIR['short messy'] = {'races': ['osidine', 'shaktele', 'immortui'], 'image': 4, 'gender': 'female'}
-HAIR['short'] = {'races': ['osidine', 'shaktele', 'elf', 'immortui'], 'image': 5, 'gender': 'male'}
-HAIR['short combed'] = {'races': ['osidine', 'shaktele', 'elf', 'immortui'], 'image': 29, 'gender': 'male'}
-HAIR['dreadlocks'] = {'races': ['osidine', 'shaktele', 'immortui'], 'image': 12, 'gender': 'other'}
-HAIR['elf braids'] = {'races': ['elf'], 'image': 9, 'gender': 'other'}
-HAIR['lizard horns'] = {'races': ['lacertolian'], 'image': 10, 'gender': 'other'}
-HAIR['lizard spikes'] = {'races': ['lacertolian', 'demon'], 'image': 11, 'gender': 'other'}
-HAIR['cat tufts'] = {'races': ['miewdra'], 'image': 13, 'gender': 'other'}
-HAIR['frizzy cat'] = {'races': ['miewdra'], 'image': 14, 'gender': 'other'}
-HAIR['fluffy cat'] = {'races': ['miewdra'], 'image': 15, 'gender': 'other'}
-HAIR['long straight cat'] = {'races': ['miewdra'], 'image': 16, 'gender': 'female'}
-HAIR['bald'] = {'races': ['osidine', 'shaktele', 'elf', 'lacertolian', 'miewdra', 'immortui', 'blackwraith', 'whitewraith', 'skeleton', 'demon', 'vadashay'], 'image': 0, 'gender': 'other'}
-HAIR['ram horns'] = {'races': ['skeleton', 'demon'], 'image': 18, 'gender': 'other'}
-HAIR['demon horns'] = {'races': ['skeleton', 'demon'], 'image': 19, 'gender': 'other'}
-HAIR['short horns'] = {'races': ['skeleton', 'demon'], 'image': 20, 'gender': 'other'}
-HAIR['long wraith'] = {'races': ['blackwraith', 'whitewraith'], 'image': 21, 'gender': 'female'}
-HAIR['back strip lights'] = {'races': ['mechanima'], 'image': 22, 'gender': 'other'}
-HAIR['two strip lights'] = {'races': ['mechanima'], 'image': 23, 'gender': 'other'}
-HAIR['bug lights'] = {'races': ['mechanima'], 'image': 24, 'gender': 'other'}
-HAIR['basic lights'] = {'races': ['mechanima'], 'image': 25, 'gender': 'other'}
-HAIR['full LED skin'] = {'races': ['mechanima'], 'image': 26, 'gender': 'other'}
-HAIR['light strips'] = {'races': ['mechanima'], 'image': 27, 'gender': 'other'}
-HAIR['LED stripes'] = {'races': ['mechanima'], 'image': 28, 'gender': 'other'}
-HAIR['beard'] = {'races': ['osidine', 'shaktele', 'elf', 'immortui'], 'image': 17, 'gender': 'male'}
-
-# Makes a dictionary containing the hairstyles appropriate for each race.
-#temp_race_list = ['demon', 'osidine', 'shaktele', 'elf', 'lacertolian', 'miewdra', 'immortui', 'mechanima', 'blackwraith', 'whitewraith', 'skeleton']
-RACE_HAIR = {}
-for race in RACE_TYPE_LIST:
-    RACE_HAIR[race] = []
-for item in HAIR:
-    for race in RACE_TYPE_LIST:
-        if race in HAIR[item]['races']:
-            RACE_HAIR[race].append(item)
-
-# Separates long and short hair styles into lists
-SHORT_HAIR_LIST = []
-MEDIUM_HAIR_LIST = []
-LONG_HAIR_LIST = []
-for item in HAIR:
-    if ('osidine' in HAIR[item]['races']) or ('shaktele' in HAIR[item]['races']):
-        if 'short' in item:
-            SHORT_HAIR_LIST.append(item)
-        if 'medium' in item:
-            MEDIUM_HAIR_LIST.append(item)
-        if 'long' in item:
-            LONG_HAIR_LIST.append(item)
 
 SHOES = {}
 for material in MATERIALS:

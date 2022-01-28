@@ -1,5 +1,68 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.5" tiledversion="1.7.2" orientation="orthogonal" renderorder="right-down" width="50" height="50" tilewidth="32" tileheight="32" infinite="0" nextlayerid="2" nextobjectid="1">
+ <tileset firstgid="1" name="fire" tilewidth="32" tileheight="32" tilecount="20" columns="0">
+  <grid orientation="orthogonal" width="1" height="1"/>
+  <tile id="0">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_1.png"/>
+  </tile>
+  <tile id="1">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_3.png"/>
+  </tile>
+  <tile id="2">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_5.png"/>
+  </tile>
+  <tile id="3">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_7.png"/>
+  </tile>
+  <tile id="4">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_9.png"/>
+  </tile>
+  <tile id="5">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_11.png"/>
+  </tile>
+  <tile id="6">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_13.png"/>
+  </tile>
+  <tile id="7">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_15.png"/>
+  </tile>
+  <tile id="8">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_17.png"/>
+  </tile>
+  <tile id="9">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_19.png"/>
+  </tile>
+  <tile id="10">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_21.png"/>
+  </tile>
+  <tile id="11">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_23.png"/>
+  </tile>
+  <tile id="12">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_25.png"/>
+  </tile>
+  <tile id="13">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_27.png"/>
+  </tile>
+  <tile id="14">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_29.png"/>
+  </tile>
+  <tile id="15">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_31.png"/>
+  </tile>
+  <tile id="16">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_33.png"/>
+  </tile>
+  <tile id="17">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_35.png"/>
+  </tile>
+  <tile id="18">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_37.png"/>
+  </tile>
+  <tile id="19">
+   <image width="32" height="32" source="../../../../Desktop/fire_animation/fire_1b_40_39.png"/>
+  </tile>
+ </tileset>
  <layer id="1" name="Tile Layer 1" width="50" height="50">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

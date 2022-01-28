@@ -81,18 +81,6 @@ class TiledMap:
 
     def gid_to_nearest_angle(self, gid, angle):
         nearest = 90 * round(angle / 90)
-        if nearest in [0, 360]:
-            return gid
-        elif nearest == 270:
-            return self.get_new_rotated_gid(gid, True, False, True)
-        elif nearest == 180:
-            return self.get_new_rotated_gid(gid, True, True, False)
-        elif nearest == 90:
-            return self.get_new_rotated_gid(gid, False, True, True)
-
-    """
-    def gid_to_nearest_angle(self, gid, angle):
-        nearest = 90 * round(angle / 90)
         if nearest == 90:
             return gid
         elif nearest == 180:
@@ -100,7 +88,7 @@ class TiledMap:
         elif nearest == 270:
             return self.get_new_rotated_gid(gid, True, True, False)
         elif nearest in [0, 360]:
-            return self.get_new_rotated_gid(gid, False, True, True)"""
+            return self.get_new_rotated_gid(gid, False, True, True)
 
     def set_map_tiles_props(self):
         self.walls = []
@@ -128,6 +116,7 @@ class TiledMap:
         tile_props['plant layer'] = self.river_layer
         tile_props['harvest'] = ''
         tile_props['tree'] = ''
+        tile_props['roof'] = ''
         tile_rect = False
 
         layers = [self.trees_layer, self.river_layer, self.ocean_plants_layer, self.water_layer, self.base_layer]
@@ -156,6 +145,8 @@ class TiledMap:
                         tile_props['harvest'] = props['harvest']
                 if 'tree' in props:
                     tile_props['tree'] = props['tree']
+                if 'roof' in props:
+                    tile_props['roof'] = props['roof']
         return tile_rect, tile_props
 
     def toggle_visible_layers(self):

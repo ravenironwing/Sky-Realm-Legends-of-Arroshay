@@ -139,10 +139,10 @@ ITEMS['cactus'] = {'name': 'cactus', 'type': 'harvestable', 'number': 1, 'max st
 ITEMS['seaweed'] = {'name': 'seaweed', 'type': 'harvestable', 'number': 1, 'max stack': 32}
 ITEMS['zhe buds'] = {'name': 'zhe buds', 'type': 'harvestable', 'number': 1, 'max stack': 32}
 ITEMS['marra leaf'] = {'name': 'marra leaf', 'type': 'harvestable', 'number': 1, 'max stack': 32}
-ITEMS['dry brush'] = {'name': 'dry bush', 'type': 'harvestable', 'number': 1, 'max stack': 32}
+ITEMS['dry brush'] = {'name': 'stick', 'type': 'item', 'number': 2, 'max stack': 32} # There is not actually a dry brush item. But harvesting it gives you sticks.
 ITEMS['dry grass'] ={'name': 'dry grass', 'type': 'harvestable', 'number': 1, 'max stack': 32}
 ITEMS['cattails'] = {'name': 'cattails', 'type': 'harvestable', 'number': 1, 'max stack': 32}
 ITEMS['blueberries'] = {'name': 'blueberries', 'type': 'harvestable', 'number': 1, 'max stack': 32}
-ITEMS['sage'] = {'name': 'blueberries', 'type': 'harvestable', 'number': 1, 'max stack': 32}
+ITEMS['sage'] = {'name': 'sage', 'type': 'harvestable', 'number': 1, 'max stack': 32}
 
 ITEMS['flint'] = {'name': 'flint', 'type': 'item', 'number': 1, 'max stack': 32}

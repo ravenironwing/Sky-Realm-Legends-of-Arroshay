@@ -2362,7 +2362,7 @@ class Game:
 
         # Only draws roofs when outside of buildings
         hits = pg.sprite.spritecollide(self.player, self.inside_on_screen, False)
-        if not hits:
+        if not (hits or self.player.inside):
             self.player_inside = False
         else:
             self.player_inside = True

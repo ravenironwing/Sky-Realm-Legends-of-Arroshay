@@ -7,6 +7,7 @@ ls = 'leather strips'
 l = 'leather'
 st = 'stick'
 f = 'flint'
+
 CRAFTING_RECIPIES = {}
 CRAFTING_RECIPIES['log wall'] = [2, lg, lg, 0,
                                          lg, lg, 0,

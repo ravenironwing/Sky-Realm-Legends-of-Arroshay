@@ -30,6 +30,9 @@ default_font = MENU_FONT
 #        if x not in ['race', 'gender']
 #            d[x] = [None]
 
+def gid_remove_flags(self, gid):
+    return gid & ~(0x80000000 | 0x40000000 | 0x20000000)  # clear the flags
+
 def convert_to_item_dict(b):
     new_list = b.copy()
     new_list.pop(0)
@@ -180,6 +183,7 @@ class Item_Icon(pg.sprite.Sprite):
             elif ('type' in self.item) and (self.item['type'] == 'block'):
                 try:
                     gid = gid_with_property(self.game.map.tmxdata, 'material', self.item['name'])
+                    gid = self.game.map.get_new_rotated_gid(gid, False, False, False)
                     self.item_image = self.game.map.tmxdata.get_tile_image_by_gid(gid)
                 except:
                     self.item_image = self.box_image
@@ -466,10 +470,10 @@ class MainMenu():  # used as the parent class for other menus.
     def draw_overmap(self):
         draw_offsetx = 16
         draw_offsety = 53
-        playerx = 400 #self.game.player.rect.centerx
-        playery = 400 #self.game.player.rect.centery
-        map_width = 1000 #self.game.map.width
-        map_height = 1000 #self.game.map.height
+        playerx = self.game.player.rect.centerx
+        playery = self.game.player.rect.centery
+        map_width = self.game.map.width
+        map_height = self.game.map.height
         cell_width = self.over_minimap_image.get_width() / len(self.game.map_data_list[0])
         cell_height = self.over_minimap_image.get_height() / len(self.game.map_data_list)
         offsetx = int(self.game.world_location.x * cell_width + draw_offsetx)

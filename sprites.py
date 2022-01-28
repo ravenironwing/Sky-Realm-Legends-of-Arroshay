@@ -12,6 +12,27 @@ from time import perf_counter, sleep
 
 vec = pg.math.Vector2
 
+def return_flags(bitnum): # Used for returning the rotational flags of a tile so it can be replaced by one of the same rotation.
+    tileid = bitnum & ~(0x80000000 | 0x40000000 | 0x20000000)
+    if tileid == bitnum & ~(0x20000000):
+        return 0x20000000
+    elif tileid == bitnum & ~(0x40000000):
+        return 0x40000000
+    elif tileid == bitnum & ~(0x80000000):
+        return 0x80000000
+    elif tileid == bitnum & ~(0x40000000 | 0x20000000):
+        return 0x40000000 | 0x20000000
+    elif tileid == bitnum & ~(0x80000000 | 0x20000000):
+        return 0x80000000 | 0x20000000
+    elif tileid == bitnum & ~(0x80000000 | 0x40000000):
+         return 0x80000000 | 0x40000000
+    else:
+        return 0x80000000 | 0x40000000 | 0x20000000
+
+def return_base_gid(gid):
+    tileid = gid & ~(0x80000000 | 0x40000000 | 0x20000000)
+    return tileid
+
 def play_relative_volume(source, sound, effect = True):  # This def plays sounds where the volume is adjusted according to the distance the source is from the player (the listener).
     volume = 1
     if source != source.game.player:
@@ -104,6 +125,10 @@ def set_tile_props(sprite): # sets a variable that keeps track of the important 
         sprite.in_grass = True
     else:
         sprite.in_grass = False
+    if sprite.tile_props['roof'] != '':
+        sprite.inside = True
+    else:
+        sprite.inside = False
 
     # sets tile props for next tile. This is used for interacting with things that are in front of sprites like workstations or plants.
     next_x, next_y = get_next_tile_pos(sprite)
@@ -173,6 +198,37 @@ def check_tile_hits(sprite):
             sprite.game.message_text = False
             sprite.e_down = False
 
+    elif ('window' in sprite.next_tile_props['material']) or ('door' in sprite.next_tile_props['material']):
+        sprite.inside = True
+        if ('door' in sprite.next_tile_props['material']):
+            sprite.game.message_text = True
+            x, y = get_next_tile_pos(sprite)
+            if ('closed' in sprite.next_tile_props['material']):
+                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to open door'
+                if sprite.e_down:
+                    play_relative_volume(sprite, 'door open')
+                    door_name = sprite.next_tile_props['material'].replace('closed', 'open')
+                    gid = gid_with_property(sprite.game.map.tmxdata, 'material', door_name)
+                    temp_gid = sprite.game.map.gid_to_nearest_angle(gid, sprite.rot)
+                    sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = temp_gid
+                    sprite.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
+                    sprite.game.map.redraw()
+                    sprite.game.message_text = False
+                    sprite.e_down = False
+            else:
+                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to close door'
+                if sprite.e_down:
+                    play_relative_volume(sprite, 'door close')
+                    door_name = sprite.next_tile_props['material'].replace('open', 'closed')
+                    gid = gid_with_property(sprite.game.map.tmxdata, 'material', door_name)
+                    temp_gid = sprite.game.map.gid_to_nearest_angle(gid, sprite.rot)
+                    sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = temp_gid
+                    sprite.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
+                    sprite.game.map.redraw()
+                    sprite.game.message_text = False
+                    sprite.e_down = False
+
+
     elif 'lava' in sprite.tile_props['material'] and not (sprite.jumping or sprite.flying):
         sprite.gets_hit(20, 0, 0)
         now = pg.time.get_ticks()
@@ -181,7 +237,7 @@ def check_tile_hits(sprite):
             Stationary_Animated(sprite.game, sprite.pos, 'fire', 3000)
             sprite.last_fire = now
 
-    elif 'electric door' in sprite.tile_props['material']:
+    elif 'electric entry' in sprite.tile_props['material']:
         if sprite.race not in ['mechanima', 'mechanima dragon', 'mech_suit']:
             sprite.gets_hit(15, 0, 50)
             now = pg.time.get_ticks()
@@ -574,7 +630,9 @@ def fire_collide(one, two):
 def add_inventory(inventory, item_name, count = 1):
     # Checks to see if you already have that item and increments the number accordingly.
     for slot in inventory:
-        if ('number' in slot) and (slot['name'] == item_name):
+        if ('number' in slot) and (slot['name'] == ITEMS[item_name]['name']): # Some items have a different name than their key so you can harvest things like sticks from bushes.
+            if 'number' in ITEMS[item_name]: # Adjusts the number if items come in units greater than one. Used for harvesting.
+                count = count * ITEMS[item_name]['number']
             diff = (slot['number'] + count) - slot['max stack']
             if diff <= 0:
                 slot['number'] += count
@@ -586,6 +644,8 @@ def add_inventory(inventory, item_name, count = 1):
     for i, slot in enumerate(inventory):
         if slot == {}:
             if item_name in ITEMS:
+                if 'number' in ITEMS[item_name]:  # Adjusts the number if items come in units greater than one. Used for harvesting.
+                    count = count * ITEMS[item_name]['number']
                 inventory[i] = ITEMS[item_name].copy()
                 inventory[i]['number'] = count
                 return True
@@ -1341,6 +1401,7 @@ class Body(pg.sprite.Sprite):
                             gid = gid_with_property(self.game.map.tmxdata, 'material', self.mother.hand_item['name'])
                             temp_img = self.game.map.tmxdata.get_tile_image_by_gid(gid).copy()
                             temp_img = temp_img.convert_alpha()
+                            temp_img = pg.transform.rotate(temp_img, 90)
                         else:
                             temp_img = self.game.item_images[correct_filename(self.mother.hand_item)]
                         if 'color' in self.mother.hand_item:
@@ -1624,6 +1685,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self._swimming = False
         self.in_shallows = False
         self._in_grass = False
+        self.inside = False
         self.driver = None
         self.falling = False
         self.melee_playing = False
@@ -1634,8 +1696,8 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.in_flying_vehicle = False
         self.moving_melee = False
         self.living = True
-        self.tile_props = {'material' : '', 'wall': ''}
-        self.next_tile_props = {'material': '', 'wall': ''}
+        self.tile_props = {'material' : '', 'wall': '', 'roof': ''}
+        self.next_tile_props = {'material': '', 'wall': '', 'roof': ''}
         #self.block_gid = None
         self.provoked = False
         self.offensive = False

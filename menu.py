@@ -43,7 +43,7 @@ def convert_to_item_dict(b):
             new_list[i] = ITEMS[val]
     return new_list
 
-def eliminate_numbers(a): # This is used to make it so you can craft items from stacks of multiple items. I temporarily gets rid of the numbers in the stack so they match the recipies wich are just made for one item.
+def eliminate_numbers(a): # This is used to make it so you can craft items from stacks of multiple items. I temporarily gets rid of the numbers in the stack so they match the recipes wich are just made for one item.
     new_list = copy.deepcopy(a)
     for i, value in enumerate(new_list):
         if 'number' in value:
@@ -181,12 +181,12 @@ class Item_Icon(pg.sprite.Sprite):
                 self.text_image = self.font.render(self.text, True, self.color)
                 self.item_image.blit(self.text_image, (1, 0))
             elif ('type' in self.item) and (self.item['type'] == 'block'):
-                try:
+                if True:
                     gid = gid_with_property(self.game.map.tmxdata, 'material', self.item['name'])
-                    gid = self.game.map.get_new_rotated_gid(gid, False, False, False)
+                    gid = self.game.map.get_new_rotated_gid(gid)
                     self.item_image = self.game.map.tmxdata.get_tile_image_by_gid(gid)
-                except:
-                    self.item_image = self.box_image
+                #except:
+                #    self.item_image = self.box_image
             else:
                 filename = correct_filename(self.item)
                 try:
@@ -306,9 +306,9 @@ class MainMenu():  # used as the parent class for other menus.
             self.menu_type = 'Crafting'
         self.container = container
         if self.menu_type not in  ['Looting']:
-            self.recipies = RECIPIES[self.menu_type]
+            self.recipes = RECIPIES[self.menu_type]
         else:
-            self.recipies = {}
+            self.recipes = {}
         self.surface_width = self.surface_height = 128
         self.body_surface = pg.Surface((self.surface_width, self.surface_height)).convert_alpha()
         self.magic_dict = self.character.expanded_inventory['magic'].copy()
@@ -365,6 +365,7 @@ class MainMenu():  # used as the parent class for other menus.
         self.crafting_slots = []
         for i in range (0, 9): # generates list of slots to be used in the crafting menu to craft items.
             self.crafting_slots.append({})
+        self.crafting_set_number = 0
         self.run()
 
     def draw_character_preview(self):
@@ -503,19 +504,36 @@ class MainMenu():  # used as the parent class for other menus.
         pg.draw.rect(self.game.screen, YELLOW, pos_rect, 2)
 
     def check_crafting(self):
-        for key, value in self.recipies.items():
-            if list_pattern(self.crafting_slots, value):
-                self.crafted_item = ITEMS[key].copy()
-                smallest_num = 10000
-                # This section finds the number of items you are crafting based on how many items you stick on the table
-                for i, item in enumerate(self.crafting_slots):
-                    if 'number' in item:
-                        if item['number'] < smallest_num:
-                            smallest_num = item['number']
-                if smallest_num != 10000:
-                    if 'number' in self.crafted_item:
-                        self.crafted_item['number'] = smallest_num * self.recipies[self.crafted_item['name']][0]
-                return
+        for key, value in self.recipes.items():
+            if type(self.recipes[key][0]) is list:  # Checks for multiple recipes
+                for recipe in self.recipes[key]:
+                    if list_pattern(self.crafting_slots, recipe):
+                        self.crafted_item = ITEMS[key].copy()
+                        smallest_num = 10000
+                        # This section finds the number of items you are crafting based on how many items you stick on the table
+                        for i, item in enumerate(self.crafting_slots):
+                            if 'number' in item:
+                                if item['number'] < smallest_num:
+                                    smallest_num = item['number']
+                        if smallest_num != 10000:
+                            if 'number' in self.crafted_item:
+                                self.crafted_item['number'] = smallest_num * recipe[0]
+                                self.crafting_set_number = recipe[0]
+                        return
+            else:
+                if list_pattern(self.crafting_slots, value):
+                    self.crafted_item = ITEMS[key].copy()
+                    smallest_num = 10000
+                    # This section finds the number of items you are crafting based on how many items you stick on the table
+                    for i, item in enumerate(self.crafting_slots):
+                        if 'number' in item:
+                            if item['number'] < smallest_num:
+                                smallest_num = item['number']
+                    if smallest_num != 10000:
+                        if 'number' in self.crafted_item:
+                            self.crafted_item['number'] = smallest_num * value[0]
+                            self.crafting_set_number = value[0]
+                    return
         else:
             self.crafted_item = {}
 
@@ -781,7 +799,7 @@ class MainMenu():  # used as the parent class for other menus.
             for i, item in enumerate(self.crafting_slots):
                 if 'number' in item:
                     if 'number' in self.crafted_item.keys():
-                        item['number'] -= int(self.crafted_item['number'] / self.recipies[self.crafted_item['name']][0])
+                        item['number'] -= int(self.crafted_item['number'] / self.crafting_set_number)
                     else:
                         item['number'] -= 1
                     if item['number'] == 0:
@@ -1455,13 +1473,11 @@ class MainMenu():  # used as the parent class for other menus.
 # Old menues
 
 class Lock_Menu():
-    def __init__(self, game, lock, kind):
+    def __init__(self, game, lock):
         spacing = 20
         self.game = game
         self.lock = lock
-        self.kind = kind
-        if self.kind == 'chest':
-            self.key_name = self.lock['name'] + ' key'
+        self.key_name = self.lock['name'] + ' key'
         self.menu_sprites = pg.sprite.Group()
         self.keyway_sprite = pg.sprite.Group()
         self.running = True
@@ -1514,10 +1530,9 @@ class Lock_Menu():
             self.events()
             self.draw()
         self.game.in_lock_menu = self.game.in_menu = False
-        if 'inventory' in self.lock: # Enters loot menu after you unlock a chest.
-            self.game.in_loot_menu = True
-            self.game.loot_menu = Loot_Menu(self.game, self.lock['inventory'])
         pg.mixer.music.play(loops=-1)
+        if 'inventory' in self.lock: # Enters loot menu after you unlock a chest.
+            MainMenu(self.game, self.game.player, 'Looting', self.lock['inventory'])
         self.game.beg = perf_counter() # resets the counter so dt doesn't get messed up.
         del self
 

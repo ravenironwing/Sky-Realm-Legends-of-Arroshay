@@ -7,6 +7,8 @@ ls = 'leather strips'
 l = 'leather'
 st = 'stick'
 f = 'flint'
+ii = 'iron ingot'
+icb = 'iron cast block'
 
 CRAFTING_RECIPIES = {}
 CRAFTING_RECIPIES['log wall'] = [2, lg, lg, 0,
@@ -19,6 +21,7 @@ CRAFTING_RECIPIES['brick wall'] = [1, b, b, 0,
 CRAFTING_RECIPIES['flint axe'] = [1, f, 0,
                                   0, ls, 0,
                                   0, st]
+CRAFTING_RECIPIES['leather strips'] = [1, l]
 
 
 WORKBENCH_RECIPIES = {}
@@ -34,8 +37,12 @@ WORKBENCH_RECIPIES['wooden armor'] = [1, p, 0, p,
                                       0, p, 0]
 
 FORGING_RECIPIES = {}
+SMELTING_RECIPIES = {}
 for material in MATERIALS:
     x = material + ' ingot'
+    ox = material + ' ore'
+    cb = material + ' cast block'
+    cw = material + ' cube wall'
     FORGING_RECIPIES[material + ' armor'] = [1, x, 0, x,
                                                 x, x, x,
                                                 x, x, x]
@@ -58,18 +65,45 @@ for material in MATERIALS:
     FORGING_RECIPIES[material + ' pickaxe'] = [1, x, x, x,
                                                 0, st, 0,
                                                 0, st, 0]
+
+
     #FORGING_RECIPIES[material + ' longsword'] = [1, 0, 0, x,
     #                                            0, x, x,
     #                                            st, x, 0]
     #FORGING_RECIPIES[material + ' dagger'] = [1, x, 0,
     #                                            0, st]
 
+    SMELTING_RECIPIES[material + ' ingot'] = [[1, ox, ox, 0,
+                                                   ox, ox],
+                                              [9, cb]]
+
+    SMELTING_RECIPIES[material + ' cast block'] = [[1, x, x, x,
+                                                   x, x, x,
+                                                   x, x, x],
+                                                   [9, cw]]
+
+    SMELTING_RECIPIES[material + ' cube wall'] = [1, cb, cb, cb,
+                                                   cb, cb, cb,
+                                                   cb, cb, cb]
+
+FORGING_RECIPIES['anvil'] = [1, icb, icb, icb,
+                                0, ii, 0,
+                                ii, ii, ii]
+
 ENCHANTING_RECIPIES = {}
-SMELTING_RECIPIES = {}
+
 TANNING_RECIPIES = {}
+TANNING_RECIPIES['leather strips'] = [1, l]
 GRINDER_RECIPIES = {}
 COOKING_RECIPIES = {}
 ALCHEMY_RECIPIES = {}
+ml = 'marra leaf'
+bb = 'blueberries'
+bt = 'empty bottle'
+ALCHEMY_RECIPIES['potion of minor healing'] = [1, 0, ml, 0,
+                                                     0, bb, 0,
+                                                     0, bt, 0]
+
 
 # Simply change out the recipie dictionary for different workstations.
 RECIPIES = {'Crafting': CRAFTING_RECIPIES, 'Work Bench': WORKBENCH_RECIPIES, 'Anvil': FORGING_RECIPIES, 'Enchanter': ENCHANTING_RECIPIES, 'Smelter': SMELTING_RECIPIES, 'Tanning Rack': TANNING_RECIPIES, 'Grinder': GRINDER_RECIPIES, 'Cooking Fire': COOKING_RECIPIES, 'Alchemy Lab': ALCHEMY_RECIPIES}

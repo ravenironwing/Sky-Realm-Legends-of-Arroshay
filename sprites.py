@@ -79,8 +79,10 @@ def correct_filename(item):
 
     if 'potion' in item['name']:
         filename = 'potion'
-    if ('type' in item.keys()) and (item['type'] == 'book'):
+    elif ('type' in item.keys()) and (item['type'] == 'book'):
         filename = 'generic book'
+    elif 'key' in item['name']:
+        filename = 'key'
     return filename
 
 def round_to_base(x, base=90):
@@ -145,7 +147,7 @@ def check_tile_hits(sprite):
             chest = sprite.game.map.chests[y][x]
             if not chest['locked']:
                 sprite.game.message_text = True
-                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to open chest'
+                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to open chest.'
                 if sprite.e_down:
                     play_relative_volume(sprite, 'door open')
                     sprite.game.make_work_station_menu('looting', chest['inventory'])
@@ -155,15 +157,67 @@ def check_tile_hits(sprite):
                 sprite.game.message_text = True
                 key_name = chest['name'] + ' key'
                 if sprite.check_inventory('lock pick') or sprite.check_inventory(key_name):
-                    sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to unlock chest'
+                    sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to unlock chest.'
                     if sprite.e_down:
                         if not sprite.game.in_lock_menu:
                             sprite.game.in_lock_menu = sprite.game.in_menu = True
-                            sprite.game.make_lock_menu(chest, 'chest')
+                            sprite.game.make_lock_menu(chest)
                         sprite.game.message_text = False
                         sprite.e_down = False
                 else:
-                    sprite.game.message = 'This chest is locked'
+                    sprite.game.message = 'This chest is locked.'
+
+    elif ('window' in sprite.next_tile_props['material']) or ('door' in sprite.next_tile_props['material']):
+        sprite.inside = True
+        if ('door' in sprite.next_tile_props['material']):
+            sprite.game.message_text = True
+            x, y = get_next_tile_pos(sprite)
+            if ('closed' in sprite.next_tile_props['material']):
+                door = sprite.game.map.doors[y][x]
+                if not door['locked']:
+                    sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to open door.'
+                    if sprite.e_down:
+                        play_relative_volume(sprite, 'door open')
+                        door_name = sprite.next_tile_props['material'].replace('closed', 'open')
+                        new_gid = gid_with_property(sprite.game.map.tmxdata, 'material', door_name) # Gets teh gid of the opposite kind of door (open/closed)
+                        orig_gid = sprite.game.map.tmxdata.get_tile_gid(x, y, sprite.game.map.ocean_plants_layer) # gets the original gid of the door tile so we know it's rotation.
+                        flags = sprite.game.map.get_tile_flags(orig_gid) # gets the rotational flags of the door
+                        gid = sprite.game.map.get_new_rotated_gid(new_gid, flags)
+                        sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = gid
+                        sprite.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
+                        sprite.game.map.redraw()
+                        sprite.game.message_text = False
+                        sprite.e_down = False
+                else:
+                    sprite.game.message_text = True
+                    key_name = door['name'] + ' key'
+                    if sprite.check_inventory('lock pick') or sprite.check_inventory(key_name):
+                        sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to unlock ' + door['name'] + '.'
+                        if sprite.e_down:
+                            if not sprite.game.in_lock_menu:
+                                sprite.game.in_lock_menu = sprite.game.in_menu = True
+                                sprite.game.make_lock_menu(door)
+                            sprite.game.message_text = False
+                            sprite.e_down = False
+                    else:
+                        sprite.game.message = door['name'] + ' is locked.'
+
+            else:
+                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to close door.'
+                if sprite.e_down:
+                    play_relative_volume(sprite, 'door close')
+                    door_name = sprite.next_tile_props['material'].replace('open', 'closed')
+                    new_gid = gid_with_property(sprite.game.map.tmxdata, 'material',
+                                                door_name)  # Gets teh gid of the opposite kind of door (open/closed)
+                    orig_gid = sprite.game.map.tmxdata.get_tile_gid(x, y,
+                                                                    sprite.game.map.ocean_plants_layer)  # gets the original gid of the door tile so we know it's rotation.
+                    flags = sprite.game.map.get_tile_flags(orig_gid)  # gets the rotational flags of the door
+                    gid = sprite.game.map.get_new_rotated_gid(new_gid, flags)
+                    sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = gid
+                    sprite.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
+                    sprite.game.map.redraw()
+                    sprite.game.message_text = False
+                    sprite.e_down = False
 
     # player hits work station (forge, grinder, work bench, etc)
     elif (sprite.next_tile_props['material'] in WORK_STATION_LIST) or (sprite.tile_props['material'] in WORK_STATION_LIST):
@@ -197,37 +251,6 @@ def check_tile_hits(sprite):
             sprite.use_toilet()
             sprite.game.message_text = False
             sprite.e_down = False
-
-    elif ('window' in sprite.next_tile_props['material']) or ('door' in sprite.next_tile_props['material']):
-        sprite.inside = True
-        if ('door' in sprite.next_tile_props['material']):
-            sprite.game.message_text = True
-            x, y = get_next_tile_pos(sprite)
-            if ('closed' in sprite.next_tile_props['material']):
-                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to open door'
-                if sprite.e_down:
-                    play_relative_volume(sprite, 'door open')
-                    door_name = sprite.next_tile_props['material'].replace('closed', 'open')
-                    gid = gid_with_property(sprite.game.map.tmxdata, 'material', door_name)
-                    temp_gid = sprite.game.map.gid_to_nearest_angle(gid, sprite.rot)
-                    sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = temp_gid
-                    sprite.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
-                    sprite.game.map.redraw()
-                    sprite.game.message_text = False
-                    sprite.e_down = False
-            else:
-                sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to close door'
-                if sprite.e_down:
-                    play_relative_volume(sprite, 'door close')
-                    door_name = sprite.next_tile_props['material'].replace('open', 'closed')
-                    gid = gid_with_property(sprite.game.map.tmxdata, 'material', door_name)
-                    temp_gid = sprite.game.map.gid_to_nearest_angle(gid, sprite.rot)
-                    sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = temp_gid
-                    sprite.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
-                    sprite.game.map.redraw()
-                    sprite.game.message_text = False
-                    sprite.e_down = False
-
 
     elif 'lava' in sprite.tile_props['material'] and not (sprite.jumping or sprite.flying):
         sprite.gets_hit(20, 0, 0)
@@ -1399,6 +1422,7 @@ class Body(pg.sprite.Sprite):
                     if self.mother.hand_item != {}:
                         if ('type' in self.mother.hand_item) and (self.mother.hand_item['type'] == 'block'):
                             gid = gid_with_property(self.game.map.tmxdata, 'material', self.mother.hand_item['name'])
+                            gid = self.game.map.get_new_rotated_gid(gid) # returns unrotated gid
                             temp_img = self.game.map.tmxdata.get_tile_image_by_gid(gid).copy()
                             temp_img = temp_img.convert_alpha()
                             temp_img = pg.transform.rotate(temp_img, 90)
@@ -2125,8 +2149,8 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
     def add_inventory(self, item_name, count = 1):
         return add_inventory(self.inventory, item_name, count)
 
-    #def check_inventory(self, item, count = 1):
-    #    return check_inventory(self.inventory, item, count)
+    def check_inventory(self, item, count = 1):
+        return check_inventory(self.inventory, item, count)
     """
     def check_materials(self, item_type, chosen_item, subtract_materials = True):
         if 'materials' not in eval(item_type.upper())[chosen_item]:
@@ -2854,6 +2878,8 @@ class Player(Character):  # Used for humanoid NPCs and Players
                 temp_gid = self.game.map.gid_to_nearest_angle(gid, self.rot)
                 if 'plant' in props:
                     self.game.map.tmxdata.layers[self.game.map.river_layer].data[y][x] = temp_gid
+                elif ('chest' in props['material']) or ('anvil' in props['material']):
+                    self.game.map.tmxdata.layers[self.game.map.ocean_plants_layer].data[y][x] = temp_gid
                 else:
                     self.game.map.tmxdata.layers[self.game.map.base_layer].data[y][x] = temp_gid
                     self.game.map.tmxdata.layers[self.game.map.ocean_plants_layer].data[y][x] = 0

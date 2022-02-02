@@ -61,16 +61,53 @@ class TiledMap:
         self.walls = []
         self.tile_props = []
         self.chests =[[0 for j in range(self.tiles_high)] for i in range(self.tiles_wide)] # Makes an empty 2D array for storing chest locations. Chests will be stored in the array as dictionaries.
+        self.doors = self.chests.copy()
         self.set_map_tiles_props()
 
         #self.overlay = self.generate_over_layer()
         #self.minimap = MiniMap(tm)
 
+    def get_tile_flags(self, gid): # gets the rotational flags from the tiled map data that are associated with a gid
+        flags = TileFlags(False, False, False)
+        tiled_gid = self.tmxdata.tiledgidmap[gid]
+        gid_info = self.tmxdata.map_gid(tiled_gid)
+        for tile in gid_info:
+            if tile[0] == gid:
+                flags = tile[1]
+                return flags
+        return flags
+
     def get_new_rotated_gid(self, gid, hor = False, vert = False, diag = False):
-        tileflags = TileFlags(hor, vert, diag)
+        if hor in [True, False]:
+            tileflags = TileFlags(hor, vert, diag)
+        else:
+            tileflags = hor # allows for passing tile fags as one parameter.
         new_gid = self.tmxdata.register_gid(gid, tileflags)
+
+        tiled_gid = self.tmxdata.tiledgidmap[gid]
+        gid_info = self.tmxdata.map_gid(tiled_gid)
+        unrotated_gid = None
+        orig_flags = None
+        print(gid_info)
+        for tile in gid_info:
+            if tile[1] == (False, False, False): # Gets unrotated tile gid
+                unrotated_gid = tile[0]
+        if unrotated_gid:
+            gid = unrotated_gid
+        else:
+            print('unrotated not found')
+            gid = gid_info[0][0]
+            orig_flags = gid_info[0][1] # gets the rotational flags
+            print(orig_flags)
+
         original_image = self.tmxdata.get_tile_image_by_gid(gid)
-        new_image = handle_transformation(original_image, tileflags)
+        if orig_flags:
+            if orig_flags.flipped_diagonally:
+                orig_flags = TileFlags(orig_flags.flipped_horizontally, orig_flags.flipped_vertically, orig_flags.flipped_diagonally)
+            unrotated_image = handle_transformation(original_image, orig_flags)
+        else:
+            unrotated_image = original_image
+        new_image = handle_transformation(unrotated_image, tileflags)
         if len(self.tmxdata.images) <= new_gid:
             self.tmxdata.images.append(new_image)
         else:
@@ -138,6 +175,18 @@ class TiledMap:
                         if not chest_found: # If not chest is found in the chests.py CHESTS then an empty chest is created and the map name assigned.
                             self.chests[y][x] = fix_inventory(EMPTY_CHEST.copy(), 'chest')
                             self.chests[y][x]['map'] = self.map_name
+
+                    door_found = False
+                    if 'door' in props['material']:
+                        for door in DOORS.keys():
+                            if (door == (x, y)) and (DOORS[door]['map'] == self.name):
+                                if not self.doors[y][x]: # Assigns the door dictionary to the door array if it hasn't been assigned yet.
+                                    self.doors[y][x] = DOORS[door].copy()
+                                door_found = True
+                        if not door_found: # If not chest is found in the chests.py CHESTS then an empty chest is created and the map name assigned.
+                            self.doors[y][x] = STANDARD_DOOR.copy()
+                            self.doors[y][x]['map'] = self.map_name
+
                 if 'plant' in props:
                     tile_props['plant'] = props['plant']
                     tile_props['plant layer'] = layer

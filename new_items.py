@@ -1,5 +1,6 @@
 import pygame as pg
 from color_palettes import *
+from chests import *
 vec = pg.math.Vector2
 
 ITEMS = {}
@@ -73,6 +74,8 @@ for material in MATERIALS:
                                   'color': MATERIALS[material]['color']}
     # Ores and Ingots
     ITEMS[material + ' ingot'] = {'name': material + ' ingot', 'type': 'ingot', 'number': 1, 'max stack': 32, 'color': MATERIALS[material]['color']}
+    ITEMS[material + ' cast block'] = {'name': material + ' cast block', 'type': 'ingot', 'number': 1, 'max stack': 10, 'color': MATERIALS[material]['color']}
+    ITEMS[material + ' cube wall'] = {'name': material + ' cube wall', 'type': 'ingot', 'number': 1, 'max stack': 4, 'color': MATERIALS[material]['color']}
     ITEMS[material + ' ore'] = {'name': material + ' ore', 'type': 'ore', 'number': 1, 'max stack': 16, 'color': MATERIALS[material]['color']}
 
 ITEMS['wooden armor'] = {'name': 'wooden armor', 'type': 'torso', 'armor': 15, 'hp': 150, 'max hp': 150}
@@ -91,7 +94,7 @@ for color in BOOT_COLORS:
     ITEMS[color + ' boots'] = {'name': color + ' boots', 'type': 'feet','armor': 2, 'hp': 100, 'max hp': 100, 'color': CLOTHING_COLORS[color]}
 
 for color in CRYSTAL_COLORS:
-    ITEMS[color + ' crystal'] = {'name': color + ' crystal', 'type': 'crystals', 'color': color, 'number': 1, 'max stack': 32}
+    ITEMS[color + ' crystal'] = {'name': color + ' crystal', 'type': 'crystals', 'color': color, 'number': 1, 'max stack': 32, 'leather': 10}
 
 POTIONS = {}
 POTIONS['potion of minor healing'] = {'health': 20, 'color': PINK}
@@ -107,6 +110,8 @@ for potion in POTIONS:
     temp_dict = {'name': potion, 'number': 1, 'max stack': 16, 'type': 'potion'}
     ITEMS[potion] = POTIONS[potion]
     ITEMS[potion].update(temp_dict)
+
+ITEMS['empty bottle'] = {'name': 'empty bottle', 'type': 'item', 'number': 1, 'max stack': 16}
 
 ITEMS['leather'] = {'name': 'leather', 'type': 'item', 'number': 1, 'max stack': 16}
 ITEMS['leather strips'] = {'name': 'leather strips', 'type': 'item', 'number': 1, 'max stack': 32}
@@ -146,3 +151,15 @@ ITEMS['blueberries'] = {'name': 'blueberries', 'type': 'harvestable', 'number': 
 ITEMS['sage'] = {'name': 'sage', 'type': 'harvestable', 'number': 1, 'max stack': 32}
 
 ITEMS['flint'] = {'name': 'flint', 'type': 'item', 'number': 1, 'max stack': 32}
+
+# Generates keys for all chests
+for chest in CHESTS:
+    key_name = CHESTS[chest]['name'] + " key"
+    ITEMS[key_name] = {'name': key_name}
+
+# Generates keys for all doors
+for door in DOORS:
+    key_name = DOORS[door]['name'] + " key"
+    ITEMS[key_name] = {'name': key_name}
+
+ITEMS['lock pick'] = {'name': 'lock pick', 'type': 'item', 'hp': 10, 'max hp': 10}

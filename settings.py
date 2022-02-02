@@ -169,7 +169,7 @@ WORKSTATIONS = ['Crafting', 'Work Bench', 'Anvil', 'Enchanter', 'Smelter', 'Tann
 WORK_STATION_LIST = []
 for item in WORKSTATIONS:
     WORK_STATION_LIST.append(item.lower())
-WORK_STATION_DICT = {'crafting': 'Crafting', 'work bench': 'Work Bench', 'anvil': 'Anvil', 'enchanter': 'Enchanter', 'smelter': 'Smelter', 'tanning rack': 'Tanning Rack', 'grinder': 'Grinder', 'cooking fire': 'Cooking Fire', 'alchemy Lab': 'Alchemy Lab', 'looting': 'Looting'}
+WORK_STATION_DICT = {'crafting': 'Crafting', 'work bench': 'Work Bench', 'anvil': 'Anvil', 'enchanter': 'Enchanter', 'smelter': 'Smelter', 'tanning rack': 'Tanning Rack', 'grinder': 'Grinder', 'cooking fire': 'Cooking Fire', 'alchemy lab': 'Alchemy Lab', 'looting': 'Looting'}
 
 # Player settings
 #PLAYER_HEALTH = 100
@@ -586,7 +586,7 @@ for race, value in RACE.items():
 EMPTY_INVENTORY = {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}, 'blocks': {}}
 EMPTY_EQUIP = {'gender': 'female', 'race': 'osidine', 'hair': None, 'weapons': None, 'weapons2': None, 'head': {}, 'torso': {}, 'bottom': {}, 'feet': {}, 'gloves': {}, 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}}
 DEFAULT_INVENTORIES = {}
-DEFAULT_INVENTORIES['osidine'] = {'orange burlap shirt': 1, 'brown pants': 1, 'Guide to Arroshay':1}
+DEFAULT_INVENTORIES['osidine'] = {'orange burlap shirt': 1, 'brown pants': 1, 'Guide to Arroshay':1, "Grandpa's house key":1}
 DEFAULT_INVENTORIES['shaktele'] = {'blue burlap shirt': 1, 'brown pants': 1, 'Guide to Arroshay':1}
 DEFAULT_INVENTORIES['elf'] = {'green burlap shirt': 1, 'brown pants': 1, 'Guide to Arroshay':1}
 DEFAULT_INVENTORIES['lacertolian'] = {'red burlap shirt': 1, 'brown pants': 1, 'Guide to Arroshay':1}

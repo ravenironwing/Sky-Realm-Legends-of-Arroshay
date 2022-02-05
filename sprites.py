@@ -2879,7 +2879,6 @@ class Player(Character):  # Used for humanoid NPCs and Players
                 self.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
                 self.game.map.redraw()
                 set_tile_props(self)
-
                 if hand_item['number'] == 1:
                     self.equipped[hud_slot] = {}
                     if hud_slot == 6:

@@ -104,9 +104,8 @@ class TiledMap:
             tileflags = TileFlags(hor, vert, diag)
         else:
             tileflags = hor # allows for passing tile fags as one parameter.
-        new_gid = self.tmxdata.register_gid(gid, tileflags)
-
         tiled_gid = self.tmxdata.tiledgidmap[gid]
+        new_gid = self.tmxdata.register_gid(tiled_gid, tileflags)
         gid_info = self.tmxdata.map_gid(tiled_gid)
         unrotated_gid = None
         orig_flags = None
@@ -129,8 +128,9 @@ class TiledMap:
         new_image = handle_transformation(unrotated_image, tileflags)
         if len(self.tmxdata.images) <= new_gid:
             self.tmxdata.images.append(new_image)
-        else:
-            self.tmxdata.images[new_gid] = new_image
+        #else:
+            #self.tmxdata.images[new_gid] = new_image
+
         props = self.tmxdata.get_tile_properties_by_gid(gid)
         self.tmxdata.set_tile_properties(new_gid, props)
         return new_gid

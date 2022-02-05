@@ -1,5 +1,5 @@
 import pygame as pg
-from sprites import Dropped_Item, toggle_equip, remove_nones, change_clothing, color_image, add_inventory, gid_with_property, correct_filename, gender_tag
+from sprites import Dropped_Item, toggle_equip, remove_nones, change_clothing, color_image, add_inventory, correct_filename, gender_tag
 from random import uniform, choice, randint, random, randrange
 from settings import *
 from npcs import *
@@ -155,7 +155,10 @@ class Item_Icon(pg.sprite.Sprite):
         else:
             self.type = None
         if self.item == {}: # Draws empty slots
-            self.box_image = pg.transform.scale(self.game.dark_grey_box_image, (ICON_SIZE, ICON_SIZE))
+            if self.dict == 'crafting':
+                self.box_image = pg.transform.scale(self.game.clear_box_image, (ICON_SIZE, ICON_SIZE))
+            else:
+                self.box_image = pg.transform.scale(self.game.dark_grey_box_image, (ICON_SIZE, ICON_SIZE))
             self.image = self.box_image
             if self.slot_text:
                 self.text_image = self.font.render(self.slot_text, True, self.color)
@@ -182,8 +185,7 @@ class Item_Icon(pg.sprite.Sprite):
                 self.item_image.blit(self.text_image, (1, 0))
             elif ('type' in self.item) and (self.item['type'] == 'block'):
                 if True:
-                    gid = gid_with_property(self.game.map.tmxdata, 'material', self.item['name'])
-                    gid = self.game.map.get_new_rotated_gid(gid)
+                    gid = self.game.map.get_gid_by_prop_name(self.item['name'])
                     self.item_image = self.game.map.tmxdata.get_tile_image_by_gid(gid)
                 #except:
                 #    self.item_image = self.box_image
@@ -876,6 +878,10 @@ class MainMenu():  # used as the parent class for other menus.
             pg.draw.rect(self.game.screen, WHITE, stats_rect, 2)
             pg.draw.rect(self.game.screen, BLACK, stats_rect_fill)
 
+        if self.selected_heading.text in WORKSTATIONS:
+            station_img = self.game.workstation_images[self.menu_type.lower()]
+            self.game.screen.blit(pg.transform.scale(station_img, (226, 225)), (self.game.screen_width / 2 + 13, 57))
+
         if self.selected_item:
             selected_rect = pg.Rect(self.selected_item.rect.x - 2, self.selected_item.rect.y - 2, self.selected_item.rect.width + 2, self.selected_item.size + 2)
             pg.draw.rect(self.game.screen, YELLOW, selected_rect, 2)
@@ -1442,6 +1448,11 @@ class MainMenu():  # used as the parent class for other menus.
         self.update_external_variables()
 
     def update_external_variables(self):
+        # Removes any items you left on crafting tables and puts them back in your inventory
+        for item in self.crafting_slots:
+            if item != {}:
+                self.character.add_inventory(item)
+        # Updates teh weapons you are equipping
         if ('name' in self.character.equipped[6]):
             self.character.hand2_item = self.character.equipped[6]
         if ('type' in self.character.equipped[6]) and (self.character.equipped[6]['type'] in WEAPON_TYPES):

@@ -12,27 +12,6 @@ from time import perf_counter, sleep
 
 vec = pg.math.Vector2
 
-def return_flags(bitnum): # Used for returning the rotational flags of a tile so it can be replaced by one of the same rotation.
-    tileid = bitnum & ~(0x80000000 | 0x40000000 | 0x20000000)
-    if tileid == bitnum & ~(0x20000000):
-        return 0x20000000
-    elif tileid == bitnum & ~(0x40000000):
-        return 0x40000000
-    elif tileid == bitnum & ~(0x80000000):
-        return 0x80000000
-    elif tileid == bitnum & ~(0x40000000 | 0x20000000):
-        return 0x40000000 | 0x20000000
-    elif tileid == bitnum & ~(0x80000000 | 0x20000000):
-        return 0x80000000 | 0x20000000
-    elif tileid == bitnum & ~(0x80000000 | 0x40000000):
-         return 0x80000000 | 0x40000000
-    else:
-        return 0x80000000 | 0x40000000 | 0x20000000
-
-def return_base_gid(gid):
-    tileid = gid & ~(0x80000000 | 0x40000000 | 0x20000000)
-    return tileid
-
 def play_relative_volume(source, sound, effect = True):  # This def plays sounds where the volume is adjusted according to the distance the source is from the player (the listener).
     volume = 1
     if source != source.game.player:
@@ -179,7 +158,7 @@ def check_tile_hits(sprite):
                     if sprite.e_down:
                         play_relative_volume(sprite, 'door open')
                         door_name = sprite.next_tile_props['material'].replace('closed', 'open')
-                        new_gid = gid_with_property(sprite.game.map.tmxdata, 'material', door_name) # Gets teh gid of the opposite kind of door (open/closed)
+                        new_gid = sprite.game.map.gid_with_property('material', door_name) # Gets teh gid of the opposite kind of door (open/closed)
                         orig_gid = sprite.game.map.tmxdata.get_tile_gid(x, y, sprite.game.map.ocean_plants_layer) # gets the original gid of the door tile so we know it's rotation.
                         flags = sprite.game.map.get_tile_flags(orig_gid) # gets the rotational flags of the door
                         gid = sprite.game.map.get_new_rotated_gid(new_gid, flags)
@@ -207,7 +186,7 @@ def check_tile_hits(sprite):
                 if sprite.e_down:
                     play_relative_volume(sprite, 'door close')
                     door_name = sprite.next_tile_props['material'].replace('open', 'closed')
-                    new_gid = gid_with_property(sprite.game.map.tmxdata, 'material',
+                    new_gid = sprite.game.map.gid_with_property('material',
                                                 door_name)  # Gets teh gid of the opposite kind of door (open/closed)
                     orig_gid = sprite.game.map.tmxdata.get_tile_gid(x, y,
                                                                     sprite.game.map.ocean_plants_layer)  # gets the original gid of the door tile so we know it's rotation.
@@ -308,7 +287,7 @@ def check_harvest(sprite, x, y, next_x, next_y):
 def harvest_plant(sprite, x, y, props):
     if sprite.add_inventory(props['plant'], 1):
         if props['harvest'] != 'none':
-            sprite.game.map.tmxdata.layers[props['plant layer']].data[y][x] = gid_with_property(sprite.game.map.tmxdata, 'plant', props['harvest'])
+            sprite.game.map.tmxdata.layers[props['plant layer']].data[y][x] = sprite.game.map.gid_with_property('plant', props['harvest'])
         else:
             sprite.game.map.tmxdata.layers[props['plant layer']].data[y][x] = 0
         sprite.game.map.update_tile_props(x, y) # Updates properties for tiles that have changed.
@@ -410,11 +389,6 @@ def remove_drained_equipped(sprite):
                     sprite.equipped['weapons2'] = None
                 sprite.equipped[key] = {}
                 sprite.body.update_animations()
-
-def gid_with_property(tmxdata, key, value):
-    for gid, props in tmxdata.tile_properties.items():
-        if props.get(key) == value:
-            return gid
 
 def auto_crop(surf):
     rect = surf.get_bounding_rect()
@@ -650,12 +624,19 @@ def fire_collide(one, two):
     else:
         return False
 
-def add_inventory(inventory, item_name, count = 1):
+def add_inventory(inventory, item_name, count = 1): # Accepts either an item in dictionary form or by item name.
+    if isinstance(item_name, dict):
+        item_dict = item_name
+    else:
+        if item_name in ITEMS:
+            item_dict = ITEMS[item_name]
+        else:
+            return False
     # Checks to see if you already have that item and increments the number accordingly.
     for slot in inventory:
-        if ('number' in slot) and (slot['name'] == ITEMS[item_name]['name']): # Some items have a different name than their key so you can harvest things like sticks from bushes.
-            if 'number' in ITEMS[item_name]: # Adjusts the number if items come in units greater than one. Used for harvesting.
-                count = count * ITEMS[item_name]['number']
+        if ('number' in slot) and (slot['name'] == item_dict['name']): # Some items have a different name than their key so you can harvest things like sticks from bushes.
+            if 'number' in item_dict: # Adjusts the number if items come in units greater than one. Used for harvesting.
+                count = count * item_dict['number']
             diff = (slot['number'] + count) - slot['max stack']
             if diff <= 0:
                 slot['number'] += count
@@ -666,12 +647,11 @@ def add_inventory(inventory, item_name, count = 1):
     # If no remaining slots of same type are found then it finds an empty slot
     for i, slot in enumerate(inventory):
         if slot == {}:
-            if item_name in ITEMS:
-                if 'number' in ITEMS[item_name]:  # Adjusts the number if items come in units greater than one. Used for harvesting.
-                    count = count * ITEMS[item_name]['number']
-                inventory[i] = ITEMS[item_name].copy()
-                inventory[i]['number'] = count
-                return True
+            if 'number' in item_dict:  # Adjusts the number if items come in units greater than one. Used for harvesting.
+                count = count * item_dict['number']
+            inventory[i] = item_dict.copy()
+            inventory[i]['number'] = count
+            return True
     return False
 
 def check_inventory(inventory, item_name, count = 1):
@@ -1421,8 +1401,11 @@ class Body(pg.sprite.Sprite):
                     weapon_angle = part[2]
                     if self.mother.hand_item != {}:
                         if ('type' in self.mother.hand_item) and (self.mother.hand_item['type'] == 'block'):
-                            gid = gid_with_property(self.game.map.tmxdata, 'material', self.mother.hand_item['name'])
-                            gid = self.game.map.get_new_rotated_gid(gid) # returns unrotated gid
+                            gid = self.game.map.get_gid_by_prop_name(self.mother.hand_item['name'])
+                            #gid = gid_with_property(self.game.map.tmxdata, 'roof', self.mother.hand_item['name'])
+                            #if gid == None:
+                            #    gid = gid_with_property(self.game.map.tmxdata, 'material', self.mother.hand_item['name'])
+                            #gid = self.game.map.get_new_rotated_gid(gid) # returns unrotated gid
                             temp_img = self.game.map.tmxdata.get_tile_image_by_gid(gid).copy()
                             temp_img = temp_img.convert_alpha()
                             temp_img = pg.transform.rotate(temp_img, 90)
@@ -1440,9 +1423,14 @@ class Body(pg.sprite.Sprite):
                     weapon2_angle = part[2]
                     if self.mother.hand2_item != {}:
                         if ('type' in self.mother.hand2_item) and (self.mother.hand2_item['type'] == 'block'):
-                            gid = gid_with_property(self.game.map.tmxdata, 'material', self.mother.hand2_item['name'])
+                            gid = self.game.map.get_gid_by_prop_name(self.mother.hand2_item['name'])
+                            #gid = gid_with_property(self.game.map.tmxdata, 'roof', self.mother.hand2_item['name'])
+                            #if gid == None:
+                            #    gid = gid_with_property(self.game.map.tmxdata, 'material', self.mother.hand2_item['name'])
+                            #gid = self.game.map.get_new_rotated_gid(gid) # returns unrotated gid
                             temp_img = self.game.map.tmxdata.get_tile_image_by_gid(gid).copy()
                             temp_img = temp_img.convert_alpha()
+                            temp_img = pg.transform.rotate(temp_img, 90)
                         else:
                             temp_img = self.game.item_images[correct_filename(self.mother.hand2_item)]
                         if 'color' in self.mother.hand2_item:
@@ -2869,21 +2857,25 @@ class Player(Character):  # Used for humanoid NPCs and Players
         else:
             hand_item = self.hand2_item
             hud_slot = 6
-        gid = gid_with_property(self.game.map.tmxdata, 'material', hand_item['name'])
+
+        gid = self.game.map.get_gid_by_prop_name(hand_item['name'])
         x, y = get_next_tile_pos(self)
         if True not in ['water' in self.next_tile_props['material'], 'shallows' in self.next_tile_props['material'], self.next_tile_props['tree'] != '']: # Prevents you from building on water and trees.
             if (self.next_tile_props['material'] != hand_item['name']) and (self.next_tile_props['plant'] != hand_item['name']): # Makes sure you're not placing the same block.
-                play_relative_volume(self, 'click')
+                if ('roof' in hand_item['name']) and not (self.game.map.is_next_to(x, y, 'roof') or self.game.map.is_next_to(x, y, 'wall')): # Only lets you attach roofs to walls and roofs.
+                    return
+                if (self.next_tile_props['wall'] == 'wall') and ('door' in hand_item['name']):  # Prevents you from placing doors on walls
+                    return
                 props = self.game.map.tmxdata.get_tile_properties_by_gid(gid)
-                temp_gid = self.game.map.gid_to_nearest_angle(gid, self.rot)
-                if 'plant' in props:
-                    self.game.map.tmxdata.layers[self.game.map.river_layer].data[y][x] = temp_gid
-                elif ('chest' in props['material']) or ('anvil' in props['material']):
-                    self.game.map.tmxdata.layers[self.game.map.ocean_plants_layer].data[y][x] = temp_gid
-                else:
-                    self.game.map.tmxdata.layers[self.game.map.base_layer].data[y][x] = temp_gid
+                layer = eval("self.game.map." + hand_item['layer'] + "_layer")
+                if layer == self.game.map.base_layer: # Makes it so you don't have plants on top of walls and stuff you build.
+                    if self.next_tile_props['wall'] == 'wall': # Prevents you from placing walls on walls
+                        return
                     self.game.map.tmxdata.layers[self.game.map.ocean_plants_layer].data[y][x] = 0
                     self.game.map.tmxdata.layers[self.game.map.river_layer].data[y][x] = 0
+                play_relative_volume(self, 'click')
+                temp_gid = self.game.map.gid_to_nearest_angle(gid, self.rot)
+                self.game.map.tmxdata.layers[layer].data[y][x] = temp_gid
                 self.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
                 self.game.map.redraw()
                 set_tile_props(self)
@@ -4800,7 +4792,11 @@ class Falling_Tree(pg.sprite.Sprite): # animation of trees falling when you chop
             for i in range(self.xi, self.xf + 1):
                 if randrange(0, 10) < 4:
                     if (i != self.x) and (j != self.y): # Makes sure it doesn't replace tree trunks.
-                        self.game.map.tmxdata.layers[self.game.map.river_layer].data[j][i] = gid_with_property(self.game.map.tmxdata, 'plant', 'logs')
+                        if self.name == 'palm tree':
+                            kind = choice(['logs', 'logs', 'logs', 'palm branches'])
+                        else:
+                            kind = choice(['logs', 'logs', 'branches'])
+                        self.game.map.tmxdata.layers[self.game.map.river_layer].data[j][i] = self.game.map.gid_with_property('plant', kind)
                 self.game.map.update_tile_props(i, j)  # Updates properties for tiles that have changed.
         self.game.map.redraw()
         set_tile_props(self.sprite)

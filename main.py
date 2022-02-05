@@ -466,6 +466,7 @@ class Game:
         self.lock_pick_image = pg.image.load(path.join(img_folder, 'lock_pick.png')).convert_alpha()
         self.swim_shadow_image = pg.image.load(path.join(img_folder, 'swim_shadow.png')).convert_alpha()
         self.mech_back_image = pg.image.load(path.join(img_folder, 'mech_back_lights.png')).convert_alpha()
+        self.clear_box_image = pg.image.load(path.join(img_folder, 'clear_box.png')).convert_alpha()
         self.black_box_image = pg.image.load(path.join(img_folder, 'black_box.png')).convert()
         self.dark_grey_box_image = pg.image.load(path.join(img_folder, 'dark_grey_box.png')).convert()
         self.grey_box_image = pg.image.load(path.join(img_folder, 'grey_box.png')).convert()
@@ -521,14 +522,6 @@ class Game:
                 bullet_name = size + str(i)
                 self.bullet_images[bullet_name] = img
 
-        self.door_images = []
-        for i, item in enumerate(DOOR_IMAGES):
-            img = pg.image.load(path.join(doors_folder, DOOR_IMAGES[i])).convert_alpha()
-            self.door_images.append(img)
-        self.door_break_images = []
-        for i, item in enumerate(DOOR_BREAK_IMAGES):
-            img = pg.image.load(path.join(door_break_folder, DOOR_BREAK_IMAGES[i])).convert_alpha()
-            self.door_break_images.append(img)
         self.enchantment_images = []
         for i, item in enumerate(ENCHANTMENT_IMAGES):
             img = pg.image.load(path.join(enchantments_folder, ENCHANTMENT_IMAGES[i])).convert_alpha()
@@ -548,6 +541,11 @@ class Game:
         for item in NEW_ITEM_IMAGES:
             img = pg.image.load(path.join(new_items_folder, NEW_ITEM_IMAGES[item])).convert_alpha()
             self.item_images[item] = img
+
+        self.workstation_images = {}
+        for item in WORKSTATION_IMAGES:
+            img = pg.image.load(path.join(workstations_folder, WORKSTATION_IMAGES[item])).convert_alpha()
+            self.workstation_images[item] = img
 
         """
         self.weapon_images = []

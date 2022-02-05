@@ -116,6 +116,7 @@ ITEMS['empty bottle'] = {'name': 'empty bottle', 'type': 'item', 'number': 1, 'm
 ITEMS['leather'] = {'name': 'leather', 'type': 'item', 'number': 1, 'max stack': 16}
 ITEMS['leather strips'] = {'name': 'leather strips', 'type': 'item', 'number': 1, 'max stack': 32}
 ITEMS['stick'] = {'name': 'stick', 'type': 'item', 'number': 1, 'max stack': 32}
+ITEMS['palm branch'] ={'name': 'palm branch', 'type': 'item', 'number': 1, 'max stack': 32}
 ITEMS['wood plank'] = {'name': 'wood plank', 'type': 'item', 'number': 1, 'max stack': 32}
 ITEMS['brick'] = {'name': 'brick', 'type': 'item', 'number': 1, 'max stack': 32}
 
@@ -124,17 +125,18 @@ ITEMS['Guide to Arroshay'] = {'name': 'Guide to Arroshay', 'type': 'book', 'auth
 ITEMS['War of the Worlds'] = {'name': 'War of the Worlds', 'type': 'book', 'author': 'H. G. Wells', 'heading': 'War of the Worlds', 'font': 'SCRIPT_FONT', 'number': 1, 'max stack': 16, 'color': ORANGE}
 
 # Blocks
-ITEMS['chest'] = {'name': 'chest', 'type': 'block', 'layer': 'self.game.map.river_layer', 'number': 1, 'max stack': 32}
-ITEMS['brick wall'] = {'name': 'brick wall', 'type': 'block',  'layer': 'self.game.map.base_layer', 'number': 1, 'max stack': 32}
-ITEMS['log wall'] = {'name': 'log wall', 'type': 'block',  'layer': 'self.game.map.base_layer', 'number': 1, 'max stack': 32}
-ITEMS['log corner post'] = {'name': 'log corner post', 'type': 'block', 'layer': 'self.game.map.base_layer', 'number': 1, 'max stack': 32}
-ITEMS['wood floor'] = {'name': 'wood floor', 'type': 'block', 'layer': 'self.game.map.base_layer', 'number': 1, 'max stack': 32}
-ITEMS['wood counter'] = {'name': 'wood counter', 'type': 'block', 'layer': 'self.game.map.ocean_plants_layer', 'number': 1, 'max stack': 32}
-ITEMS['work bench'] = {'name': 'work bench', 'type': 'block', 'layer': 'self.game.map.ocean_plants_layer', 'number': 1, 'max stack': 32}
-ITEMS['anvil'] = {'name': 'anvil', 'type': 'block', 'layer':  'self.game.map.ocean_plants_layer', 'number': 1, 'max stack': 32}
-ITEMS['fire pit'] = {'name': 'fire pit', 'type': 'block', 'layer':'self.game.map.river_layer', 'number': 1, 'max stack': 32}
-#ITEMS['thatch roof'] = {'name': 'thatch roof', 'type': 'block', 'layer': 'self.game.map.trees_layer', 'number': 1, 'max stack': 32}
-ITEMS['logs'] = {'name': 'logs', 'type': 'block', 'layer': 'self.game.map.river_layer', 'number': 1, 'max stack': 32}
+ITEMS['chest'] = {'name': 'chest', 'type': 'block', 'layer': 'river', 'number': 1, 'max stack': 32}
+ITEMS['brick wall'] = {'name': 'brick wall', 'type': 'block',  'layer': 'base', 'number': 1, 'max stack': 32}
+ITEMS['log wall'] = {'name': 'log wall', 'type': 'block',  'layer': 'base', 'number': 1, 'max stack': 32}
+ITEMS['log corner post'] = {'name': 'log corner post', 'type': 'block', 'layer': 'base', 'number': 1, 'max stack': 32}
+ITEMS['wood floor'] = {'name': 'wood floor', 'type': 'block', 'layer': 'base', 'number': 1, 'max stack': 32}
+ITEMS['wood counter'] = {'name': 'wood counter', 'type': 'block', 'layer': 'ocean_plants', 'number': 1, 'max stack': 32}
+ITEMS['work bench'] = {'name': 'work bench', 'type': 'block', 'layer': 'ocean_plants', 'number': 1, 'max stack': 32}
+ITEMS['anvil'] = {'name': 'anvil', 'type': 'block', 'layer':  'ocean_plants', 'number': 1, 'max stack': 32}
+ITEMS['fire pit'] = {'name': 'fire pit', 'type': 'block', 'layer':'river', 'number': 1, 'max stack': 32}
+ITEMS['thatch roof'] = {'name': 'thatch roof', 'type': 'block', 'layer': 'trees', 'number': 1, 'max stack': 32}
+ITEMS['logs'] = {'name': 'logs', 'type': 'block', 'layer': 'river', 'number': 1, 'max stack': 32}
+ITEMS['closed wood door'] = {'name': 'closed wood door', 'type': 'block', 'layer': 'ocean_plants', 'number': 1, 'max stack': 32} #Ocean plants is the rounded corners layer as well.
 
 # Harvestables
 # rose is in colored items
@@ -145,6 +147,8 @@ ITEMS['seaweed'] = {'name': 'seaweed', 'type': 'harvestable', 'number': 1, 'max 
 ITEMS['zhe buds'] = {'name': 'zhe buds', 'type': 'harvestable', 'number': 1, 'max stack': 32}
 ITEMS['marra leaf'] = {'name': 'marra leaf', 'type': 'harvestable', 'number': 1, 'max stack': 32}
 ITEMS['dry brush'] = {'name': 'stick', 'type': 'item', 'number': 2, 'max stack': 32} # There is not actually a dry brush item. But harvesting it gives you sticks.
+ITEMS['branches'] = {'name': 'stick', 'type': 'item', 'number': 3, 'max stack': 32} # There is not actually a dry brush item. But harvesting it gives you sticks.
+ITEMS['palm branches'] = {'name': 'palm branch', 'type': 'item', 'number': 3, 'max stack': 32} # There is not actually a dry brush item. But harvesting it gives you sticks.
 ITEMS['dry grass'] ={'name': 'dry grass', 'type': 'harvestable', 'number': 1, 'max stack': 32}
 ITEMS['cattails'] = {'name': 'cattails', 'type': 'harvestable', 'number': 1, 'max stack': 32}
 ITEMS['blueberries'] = {'name': 'blueberries', 'type': 'harvestable', 'number': 1, 'max stack': 32}

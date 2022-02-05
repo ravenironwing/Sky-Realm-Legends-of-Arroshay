@@ -67,6 +67,28 @@ class TiledMap:
         #self.overlay = self.generate_over_layer()
         #self.minimap = MiniMap(tm)
 
+    def is_next_to(self, x, y, tile_prop): # Checks to see if a location is by a specific kind of tile
+        surrounding_tilesxy_list = [(x, y), ((x - 1), (y - 1)), (x, (y - 1)), ((x + 1), (y - 1)), ((x - 1), y), ((x + 1), y),
+                                    ((x - 1), (y + 1)), (x, (y + 1)), ((x + 1), (y + 1))]
+        for tile_pos in surrounding_tilesxy_list:
+            if tile_prop in self.tile_props[tile_pos[1]][tile_pos[0]]['material']:
+                return True
+            elif tile_prop in self.tile_props[tile_pos[1]][tile_pos[0]]['roof']:
+                return True
+        return False
+
+    def gid_with_property(self, key, value):
+        for gid, props in self.tmxdata.tile_properties.items():
+            if props.get(key) == value:
+                return gid
+
+    def get_gid_by_prop_name(self, property_name):
+        gid = self.gid_with_property('roof', property_name)
+        if gid == None:
+            gid = self.gid_with_property('material', property_name)
+        gid = self.get_new_rotated_gid(gid)
+        return gid
+
     def get_tile_flags(self, gid): # gets the rotational flags from the tiled map data that are associated with a gid
         flags = TileFlags(False, False, False)
         tiled_gid = self.tmxdata.tiledgidmap[gid]
@@ -88,17 +110,14 @@ class TiledMap:
         gid_info = self.tmxdata.map_gid(tiled_gid)
         unrotated_gid = None
         orig_flags = None
-        print(gid_info)
         for tile in gid_info:
             if tile[1] == (False, False, False): # Gets unrotated tile gid
                 unrotated_gid = tile[0]
         if unrotated_gid:
             gid = unrotated_gid
         else:
-            print('unrotated not found')
             gid = gid_info[0][0]
             orig_flags = gid_info[0][1] # gets the rotational flags
-            print(orig_flags)
 
         original_image = self.tmxdata.get_tile_image_by_gid(gid)
         if orig_flags:

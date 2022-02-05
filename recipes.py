@@ -9,6 +9,8 @@ st = 'stick'
 f = 'flint'
 ii = 'iron ingot'
 icb = 'iron cast block'
+pb = 'palm branch'
+dg = 'dry grass'
 
 CRAFTING_RECIPIES = {}
 CRAFTING_RECIPIES['log wall'] = [2, lg, lg, 0,
@@ -22,6 +24,11 @@ CRAFTING_RECIPIES['flint axe'] = [1, f, 0,
                                   0, ls, 0,
                                   0, st]
 CRAFTING_RECIPIES['leather strips'] = [1, l]
+CRAFTING_RECIPIES['thatch roof'] = [[2, pb, pb, 0,
+                                      pb, pb],
+                                    [1, dg, dg, dg,
+                                      dg, dg, dg,
+                                      dg, dg, dg]]
 
 
 WORKBENCH_RECIPIES = {}
@@ -29,6 +36,9 @@ WORKBENCH_RECIPIES['wood plank'] = [4, lg]
 WORKBENCH_RECIPIES['wood floor'] = [2, p, p, p,
                                       p, p, p,
                                       p, p, p]
+WORKBENCH_RECIPIES['closed wood door'] = [2, p, p, 0,
+                                      p, p, 0,
+                                      p, p]
 WORKBENCH_RECIPIES['chest'] = [1, p, p, p,
                                       p, 0, p,
                                       p, p, p]

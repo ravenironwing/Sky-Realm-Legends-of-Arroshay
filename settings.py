@@ -76,6 +76,7 @@ shock_folder = path.join(img_folder, 'shock_animation')
 electric_door_folder = path.join(img_folder, 'electric_door_animation')
 fireball_folder = path.join(img_folder, 'fireball')
 explosion_folder = path.join(img_folder, 'explosion')
+workstations_folder = path.join(img_folder, 'workstations')
 #items_folder = path.join(img_folder, 'items')
 #weapons_folder = path.join(img_folder, 'weapons')
 #hats_folder = path.join(img_folder, 'hats')
@@ -202,13 +203,6 @@ TREES['pine tree'] = {}
 BREAKABLES = {}
 BREAKABLES['empty turtle shell'] = {'break type': 'gradual', 'wobble': False, 'weapon required': ['mace', 'pickaxe', 'axe'], 'animate speed': 50, 'right weapon hit sound': 'rock_hit', 'hit sound': 'rock_hit', 'break sound': 'rocks', 'health': 2, 'damage': 0, 'knockback': 0, 'protected': False, 'random drop number': True, 'items': {'turtle shell plate':12}, 'min drop': 4, 'rare items': ['bluefish']}
 
-
-DOOR_STYLES = {}
-DOOR_STYLES['wood'] = {'image': 0, 'hp': 500}
-DOOR_STYLES['heavy'] = {'image': 1, 'hp': 1000}
-DOOR_STYLES['steel'] = {'image': 2, 'hp': 3000}
-DOOR_STYLES['bronze'] = {'image': 3, 'hp': 2000}
-
 # Used for mapping portal firepot combos with map locations
 # 1234-Goblin Island, 4132: Demon's Lair, 3421-Dewcastle Graveyard, 2143-Norwald the Miewdra Village, 1342-Mechanima Village, 1243-Lacertolia, 2413-Zombieland, 4321-Elf Town, 3124-South Pole
 PORTAL_CODES = {'1234': [107, 34, 32, 26], '4132': [53, 75, 31, 5], '3421': [27, 40, 5, 33], '2143': [89, 49, 32, 32], '1342': [126, 22, 32, 32], '1243': [146, 43, 32, 32], '2413': [65, 20, 32, 32],  '4321': [38, 27, 32, 42], '3124': [85, 96, 32, 32]}
@@ -307,18 +301,6 @@ for i in range(1, number_of_files + 1):
     filename = 'E000{}.png'.format(i)
     EXPLOSION_IMAGES.append(filename)
 
-DOOR_IMAGES = []
-number_of_files = len([name for name in os.listdir(doors_folder) if os.path.isfile(os.path.join(doors_folder, name))])
-for i in range(0, number_of_files):
-    filename = 'door{}.png'.format(i)
-    DOOR_IMAGES.append(filename)
-
-DOOR_BREAK_IMAGES = []
-number_of_files = len([name for name in os.listdir(door_break_folder) if os.path.isfile(os.path.join(door_break_folder, name))])
-for i in range(0, number_of_files):
-    filename = 'door{}.png'.format(i)
-    DOOR_BREAK_IMAGES.append(filename)
-
 HAIR_IMAGES = {} # Loads all item filepaths
 for name in os.listdir(hair_folder):
     if os.path.isfile(os.path.join(hair_folder, name)):
@@ -336,6 +318,12 @@ for name in os.listdir(new_items_folder):
     if os.path.isfile(os.path.join(new_items_folder, name)):
         item_name = name.replace('.png', '')
         NEW_ITEM_IMAGES[item_name] = name
+
+WORKSTATION_IMAGES = {} # Loads all item filepaths
+for name in os.listdir(workstations_folder):
+    if os.path.isfile(os.path.join(workstations_folder, name)):
+        item_name = name.replace('.png', '')
+        WORKSTATION_IMAGES[item_name] = name
 
 
 """

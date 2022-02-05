@@ -325,50 +325,6 @@ for name in os.listdir(workstations_folder):
         item_name = name.replace('.png', '')
         WORKSTATION_IMAGES[item_name] = name
 
-
-"""
-ITEM_IMAGES = []
-number_of_files = len([name for name in os.listdir(items_folder) if os.path.isfile(os.path.join(items_folder, name))])
-for i in range(0, number_of_files):
-    filename = 'item{}.png'.format(i)
-    ITEM_IMAGES.append(filename)
-
-WEAPON_IMAGES = []
-number_of_files = len([name for name in os.listdir(weapons_folder) if os.path.isfile(os.path.join(weapons_folder, name))])
-for i in range(0, number_of_files):
-    filename = 'weapon{}.png'.format(i)
-    WEAPON_IMAGES.append(filename)
-
-HAT_IMAGES = []
-number_of_files = len([name for name in os.listdir(hats_folder) if os.path.isfile(os.path.join(hats_folder, name))]) #This line counts the number of files in the folder so I can just drop new files into the folder without modifying the code.
-for i in range(0, number_of_files):
-    filename = 'hat{}.png'.format(i)
-    HAT_IMAGES.append(filename)
-
-TOP_IMAGES = []
-number_of_files = len([name for name in os.listdir(tops_folder) if os.path.isfile(os.path.join(tops_folder, name))])
-for i in range(0, number_of_files):
-    filename = 'top{}.png'.format(i)
-    TOP_IMAGES.append(filename)
-
-BOTTOM_IMAGES = []
-number_of_files = len([name for name in os.listdir(bottoms_folder) if os.path.isfile(os.path.join(bottoms_folder, name))])
-for i in range(0, number_of_files):
-    filename = 'bottom{}.png'.format(i)
-    BOTTOM_IMAGES.append(filename)
-
-SHOE_IMAGES = []
-number_of_files = len([name for name in os.listdir(shoes_folder) if os.path.isfile(os.path.join(shoes_folder, name))])
-for i in range(0, number_of_files):
-    filename = 'shoe{}.png'.format(i)
-    SHOE_IMAGES.append(filename)
-
-GLOVE_IMAGES = []
-number_of_files = len([name for name in os.listdir(gloves_folder) if os.path.isfile(os.path.join(gloves_folder, name))])
-for i in range(0, number_of_files):
-    filename = 'glove{}.png'.format(i)
-    GLOVE_IMAGES.append(filename)"""
-
 MAGIC_IMAGES = {} # Loads all magic filepaths
 for name in os.listdir(magic_folder):
     if os.path.isfile(os.path.join(magic_folder, name)):

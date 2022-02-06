@@ -16,6 +16,7 @@ def play_relative_volume(source, sound, effect = True):  # This def plays sounds
     volume = 1
     if source != source.game.player:
         player_dist = source.game.player.pos - source.pos
+        player_dist = source.game.player.pos - source.pos
         player_dist = player_dist.length()
         if player_dist < SOUND_SOURCE_DISTANCE:
             if player_dist > 0:
@@ -1417,6 +1418,8 @@ class Body(pg.sprite.Sprite):
                             temp_img = self.game.map.tmxdata.get_tile_image_by_gid(gid).copy()
                             temp_img = temp_img.convert_alpha()
                             temp_img = pg.transform.rotate(temp_img, 90)
+                        elif ('type' in self.mother.hand_item) and (self.mother.hand_item['type'] == 'magic'):
+                            temp_img = self.game.magic_images[correct_filename(self.mother.hand_item)]
                         else:
                             temp_img = self.game.item_images[correct_filename(self.mother.hand_item)]
                         if 'color' in self.mother.hand_item:
@@ -1435,6 +1438,8 @@ class Body(pg.sprite.Sprite):
                             temp_img = self.game.map.tmxdata.get_tile_image_by_gid(gid).copy()
                             temp_img = temp_img.convert_alpha()
                             temp_img = pg.transform.rotate(temp_img, 90)
+                        elif ('type' in self.mother.hand2_item) and (self.mother.hand2_item['type'] == 'magic'):
+                            temp_img = self.game.magic_images[correct_filename(self.mother.hand2_item)]
                         else:
                             temp_img = self.game.item_images[correct_filename(self.mother.hand2_item)]
                         if 'color' in self.mother.hand2_item:
@@ -1788,7 +1793,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         #                 'hats': None, 'tops': None, 'bottoms': None, 'shoes': None, 'gloves': None, 'items': None, 'blocks': None}
         # Character stats and inventories
         self.inventory = fix_inventory(self.kind_dict['inventory'].copy())
-        self.expanded_inventory = {'gender': list(GENDER.keys()), 'hair': list(HAIR.keys()), 'race': list(RACE.keys()), 'magic': []}
+        self.expanded_inventory = {'gender': list(GENDER.keys()), 'hair': list(HAIR.keys()), 'race': list(RACE.keys()), 'magic': [{'name': 'fireball', 'type': 'magic', 'fireballs': 1, 'damage': 30, 'cost': 20, 'sound': 'fire blast'}]}
         self.equipped = EMPTY_EQUIP.copy()
         self.hand_item = self.equipped[0]
         self.hand2_item = self.equipped[6]
@@ -2006,65 +2011,68 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
                 self.rect.center = self.hit_rect.center = self.pos
                 self.stats['hits taken'] += 1
 
-    def cast_spell(self): # This section needs to be repaired.
-        if self.equipped['magic']:
-            now = pg.time.get_ticks()
-            if now - self.last_cast > self.game.effects_sounds[MAGIC[self.equipped['magic']]['sound']].get_length() * 1000:
-                if self.stats['magica'] >= MAGIC[self.equipped['magic']]['cost']:
-                    if True: #self.check_materials('magic', self.equipped['magic']):
-                        play_relative_volume(self, MAGIC[self.equipped['magic']]['sound'])
-                        Spell_Animation(self.game, self.equipped['magic'], self.pos, self.rot, self.vel)
-                        pos = vec(0, 0)
-                        pos = self.pos + vec(60, 0).rotate(-self.rot)
-                        if 'possession' in MAGIC[self.equipped['magic']]:
-                            if self.possessing == None:
-                                if 'wraith' in self.equipped['race']:
-                                    if self.equipped['race'] == 'spirit': # Turns you into a black wraith for using dark magic.
-                                        self.equipped['race'] = 'wraith'
-                                        self.race = 'wraith'
-                                        self.human_body.update_animations()
-                                        if self.dragon:
-                                            self.dragon_body.update_animations()
-                                    else:
-                                        hits = pg.sprite.spritecollide(self, self.game.npcs, False, False)
-                                        if hits:
-                                            if hits[0].race not in ['spirit', 'wraith', 'demon', 'skeleton']:
-                                                drop_all_items(self, False)
-                                                hits[0].possess(self, True)
-                                else:
+    def cast_spell(self, spell):
+        if self.weapon_hand == 'weapons':
+            mpos = self.body.melee_rect.center
+        else:
+            mpos = self.body.melee2_rect.center
+        now = pg.time.get_ticks()
+        if now - self.last_cast > self.game.effects_sounds[spell['sound']].get_length() * 1000:
+            if self.stats['magica'] >= spell['cost']:
+                if True: #self.check_materials('magic', self.equipped['magic']):
+                    play_relative_volume(self, spell['sound'])
+                    Spell_Animation(self.game, spell['name'], mpos, self.rot, self.vel)
+                    pos = vec(0, 0)
+                    pos = self.pos + vec(60, 0).rotate(-self.rot)
+                    if 'possession' in spell:
+                        if self.possessing == None:
+                            if 'wraith' in self.equipped['race']:
+                                if self.equipped['race'] == 'spirit': # Turns you into a black wraith for using dark magic.
                                     self.equipped['race'] = 'wraith'
                                     self.race = 'wraith'
-                                    drop_all_items(self, True)
-                                    corpse = Player(self.game, self.pos.x, self.pos.y, 'villager')
-                                    corpse.inventory = self.inventory
-                                    corpse.death()
                                     self.human_body.update_animations()
                                     if self.dragon:
                                         self.dragon_body.update_animations()
-                                    self.game.beg = perf_counter() # resets the counter so dt doesn't get messed up.
+                                else:
+                                    hits = pg.sprite.spritecollide(self, self.game.npcs, False, False)
+                                    if hits:
+                                        if hits[0].race not in ['spirit', 'wraith', 'demon', 'skeleton']:
+                                            drop_all_items(self, False)
+                                            hits[0].possess(self, True)
                             else:
-                                self.add_health(self.possessing.stats['health'])
-                                self.possessing.gets_hit(self.stats['stamina'])
-                                self.possessing.depossess()
+                                self.equipped['race'] = 'wraith'
+                                self.race = 'wraith'
+                                drop_all_items(self, True)
+                                corpse = Player(self.game, self.pos.x, self.pos.y, 'villager')
+                                corpse.inventory = self.inventory
+                                corpse.death()
+                                self.human_body.update_animations()
+                                if self.dragon:
+                                    self.dragon_body.update_animations()
+                                self.game.beg = perf_counter() # resets the counter so dt doesn't get messed up.
+                        else:
+                            self.add_health(self.possessing.stats['health'])
+                            self.possessing.gets_hit(self.stats['stamina'])
+                            self.possessing.depossess()
 
-                        if 'summon' in MAGIC[self.equipped['magic']]:
-                            if MAGIC[self.equipped['magic']]['summon'] in PEOPLE:
-                                summoned = Player(self.game, self.pos.x + 128, self.pos.y, MAGIC[self.equipped['magic']]['summon'])
-                                summoned.make_companion()
-                            elif MAGIC[self.equipped['magic']]['summon'] in ANIMALS:
-                                Animal(self.game, pos.x, pos.y, MAGIC[self.equipped['magic']]['summon'])
-                        if 'healing' in MAGIC[self.equipped['magic']]:
-                            self.add_health(MAGIC[self.equipped['magic']]['healing'] + (self.stats['healing'] / 20) + (self.stats['casting'] / 100))
-                        if 'fireballs' in MAGIC[self.equipped['magic']]:
-                            balls = MAGIC[self.equipped['magic']]['fireballs']
-                            damage = MAGIC[self.equipped['magic']]['damage'] + (self.stats['casting'] / 100)
-                            for i in range(0, balls):
-                                Fireball(self, self.game, self.pos, self.rot + (36 * i), damage, 30, 1300, 250, self.vel, 'fire', False, self.in_flying_vehicle)
-                        self.add_magica(-MAGIC[self.equipped['magic']]['cost'])
-                        self.stats['casting'] += MAGIC[self.equipped['magic']]['cost'] / 10
+                    if 'summon' in spell:
+                        if spell['summon'] in PEOPLE:
+                            summoned = Player(self.game, mpos.x + 128, mpos.y, MAGIC[self.equipped['magic']]['summon'])
+                            summoned.make_companion()
+                        elif spell['summon'] in ANIMALS:
+                            Animal(self.game, mpos.x, mpos.y, spell['summon'])
+                    if 'healing' in spell:
+                        self.add_health(spell['healing'] + (self.stats['healing'] / 20) + (self.stats['casting'] / 100))
+                    if 'fireballs' in spell:
+                        balls = spell['fireballs']
+                        damage = spell['damage'] + (self.stats['casting'] / 100)
+                        for i in range(0, balls):
+                            Fireball(self, self.game, mpos, self.rot + (36 * i), damage, 30, 1300, 250, self.vel, 'fire', False, self.in_flying_vehicle)
+                    self.add_magica(-spell['cost'])
+                    self.stats['casting'] += spell['cost'] / 10
 
-                        #dir = vec(1, 0).rotate(-self.rot)
-                        self.last_cast = now
+                    #dir = vec(1, 0).rotate(-self.rot)
+                    self.last_cast = now
 
     def alert_guard(self):
         pass
@@ -4170,7 +4178,7 @@ class Stationary_Animated(pg.sprite.Sprite): # Used for fires and other stationa
             self._layer = self.game.map.sky_layer
         else:
             self._layer = self.game.map.bullet_layer
-        self.center = obj_center
+        self.center = vec(obj_center)
         self.kind = kind
         self.offset = offset
         if self.kind == 'fire':
@@ -4182,6 +4190,9 @@ class Stationary_Animated(pg.sprite.Sprite): # Used for fires and other stationa
             if not self.offset:
                 self.center.y -= 20
                 self.center.x -= 4
+            else:
+                self.center.y += 20
+                self.center.x += 10
         elif self.kind == 'shock':
             self.light_radius = (75, 75)
             self.image_list = self.game.shock_images
@@ -4208,10 +4219,7 @@ class Stationary_Animated(pg.sprite.Sprite): # Used for fires and other stationa
         self.spawn_time = pg.time.get_ticks()
         self.lifetime = lifetime
         self.last_sound = 0
-        try:
-            self.pos = vec(self.center.x, self.center.y)
-        except:
-            self.pos = vec(0, 0)
+        self.pos = self.center
 
     def update(self):
         now = pg.time.get_ticks()
@@ -4521,7 +4529,7 @@ class Explosion(pg.sprite.Sprite):
             self.scale = 600
         self.image_list = []
         if damage == 0:
-            self.scale = 400
+            self.scale = 200
             self.image_list = self.game.explosion_images
         else:
             for image in self.game.explosion_images:
@@ -4529,7 +4537,7 @@ class Explosion(pg.sprite.Sprite):
                 self.image_list.append(new_img)
         self.image = self.image_list[0]
         self.rect = self.image.get_rect()
-        self.hit_rect = pg.Rect(0, 0, int(self.scale/2), int(self.scale/2))
+        self.hit_rect = pg.Rect(0, 0, int(self.scale/8), int(self.scale/8))
         self.light_mask = pg.transform.scale(self.game.light_mask_images[2], (self.scale + 100, self.scale + 100))
         self.light_mask_rect = self.light_mask.get_rect()
         self.light_mask_rect.center = self.rect.center
@@ -4539,6 +4547,7 @@ class Explosion(pg.sprite.Sprite):
                 self.center = (0, 0)
         else:
             self.rect.center = self.target.pos
+        self.pos = vec(self.rect.centerx, self.rect.centery)
         self.hit_rect.center = self.rect.center
         self.frame = 0
         self.last_update = pg.time.get_ticks()
@@ -4576,6 +4585,7 @@ class Explosion(pg.sprite.Sprite):
                     self.rect.center = self.target.pos
                     self.hit_rect.center = self.rect.center
                     self.light_mask_rect.center = self.rect.center
+        self.pos = vec(self.rect.centerx, self.rect.centery)
 
 class Fireball(pg.sprite.Sprite):
     def __init__(self, mother, game, pos, rot, damage, knockback = 2, lifetime = 1000, speed = 100, source_vel = 0, after_effect = None, enemy = False, sky = False):

@@ -5,7 +5,8 @@ vec = pg.math.Vector2
 
 ITEMS = {}
 
-WEAPON_TYPES = ['axe', 'sword', 'dagger', 'pickaxe']
+WEAPON_TYPES = ['axe', 'sword', 'dagger', 'pickaxe', 'gun']
+SHARP_WEAPON_TYPES = ['axe', 'sword', 'dagger', 'pickaxe']
 EQUIP_TYPES = WEAPON_TYPES + ['head', 'torso', 'gloves', 'feet', 'bottom']
 WEAPON_GRIPS = {'axe': 'CP_SWORD_GRIP', 'sword': 'CP_SWORD_GRIP', 'dagger': 'CP_SWORD_GRIP', 'pickaxe': 'CP_SWORD_GRIP'}
 WEAPON_WALKS = {'axe': 'WALK', 'sword': 'WALK', 'dagger': 'WALK', 'pickaxe': 'WALK'}

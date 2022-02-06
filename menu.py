@@ -482,6 +482,32 @@ class MainMenu():  # used as the parent class for other menus.
         pg.draw.rect(self.game.screen, YELLOW, pos_rect, 2)
 
     def check_crafting(self):
+        if self.menu_type == 'Grinder': # This code lets you sharpen weapons to increase damage at the cost of lowering their HP.
+            grinder_items = []
+            for item in self.crafting_slots:
+                if 'type' in item:
+                    if item['type'] in SHARP_WEAPON_TYPES:
+                        grinder_items.append(item)
+            if len(grinder_items) == 1:
+                hardness = 0
+                for material in MATERIALS:
+                    if material in grinder_items[0]['name']:
+                        hardness = MATERIALS[material]['hardness']
+                        break
+                delta = grinder_items[0]['max hp']/100
+                if grinder_items[0]['hp'] > (grinder_items[0]['max hp'] * (4/5)):
+                    grinder_items[0]['damage'] += 0.5 * hardness
+                elif grinder_items[0]['hp'] > (grinder_items[0]['max hp'] * (3/4)):
+                    grinder_items[0]['damage'] += 0.25 * hardness
+                elif grinder_items[0]['hp'] < (grinder_items[0]['max hp'] / 2):
+                    grinder_items[0]['damage'] += -1 * hardness
+                    if grinder_items[0]['damage'] < 1:
+                        grinder_items[0]['damage'] = 1
+                grinder_items[0]['hp'] -= delta * (MAX_HARDNESS - hardness)
+                if grinder_items[0]['hp'] < 1:
+                    grinder_items[0]['hp'] = 0
+            return
+
         for key, value in self.recipes.items():
             if type(self.recipes[key][0]) is list:  # Checks for multiple recipes
                 for recipe in self.recipes[key]:
@@ -873,7 +899,7 @@ class MainMenu():  # used as the parent class for other menus.
         if self.selected_text: # Used for printing out quest info
             for i, item_stat in enumerate(self.printable_stat_list):
                 self.draw_text(item_stat, default_font, 20, WHITE, self.game.screen_width / 2 + 50, self.game.screen_height / 3 + 30 * i, "topleft")
-        if self.selected_heading.text in WORKSTATIONS:
+        if (self.selected_heading.text in WORKSTATIONS) and (self.menu_type != 'Grinder'):
             self.draw_text(self.selected_heading.text, default_font, 30, WHITE, 500, 10, "topleft")
             self.game.screen.blit(self.game.right_arrow_image, (570, 284))
         elif self.selected_heading.text in ['Inventory', 'Magic']:
@@ -1338,6 +1364,27 @@ class MainMenu():  # used as the parent class for other menus.
         if self.selected_heading.text in ['Inventory', 'Magic']:
             icon = Item_Icon(self, 6, self.character.equipped[6], default_font, 20, WHITE, 495, spacing + 58, 'hand2', 'equipped')
             self.variable_equip.add(icon)
+
+        elif self.selected_heading.text == 'Grinder':
+            # Lists crafting slots
+            self.check_crafting()
+            xoffset = 495
+            yoffset = 58
+            padding = 5
+            num_in_row = 3
+            row = -1
+            col = 0
+            i = 0
+            for it, item in enumerate(self.crafting_slots):
+                col = i % num_in_row
+                if col == 0:
+                    row += 1
+                if i == 7: # Only draws the 7th slot
+                    icon = Item_Icon(self, i, item, default_font, 20, WHITE, xoffset + spacing * col,
+                                     yoffset + (row * spacing), None, 'crafting')
+                spacing = icon.size + padding
+                self.variable_equip.add(icon)
+                i += 1
 
         elif self.selected_heading.text in WORKSTATIONS:
             # Lists crafting slots

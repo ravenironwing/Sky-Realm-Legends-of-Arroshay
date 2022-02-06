@@ -2452,12 +2452,18 @@ class Game:
                 elif pg.mouse.get_pressed() == (0, 0, 1) or pg.mouse.get_pressed() == (0, 1, 1):
                     if ('type' in self.player.hand_item) and (self.player.hand_item['type'] == 'block'):
                         self.player.place_block(1)
+                    elif ('type' in self.player.hand_item) and (self.player.hand_item['type'] == 'magic'):
+                        self.player.weapon_hand = 'weapons'
+                        self.player.cast_spell(self.player.hand_item)
                     else:
                         self.player.weapon_hand = 'weapons'
                         self.player.shoot()
                 elif pg.mouse.get_pressed() == (1, 0, 0) or pg.mouse.get_pressed() == (1, 1, 0):
                     if ('type' in self.player.hand2_item) and (self.player.hand2_item['type'] == 'block'):
                         self.player.place_block(2)
+                    elif ('type' in self.player.hand2_item) and (self.player.hand2_item['type'] == 'magic'):
+                        self.player.weapon_hand = 'weapons2'
+                        self.player.cast_spell(self.player.hand2_item)
                     else:
                         self.player.weapon_hand = 'weapons2'
                         self.player.shoot()
@@ -2529,9 +2535,6 @@ class Game:
                     if self.player.in_vehicle:
                         if self.player.vehicle in self.flying_vehicles:
                             self.fly_menu = Fly_Menu(self)
-
-                if event.key == self.key_map['cast']:
-                    self.player.cast_spell()
                 if event.key == pg.K_RETURN:   # Toggles fullscreen mode when you press ALT+ENTER
                     if event.mod & pg.KMOD_ALT:
                         self.flags ^=  pg.FULLSCREEN

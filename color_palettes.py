@@ -116,6 +116,7 @@ MATERIALS['iron'] = {'color': (104, 105, 105), 'hardness': 0.9, 'weight': 1.2, '
 MATERIALS['gold'] = {'color': (255, 233, 87), 'hardness': 0.1, 'weight': 4, 'value': 4}
 MATERIALS['lead'] = {'color': (78, 89, 93), 'hardness': 0.1, 'weight': 2.4, 'value': 0.1}
 MATERIALS['tin'] = {'color': (211, 212, 213), 'hardness': 0.1, 'weight': 1, 'value': 0.7}
+MAX_HARDNESS = 2
 
 
 COLOR_PALETTE = MIEWDRA_SKIN_TONES = [

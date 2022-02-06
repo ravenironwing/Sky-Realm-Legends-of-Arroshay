@@ -3663,7 +3663,7 @@ class Animal(Character):
                         number = item['number']
                     for i in range(0, number):
                         if random() < .5:
-                            Dropped_Item(self.game, self.pos, item, self.rot, True)
+                            Dropped_Item(self.game, self.pos, ITEMS[item['name']], self.rot, True)
             Dropped_Item(self.game, self.pos, ITEMS['dead ' + self.kind], self.rot, False, self.image.get_width()) # dropps item based corpse for small animals.
             #if self.kind_dict['name'] == 'sea turtle':
             #    Breakable(self.game, self.pos, self.pos.x - 60, self.pos.y - 60, 120, 120, BREAKABLES['empty turtle shell'], 'empty turtle shell')
@@ -4099,13 +4099,15 @@ class Dropped_Item(pg.sprite.Sprite):
             self.rot = randrange(0, 360)
         if width:
             size = width
+            spread = int(width/2)
         else:
+            spread = 24
             size = ITEM_SIZE
         self.item_image = pg.transform.scale(self.item_image, (size, size))
         self.image = pg.transform.rotate(self.item_image, self.rot)
         self.rect = self.hit_rect = self.image.get_rect()
         if self.random_spread:
-            self.pos = self.pos + (randrange(-50, 50), randrange(-50, 50))
+            self.pos = self.pos + (randrange(-spread, spread), randrange(-spread, spread))
         self.rect.center = self.hit_rect.center = self.pos
         if self.brightness > 0:
             self.light_mask = pg.transform.scale(self.game.light_mask_images[self.mask_type], (self.brightness, self.brightness))

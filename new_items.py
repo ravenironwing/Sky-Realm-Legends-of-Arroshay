@@ -94,7 +94,7 @@ for color in BOOT_COLORS:
     ITEMS[color + ' boots'] = {'name': color + ' boots', 'type': 'feet','armor': 2, 'hp': 100, 'max hp': 100, 'color': CLOTHING_COLORS[color]}
 
 for color in CRYSTAL_COLORS:
-    ITEMS[color + ' crystal'] = {'name': color + ' crystal', 'type': 'crystals', 'color': color, 'number': 1, 'max stack': 32, 'leather': 10}
+    ITEMS[color + ' crystal'] = {'name': color + ' crystal', 'type': 'crystals', 'color': color, 'number': 1, 'max stack': 32}
 
 POTIONS = {}
 POTIONS['potion of minor healing'] = {'health': 20, 'color': PINK}
@@ -168,6 +168,7 @@ for door in DOORS:
 
 ITEMS['lock pick'] = {'name': 'lock pick', 'type': 'item', 'hp': 10, 'max hp': 10}
 
+ITEMS['live rabbit'] = {'name': 'live rabbit', 'type': 'animal'}
 ITEMS['dead rabbit'] = {'name': 'dead rabbit', 'type': 'item', 'number': 1, 'max stack': 16}
 ITEMS['roasted rabbit'] = {'name': 'roasted rabbit', 'type': 'food', 'number': 1, 'max stack': 16, 'health': 18, 'stamina': 25, 'hunger': 20}
 

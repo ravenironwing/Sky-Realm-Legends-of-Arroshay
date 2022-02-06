@@ -2428,8 +2428,9 @@ class Game:
         self.player.use_item(self.selected_hud_item.item, slot)
 
     def place_item(self):
-        slot = int(self.selected_hud_item.slot_text) - 1
-        self.player.place_item(slot)
+        if self.selected_hud_item:
+            slot = int(self.selected_hud_item.slot_text) - 1
+            self.player.place_item(slot)
 
     def events(self):
         # catch all events here

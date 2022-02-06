@@ -1235,12 +1235,11 @@ class Game:
                 Animal(self, animal['location'].x, animal['location'].y, animal['name'])
             for vehicle in self.sprite_data.vehicles:
                 Vehicle(self, vehicle['location'], vehicle['name'])
-            for breakable in self.sprite_data.breakable:
-                Breakable(self, breakable['location'], breakable['w'], breakable['h'], breakable['name'], breakable['rotation'])
-            #for item in self.sprite_data.items:
-            #    for item_type in ITEM_TYPE_LIST:
-            #        if item['name'] in eval(item_type.upper()):
-            #            Dropped_Item(self, item['location'], item_type, item['name'], item['rotation'])
+            #for breakable in self.sprite_data.breakable:
+            #    Breakable(self, breakable['location'], breakable['w'], breakable['h'], breakable['name'], breakable['rotation'])
+            for item in self.sprite_data.items:
+               if item['name'] in ITEMS:
+                    Dropped_Item(self, item['location'], ITEMS[item['name']], item['rotation'])
         else: # Loads animals and NPCs that have moved onto unvisited maps.
             companion_names = []
             for companion in self.companions:
@@ -1360,17 +1359,16 @@ class Game:
                         if vehicle == tile_object.name:
                             Vehicle(self, obj_center, vehicle)
                     # Loads items, weapons, and armor placed on the map
-                    #for item_type in ITEM_TYPE_LIST:
-                    #    if tile_object.name in eval(item_type.upper()):
-                    #        Dropped_Item(self, obj_center, item_type, tile_object.name)
+                    if tile_object.name in ITEMS:
+                        Dropped_Item(self, obj_center, ITEMS[tile_object.name])
                     # Loads fixed rotated items:
-                    #if '@' in tile_object.name:
-                    #    item, rot = tile_object.name.split('@')
-                    #    rot = int(rot)
-                    #    for item_type in ITEM_TYPE_LIST:
-                    #        if item in eval(item_type.upper()):
-                    #            Dropped_Item(self, obj_center, item_type, item, rot)
+                    if '@' in tile_object.name:
+                        item, rot = tile_object.name.split('@')
+                        rot = int(rot)
+                        if item in ITEMS:
+                            Dropped_Item(self, obj_center, ITEMS[item], rot)
                     # Used for destructable plants, rocks, ore veins, walls, etc
+                    """
                     for item in BREAKABLES:
                         if item in tile_object.name:
                             size = None
@@ -1381,7 +1379,7 @@ class Game:
                                 rot = None
                             if 'SZ' in tile_object.name:
                                 size, temp_item = tile_object.name.split('SZ')
-                            Breakable(self, obj_center, tile_object.width, tile_object.height, item, rot, size)
+                            Breakable(self, obj_center, tile_object.width, tile_object.height, item, rot, size)"""
 
                 # Loads detectors used to detect whether quest items have be delivered to the correct locations.
                 if 'detector' in tile_object.name:  # These are invisible objects used to detect other objects touching them.
@@ -1397,9 +1395,8 @@ class Game:
                         if quest_item in self.people:
                             if self.is_living(quest_item):
                                 Player(self, obj_center.x, obj_center.y, quest_item)
-                        #for item_type in ITEM_TYPE_LIST:
-                        #    if quest_item in eval(item_type.upper()):
-                        #        Dropped_Item(self, obj_center, item_type, quest_item)
+                        if quest_item in ITEMS:
+                            Dropped_Item(self, obj_center, ITEMS[quest_item])
                 # Loads items/npcs that should only be there if a quest hasn't been completed
                 if 'QU' in tile_object.name:
                     _, quest, quest_item = tile_object.name.split('_')
@@ -1411,9 +1408,8 @@ class Game:
                         if quest_item in self.people:
                             if self.is_living(quest_item):
                                 Player(self, obj_center.x, obj_center.y, quest_item)
-                        #for item_type in ITEM_TYPE_LIST:
-                        #    if quest_item in eval(item_type.upper()):
-                        #        Dropped_Item(self, obj_center, item_type, quest_item)
+                        if quest_item in ITEMS:
+                            Dropped_Item(self, obj_center, ITEMS[quest_item])
                 # Loads items/npcs that only appear after a quest has been accepted.
                 if 'QA' in tile_object.name:
                     _, quest, quest_item = tile_object.name.split('_')
@@ -1425,9 +1421,8 @@ class Game:
                         if quest_item in self.people:
                             if self.is_living(quest_item):
                                 Player(self, obj_center.x, obj_center.y, quest_item)
-                        #for item_type in ITEM_TYPE_LIST:
-                        #    if quest_item in eval(item_type.upper()):
-                        #        Dropped_Item(self, obj_center, item_type, quest_item)
+                        if quest_item in ITEMS:
+                            Dropped_Item(self, obj_center, ITEMS[quest_item])
                 # Loads items/npcs that should only be there if a quest hasn't been accepted
                 if 'QN' in tile_object.name:
                     _, quest, quest_item = tile_object.name.split('_')
@@ -1439,9 +1434,8 @@ class Game:
                         if quest_item in self.people:
                             if self.is_living(quest_item):
                                 Player(self, obj_center.x, obj_center.y, quest_item)
-                        #for item_type in ITEM_TYPE_LIST:
-                        #    if quest_item in eval(item_type.upper()):
-                        #        Dropped_Item(self, obj_center, item_type, quest_item)
+                        if quest_item in ITEMS:
+                            Dropped_Item(self, obj_center, ITEMS[quest_item])
                 if 'COMMAND' in tile_object.name: # I used this block of code for killing Alex's body: the character that the black wraith comes out of in the beginning.
                     _, command, npc = tile_object.name.split('_')
                     if npc != 'None':
@@ -1920,7 +1914,7 @@ class Game:
                     if self.message != "You are carrying too much weight.":
                         self.message = pg.key.name(self.key_map['interact']).upper() + 'to pick up'
                     if self.player.e_down:
-                        if self.player.add_inventory(hit.item, 1):
+                        if self.player.add_inventory(hit.item):
                             #self.player.calculate_weight()
                             self.player.e_down = False
                             self.message_text = False
@@ -2429,6 +2423,14 @@ class Game:
         self.player.human_body.update_animations()  # Updates animations for newly equipped or removed weapons etc.
         self.player.dragon_body.update_animations()
 
+    def use_item(self, slot):
+        self.change_right_equipped(slot)
+        self.player.use_item(self.selected_hud_item.item, slot)
+
+    def place_item(self):
+        slot = int(self.selected_hud_item.slot_text) - 1
+        self.player.place_item(slot)
+
     def events(self):
         # catch all events here
         for event in pg.event.get():
@@ -2440,7 +2442,10 @@ class Game:
                 # get a list of all heading sprites that are under the mouse cursor
                 self.clicked_sprites = [s for s in self.inventory_hud_icons if s.rect.collidepoint(pos)]
                 if self.clicked_sprites:
-                    self.change_right_equipped(int(self.clicked_sprites[0].slot_text) - 1)
+                    if pg.mouse.get_pressed() == (1, 0, 0):
+                        self.change_right_equipped(int(self.clicked_sprites[0].slot_text) - 1)
+                    elif pg.mouse.get_pressed() == (0, 0, 1):
+                        self.use_item(int(self.clicked_sprites[0].slot_text) - 1)
                 if pg.mouse.get_pressed() == (1, 0, 1):
                     self.player.dual_shoot()
                 elif pg.mouse.get_pressed() == (0, 0, 1) or pg.mouse.get_pressed() == (0, 1, 1):
@@ -2502,10 +2507,8 @@ class Game:
                     self.map.minimap.resize(False)
                 if event.key == self.key_map['minimap']: # Toggles hud mini map
                     self.hud_map = not self.hud_map
-                if event.key == self.key_map['use']:
-                    self.player.use_item()
                 if event.key == self.key_map['place']:
-                    self.player.place_item()
+                    self.place_item()
                 if event.key == self.key_map['block']:
                     self.player.place_block()
                 if event.key == self.key_map['grenade']:

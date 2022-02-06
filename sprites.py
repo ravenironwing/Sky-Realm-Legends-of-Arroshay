@@ -649,8 +649,14 @@ def add_inventory(inventory, item_name, count = 1): # Accepts either an item in 
         if slot == {}:
             if 'number' in item_dict:  # Adjusts the number if items come in units greater than one. Used for harvesting.
                 count = count * item_dict['number']
-            inventory[i] = item_dict.copy()
-            inventory[i]['number'] = count
+                inventory[i] = item_dict.copy()
+                inventory[i]['number'] = count
+            else:
+                inventory[i] = item_dict.copy()
+                count -= 1
+                if count > 0:
+                    if add_inventory(inventory, item_name, count):
+                        return True
             return True
     return False
 
@@ -758,13 +764,19 @@ def random_inventory_item(orig_inventory, gender = None):
     return orig_inventory
 
 def drop_all_items(sprite, delete_items = False):
-    for item_type in ITEM_TYPE_LIST:
         if not delete_items:
-            for item in sprite.inventory[item_type]:
-                for x in range(0, sprite.inventory[item_type][item]):
-                    Dropped_Item(sprite.game, sprite.pos + vec(randrange(-50, 50), randrange(-100, 100)), item_type, item)
-        sprite.inventory[item_type] = {}
-        sprite.equipped[item_type] = None
+            for i, item in enumerate(sprite.inventory):
+                Dropped_Item(sprite.game, sprite.pos, item, None, True)
+                sprite.inventory[i] = {}
+            for key, item in sprite.equipped.items():
+                if key not in ['hair', 'race', 'gender', 'weapons', 'weapons2']:
+                    Dropped_Item(sprite.game, sprite.pos, item, None, True)
+                    sprite.equipped[key] = {}
+            sprite.equipped['weapons'] = None
+            sprite.equipped['weapons2'] = None
+            sprite.hand_item = {}
+            sprite.hand2_item = {}
+            sprite.body.update_animations()
 
 def change_clothing(character, naked = False, best = False):
     if naked: # Takes all clothes off and puts them back in your inventory.
@@ -2730,111 +2742,143 @@ class Player(Character):  # Used for humanoid NPCs and Players
             self.human_body.update_animations()
             self.dragon_body.update_animations()
 
-    def use_item(self):
+    def use_item(self, item, hud_slot = None, dict = 'equipped'):
         remove = False
-        if self.equipped['items']:
-            if self.equipped['items'] == 'airship fuel':
+        if 'name' in item:
+            if item['name'] == 'airship fuel':
                 if self.in_vehicle:
                     if self.vehicle.cat == 'airship':
                         self.vehicle.fuel += 100
                         play_relative_volume(self, 'pee')
                         remove = True
-            if 'spell' in ITEMS[self.equipped['items']]:
-                if ITEMS[self.equipped['items']]['spell'] not in self.expanded_inventory['magic']:
-                    self.expanded_inventory['magic'].append(ITEMS[self.equipped['items']]['spell'])
-                    play_relative_volume(self, 'page turn')
-                    play_relative_volume(self, ITEMS[self.equipped['items']]['sound'])
-            if 'ammo' in ITEMS[self.equipped['items']]:
-                self.ammo[ITEMS[self.equipped['items']]['type']] += ITEMS[self.equipped['items']]['ammo']
+            #if 'spell' in item:
+            #    if item['spell'] not in self.expanded_inventory['magic']:
+            #        self.expanded_inventory['magic'].append(ITEMS[self.equipped['items']]['spell'])
+            #        play_relative_volume(self, 'page turn')
+            #        play_relative_volume(self, ITEMS[self.equipped['items']]['sound'])
+            if 'ammo' in item:
+                self.ammo[item['type']] += item['ammo']
                 self.pre_reload()
                 remove = True
-            if 'food' in ITEMS[self.equipped['items']]:
+            if item['type'] == 'food':
                 if self.hungers or 'mechanima' in self.race:  # Makes it so only races that can eat can eat.
                     if self.stats['hunger'] < 100: # You can only eat when you are hungry
-                        if 'health' in ITEMS[self.equipped['items']]:
-                            self.add_health(ITEMS[self.equipped['items']]['health'] + (self.stats['healing'] / 20))
+                        if 'health' in item:
+                            self.add_health(item['health'] + (self.stats['healing'] / 20))
                             remove = True
-                        if 'stamina' in ITEMS[self.equipped['items']]:
-                            self.add_stamina(ITEMS[self.equipped['items']]['stamina'] + (self.stats['stamina regen'] / 20))
+                        if 'stamina' in item:
+                            self.add_stamina(item['stamina'] + (self.stats['stamina regen'] / 20))
                             remove = True
-                        if 'magica' in ITEMS[self.equipped['items']]:
-                            self.add_magica(ITEMS[self.equipped['items']]['magica'] + (self.stats['magica regen'] / 20))
+                        if 'magica' in item:
+                            self.add_magica(Iitem['magica'] + (self.stats['magica regen'] / 20))
                             remove = True
-                        if 'hunger' in ITEMS[self.equipped['items']]:
-                            self.add_hunger(ITEMS[self.equipped['items']]['hunger'])
+                        if 'hunger' in item:
+                            self.add_hunger(item['hunger'])
                             remove = True
                         play_relative_volume(self, 'eat')
                     else:
                         return "You are too full to eat that."
             else:
-                if 'health' in ITEMS[self.equipped['items']]:
-                    self.add_health(ITEMS[self.equipped['items']]['health'] + (self.stats['healing'] / 20))
+                if 'health' in item:
+                    self.add_health(item['health'] + (self.stats['healing'] / 20))
                     remove = True
-                if 'stamina' in ITEMS[self.equipped['items']]:
-                    self.add_stamina(ITEMS[self.equipped['items']]['stamina'] + (self.stats['stamina regen'] / 20))
+                if 'stamina' in item:
+                    self.add_stamina(item['stamina'] + (self.stats['stamina regen'] / 20))
                     remove = True
-                if 'magica' in ITEMS[self.equipped['items']]:
-                    self.add_magica(ITEMS[self.equipped['items']]['magica'] + (self.stats['magica regen'] / 20))
+                if 'magica' in item:
+                    self.add_magica(item['magica'] + (self.stats['magica regen'] / 20))
                     remove = True
-                if 'hunger' in ITEMS[self.equipped['items']]:
-                    self.add_hunger(ITEMS[self.equipped['items']]['hunger'])
+                if 'hunger' in item:
+                    self.add_hunger(item['hunger'])
                     remove = True
-            if 'change race' in ITEMS[self.equipped['items']]:
-                self.equipped['race'] = ITEMS[self.equipped['items']]['change race']
+            if 'change race' in item:
+                self.equipped['race'] = item['change race']
                 self.human_body.update_animations()
                 self.dragon_body.update_animations()
                 remove = True
-            if 'change sex' in ITEMS[self.equipped['items']]:
-                self.equipped['gender'] = ITEMS[self.equipped['items']]['change sex']
+            if 'change sex' in item:
+                self.equipped['gender'] = item['change sex']
                 if self.equipped['gender'] == 'female':
-                    random_dress_top = choice(DRESS_TOPS_LIST)
-                    random_dress_skirt = choice(DRESS_BOTTOMS_LIST)
+                    #random_dress_top = choice(DRESS_TOPS_LIST)
+                    #random_dress_skirt = choice(DRESS_BOTTOMS_LIST)
                     random_hair = choice(LONG_HAIR_LIST)
-                    self.add_inventory(random_dress_top)
-                    self.add_inventory(random_dress_skirt)
+                    #self.add_inventory(random_dress_top)
+                    #self.add_inventory(random_dress_skirt)
                     self.expanded_inventory['hair'].append(random_hair)
-                    self.equipped['tops'] = random_dress_top
-                    self.equipped['bottoms'] = random_dress_skirt
+                    #self.equipped['tops'] = random_dress_top
+                    #self.equipped['bottoms'] = random_dress_skirt
                     self.equipped['hair'] = random_hair
                 else:
                     random_hair = choice(SHORT_HAIR_LIST)
-                    self.add_inventory('tshirt M')
-                    self.add_inventory('jeans M')
+                    #self.add_inventory('tshirt M')
+                    #self.add_inventory('jeans M')
                     self.expanded_inventory['hair'].append(random_hair)
-                    self.equipped['tops'] = 'tshirt M'
-                    self.equipped['bottoms'] = 'jeans M'
+                    #self.equipped['tops'] = 'tshirt M'
+                    #self.equipped['bottoms'] = 'jeans M'
                     self.equipped['hair'] = random_hair
                 self.human_body.update_animations()
                 self.dragon_body.update_animations()
                 remove = True
-            if 'flint and steel' in self.equipped['items']:
-                if self.change_used_item('items', self.equipped['items']):
+            if 'flint and steel' in item:
+                if self.change_used_item('items', item):
                     play_relative_volume(self, 'fire blast')
                     Stationary_Animated(self.game, self.pos + vec(64, 0).rotate(-self.rot), 'fire', 500)
                 else: # Makes it so it doesn't try to use a None Type in the other if statements.
                     return
-            if 'potion' in self.equipped['items']:
-                self.add_inventory('empty bottle') # lets you keep the bottle to use for creating new potions.
-            if 'fuel' in self.equipped['items']:
-                self.add_inventory('empty barrel')
+            if 'potion' in item:
+                if not self.add_inventory('empty bottle'): # lets you keep the bottle to use for creating new potions.
+                    Dropped_Item(self.game,self.pos,ITEMS['empty bottle'])
+            if 'fuel' in item:
+                if not self.add_inventory('empty barrel'):
+                    Dropped_Item(self.game, self.pos, ITEMS['empty barrel'])
             if remove:
-                self.add_inventory(self.equipped['items'], -1)
-            if self.equipped['items'] not in self.inventory['items']: # This lets you keep equipping items of the same kind. This way you can use multiple heath potions in a row for example.
-                self.equipped['items'] = None
-            return False # Used to verify the item was used. False means it used the item.
+                self.reduce_hand_item_number(item, hud_slot, dict)
+                return
+            if item['type'] == 'book':
+                return False
+            return "You can't use that item here." # Used to verify the item was used. False means it used the item.
+
+    def reduce_hand_item_number(self, item, slot, dict = 'equipped'):
+        if item == self.hand_item:
+            hand_item = True
+        else:
+            hand_item = False
+        if dict == 'equipped':
+            if 'number' in item:
+                if item['number'] == 1:
+                    self.equipped[slot] = {}
+                    if hand_item:
+                        self.hand_item = {}
+                        self.game.selected_hud_item.clear_item()
+                        self.body.update_animations()
+                else:
+                    item['number'] -= 1
+            else:
+                self.equipped[slot] = {}
+                if hand_item:
+                    self.hand_item = {}
+                    self.game.selected_hud_item.clear_item()
+                    self.body.update_animations()
+            if hand_item:
+                for i, icon in enumerate(self.game.inventory_hud_icons):
+                    icon.update()
+                    icon.resize(HUD_ICON_SIZE)
+        elif dict == 'inventory':
+            if 'number' in item:
+                item['number'] -= 1
+                if item['number'] < 1:
+                    self.inventory[slot] = {}
+            else:
+                self.inventory[slot] = {}
+
 
     def change_used_item(self, item_type, item, return_new_name = False): # This is broken and needs to be repaired.
         print('change_used_item needs to be replaced')
 
-    def place_item(self):
-        if self.equipped['items']:
-            dropped_item = Dropped_Item(self.game, self.pos + vec(50, 0).rotate(-self.rot), 'items', self.equipped['items'], self.rot - 90)
-            if self.inventory[self.equipped['items']] == 1:
-                self.add_inventory(self.equipped['items'])
-                self.equipped['items'] = None
-            else:
-                self.add_inventory(self.equipped['items'])
-                self.equipped['items'] = None
+    def place_item(self, hud_slot):
+        if self.hand_item != {}:
+            Dropped_Item(self.game, self.pos + vec(27, 0).rotate(-self.rot), self.hand_item, self.rot - 90)
+            self.reduce_hand_item_number(self.hand_item, hud_slot)
 
     #def get_equipped_block_gid(self):
     #    if ('type' in self.hand2_item) and ('type' == 'block'):
@@ -3603,15 +3647,6 @@ class Animal(Character):
         if 'dead' in self.game.animals_dict[self.kind]: # Keeps track of if special NPCs have been killed or not.
             self.game.animals_dict[self.name.lower()]['dead'] = True
         if 'corpse' in self.kind_dict.keys() and self.kind_dict['corpse']:
-            # Converts drop list to dictionary for corpses.
-            items_dic = {}
-            items = self.kind_dict['dropped items'].copy()
-            for item in items:
-                if item not in items_dic:
-                    items_dic[item] = 1
-                else:
-                    items_dic[item] += 1
-            self.inventory = [{}]
             self.remove(self.game.mobs)
             self.remove(self.game.animals)
             self.remove(self.game.moving_targets)
@@ -3621,11 +3656,15 @@ class Animal(Character):
             self.rect = self.image.get_rect()
             self.rect.center = self.pos
         else:
-            #for i in self.kind_dict['dropped items']:
-            #    if i:
-            #        for item_type in ITEM_TYPE_LIST:
-            #            if i in eval(item_type.upper()).keys():
-            #                Dropped_Item(self.game, self.pos, item_type, i, self.rot)
+            for item in self.inventory: # Empties animal's inventory.
+                if 'name' in item:
+                    number = 1
+                    if 'number' in item:
+                        number = item['number']
+                    for i in range(0, number):
+                        if random() < .5:
+                            Dropped_Item(self.game, self.pos, item, self.rot, True)
+            Dropped_Item(self.game, self.pos, ITEMS['dead ' + self.kind], self.rot, False, self.image.get_width()) # dropps item based corpse for small animals.
             #if self.kind_dict['name'] == 'sea turtle':
             #    Breakable(self.game, self.pos, self.pos.x - 60, self.pos.y - 60, 120, 120, BREAKABLES['empty turtle shell'], 'empty turtle shell')
             self.kill()
@@ -4012,24 +4051,24 @@ class MuzzleFlash(pg.sprite.Sprite):
             self.kill()
 
 class Dropped_Item(pg.sprite.Sprite):
-    def __init__(self, game, pos, type, item, rot = None, random_spread = False):
+    def __init__(self, game, pos, item, rot = None, random_spread = False, width = None, gendertag = None):
         self.game = game
         self.brightness = 0
         self._layer = self.game.map.items_layer
-        if item in LIGHTS_LIST:
+        if 'brightness' in item:
             if 'flashlight' not in item:
                 self.groups = game.all_sprites, game.dropped_items, game.detectables, game.lights
                 self.light = True
-                self.brightness = ITEMS[item]['brightness']
-                self.mask_type = ITEMS[item]['light mask']
+                self.brightness = item['brightness']
+                self.mask_type = item['light mask']
             else:
                 self.groups = game.all_sprites, game.dropped_items, game.detectables
         else:
             self.groups = game.all_sprites, game.dropped_items, game.detectables
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game.group.add(self)
-        self.item_type = type
-        self.item = self.name = item
+        self.item = item
+        self.name = item['name']
         self.rot = rot
         self.dropped_fish = False
         self.lit = False
@@ -4037,19 +4076,33 @@ class Dropped_Item(pg.sprite.Sprite):
         self.random_spread = random_spread
         self.pos = pos
         self.living = False
-        # Looks up the item image from the list of dictionaries in the settings based on the item type and item name.
-        if self.item_type[-1:] == 's':
-            image_path = "self.game." + self.item_type[:-1] + "_images[" + self.item_type.upper() + '["' + item + '"]["image"]]'
+
+        if gendertag == None:
+            self.gender = choice(['_M', '_F'])
         else:
-            image_path = "self.game." + self.item_type + "_images[" + self.item_type.upper() + '["' + item + '"]["image"]]'
+            self.gender = gendertag
+
+        filename = correct_filename(self.item)
+        try:
+            file = filename + '_side'
+            self.item_image = self.game.item_images[file]
+        except:
+            try:
+                file = filename + self.gender + '_side'
+                self.item_image = self.game.item_images[file]
+            except:
+                self.item_image = self.game.item_images[filename]
+
+        if 'color' in self.item:
+            self.item_image = color_image(self.item_image, self.item['color'])
         if self.rot == None:
             self.rot = randrange(0, 360)
-
-        itemdict = eval(self.item_type.upper())
-        temp_img = eval(image_path)
-        if 'color' in itemdict[self.name]:
-            temp_img = color_image(temp_img, itemdict[self.name]['color'])
-        self.image = pg.transform.rotate(temp_img, self.rot)
+        if width:
+            size = width
+        else:
+            size = ITEM_SIZE
+        self.item_image = pg.transform.scale(self.item_image, (size, size))
+        self.image = pg.transform.rotate(self.item_image, self.rot)
         self.rect = self.hit_rect = self.image.get_rect()
         if self.random_spread:
             self.pos = self.pos + (randrange(-50, 50), randrange(-50, 50))
@@ -4068,14 +4121,10 @@ class Dropped_Item(pg.sprite.Sprite):
             self.floats = True
 
         # Controls dropping live animals
-        if self.item[:4] == 'live':
-            temp_item = self.item.replace('live ', '')
-            if 'enchanted' in temp_item:
-                temp_item = temp_item[:-5]
-                temp_item = temp_item.replace('fire spark enchanted ', '')
-                temp_item = temp_item.replace('electric spark enchanted ', '')
+        if self.item['name'][:4] == 'live':
+            temp_item = self.item['name'].replace('live ', '')
             if 'fish' in temp_item:
-                fish = Dropped_Item(self.game, self.pos, 'items', 'dead ' + temp_item)
+                fish = Dropped_Item(self.game, self.pos, ITEMS['dead ' + temp_item])
                 fish.dropped_fish = True
             else:
                 Animal(self.game, self.pos.x, self.pos.y, temp_item)
@@ -4793,7 +4842,8 @@ class Falling_Tree(pg.sprite.Sprite): # animation of trees falling when you chop
         set_tile_props(self.sprite)
         self.kill()
 
-class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animated sprites
+"""
+class Breakable(pg.sprite.Sprite): # Used for breakable things
     def __init__(self, game, obj_center, w, h, name, fixed_rot = None, size = None):
         self.game = game
         under = False
@@ -4948,7 +4998,7 @@ class Breakable(pg.sprite.Sprite): # Used for fires and other stationary animate
                     Dropped_Item(self.game, self.center, 'items', random_item)
         self.trunk.kill()
         self.kill()
-
+"""
 
 # The rest of these sprites are static sprites that are never updated: water, walls, etc.
 

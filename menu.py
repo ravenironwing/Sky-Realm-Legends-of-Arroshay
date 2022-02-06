@@ -162,11 +162,8 @@ class Item_Icon(pg.sprite.Sprite):
                 self.text_image = self.font.render(self.text, True, self.color)
                 self.item_image.blit(self.text_image, (1, 0))
             elif ('type' in self.item) and (self.item['type'] == 'block'):
-                if True:
-                    gid = self.game.map.get_gid_by_prop_name(self.item['name'])
-                    self.item_image = self.game.map.tmxdata.get_tile_image_by_gid(gid)
-                #except:
-                #    self.item_image = self.box_image
+                gid = self.game.map.get_gid_by_prop_name(self.item['name'])
+                self.item_image = self.game.map.tmxdata.get_tile_image_by_gid(gid)
             else:
                 filename = correct_filename(self.item)
                 try:
@@ -316,6 +313,7 @@ class MainMenu():  # used as the parent class for other menus.
         self.last_frame = 0
         self.book_data = []
         # These items are changed for inherrited menus.
+        self.warning_message = None # Used for displaying warnings if you try to use things you can't.
         self.action_keys = [pg.K_b, pg.K_x, pg.K_y]
         self.spacing = 20  # Spacing between headings
         self.heading_list = ['Game', 'Map', 'Quests', 'Stats', 'Equipment']  # This is the list of headings
@@ -561,6 +559,7 @@ class MainMenu():  # used as the parent class for other menus.
                         self.clear_menu()
                         self.list_items()
             if event.type == pg.MOUSEBUTTONDOWN:  # Clears off pictures and stats from previously clicked item when new item is clicked.
+                self.warning_message = None
                 self.last_click = pg.time.get_ticks()
                 self.click_event()
                 dict = None
@@ -909,18 +908,16 @@ class MainMenu():  # used as the parent class for other menus.
         if self.selected_heading.text in ['Hair', 'Race']:
             self.draw_text('Color', default_font, 30, WHITE, 500, 10, "topleft")
             self.palette = Picture(self.game, self, swatch_image, 493, 57, 227, 453)
-
+        if self.warning_message:
+            self.draw_text(self.warning_message, default_font, 30, YELLOW, 90, int(self.game.screen_height * 3/4), "topleft")
         pg.display.flip()
 
     def use_item(self):
         if ('type' in self.previous_selected_item.item.keys()) and (self.previous_selected_item.item['type'] in ['book', 'tome', 'letter']):
             self.game.effects_sounds['page turn'].play()
             self.read_book(self.previous_selected_item)
-            #self.character.equipped['items'] = self.selected_item.text
-            #if self.character == self.game.player:
-            #    self.warning_message = self.character.use_item()
-            #self.selected_item = None
-            self.list_items()
+        self.warning_message = self.character.use_item(self.previous_selected_item.item, self.previous_selected_item.slot, self.previous_selected_item.dict)
+        self.list_items()
 
     def read_book(self, item):
         self.letter = False
@@ -1165,8 +1162,10 @@ class MainMenu():  # used as the parent class for other menus.
                 dict = self.container
             elif self.selected_item.dict == 'equipped':
                 dict = self.character.equipped
+            Dropped_Item(self.game, self.character.pos, self.selected_item.item, None, True, None, gender_tag(self.character))
             dict[self.selected_item.slot] = {}
         else:
+            Dropped_Item(self.game, self.character.pos, self.moving_item.item, None, True, None, gender_tag(self.character))
             self.moving_item = None
         self.update()
 

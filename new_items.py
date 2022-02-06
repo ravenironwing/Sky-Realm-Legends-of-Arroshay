@@ -159,11 +159,27 @@ ITEMS['flint'] = {'name': 'flint', 'type': 'item', 'number': 1, 'max stack': 32}
 # Generates keys for all chests
 for chest in CHESTS:
     key_name = CHESTS[chest]['name'] + " key"
-    ITEMS[key_name] = {'name': key_name}
+    ITEMS[key_name] = {'name': key_name, 'type': 'key'}
 
 # Generates keys for all doors
 for door in DOORS:
     key_name = DOORS[door]['name'] + " key"
-    ITEMS[key_name] = {'name': key_name}
+    ITEMS[key_name] = {'name': key_name, 'type': 'key'}
 
 ITEMS['lock pick'] = {'name': 'lock pick', 'type': 'item', 'hp': 10, 'max hp': 10}
+
+ITEMS['dead rabbit'] = {'name': 'dead rabbit', 'type': 'item', 'number': 1, 'max stack': 16}
+ITEMS['roasted rabbit'] = {'name': 'roasted rabbit', 'type': 'food', 'number': 1, 'max stack': 16, 'health': 18, 'stamina': 25, 'hunger': 20}
+
+# Lights
+ITEMS['candle'] = {'name': 'candle', 'type': 'item', 'brightness': 50, 'light mask': 1, 'hp': 100, 'max hp': 100}
+
+LIGHTS_LIST = []
+for x in ITEMS:
+    if 'brightness' in ITEMS[x]:
+        LIGHTS_LIST.append(x)
+
+FLOAT_LIST = []
+for x in ITEMS:
+    if 'floats' in ITEMS[x]:
+        FLOAT_LIST.append(x)

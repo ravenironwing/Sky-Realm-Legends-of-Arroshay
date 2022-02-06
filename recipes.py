@@ -106,6 +106,7 @@ TANNING_RECIPIES = {}
 TANNING_RECIPIES['leather strips'] = [1, l]
 GRINDER_RECIPIES = {}
 COOKING_RECIPIES = {}
+COOKING_RECIPIES['roasted rabbit'] = [1, 'dead rabbit']
 ALCHEMY_RECIPIES = {}
 ml = 'marra leaf'
 bb = 'blueberries'

@@ -2419,15 +2419,15 @@ class Game:
 
     def change_right_equipped(self, slot):
         self.player.hand_item = self.player.equipped[slot]
-        self.player.human_body.update_animations()  # Updates animations for newly equipped or removed weapons etc.
-        self.player.dragon_body.update_animations()
         if ('type' in self.player.hand_item) and (self.player.hand_item['type'] in WEAPON_TYPES):
-            self.player.equipped['weapons2'] = self.player.hand_item
+            self.player.equipped['weapons'] = self.player.hand_item
         else:
-            self.player.equipped['weapons2'] = None
+            self.player.equipped['weapons'] = None
         for icon in self.inventory_hud_icons:
             if int(icon.slot_text) == slot + 1:
                 self.selected_hud_item = icon
+        self.player.human_body.update_animations()  # Updates animations for newly equipped or removed weapons etc.
+        self.player.dragon_body.update_animations()
 
     def events(self):
         # catch all events here

@@ -1402,10 +1402,6 @@ class Body(pg.sprite.Sprite):
                     if self.mother.hand_item != {}:
                         if ('type' in self.mother.hand_item) and (self.mother.hand_item['type'] == 'block'):
                             gid = self.game.map.get_gid_by_prop_name(self.mother.hand_item['name'])
-                            #gid = gid_with_property(self.game.map.tmxdata, 'roof', self.mother.hand_item['name'])
-                            #if gid == None:
-                            #    gid = gid_with_property(self.game.map.tmxdata, 'material', self.mother.hand_item['name'])
-                            #gid = self.game.map.get_new_rotated_gid(gid) # returns unrotated gid
                             temp_img = self.game.map.tmxdata.get_tile_image_by_gid(gid).copy()
                             temp_img = temp_img.convert_alpha()
                             temp_img = pg.transform.rotate(temp_img, 90)
@@ -1424,10 +1420,6 @@ class Body(pg.sprite.Sprite):
                     if self.mother.hand2_item != {}:
                         if ('type' in self.mother.hand2_item) and (self.mother.hand2_item['type'] == 'block'):
                             gid = self.game.map.get_gid_by_prop_name(self.mother.hand2_item['name'])
-                            #gid = gid_with_property(self.game.map.tmxdata, 'roof', self.mother.hand2_item['name'])
-                            #if gid == None:
-                            #    gid = gid_with_property(self.game.map.tmxdata, 'material', self.mother.hand2_item['name'])
-                            #gid = self.game.map.get_new_rotated_gid(gid) # returns unrotated gid
                             temp_img = self.game.map.tmxdata.get_tile_image_by_gid(gid).copy()
                             temp_img = temp_img.convert_alpha()
                             temp_img = pg.transform.rotate(temp_img, 90)
@@ -2259,6 +2251,7 @@ class Player(Character):  # Used for humanoid NPCs and Players
         self.remove(self.game.moving_targets)
         self.add(self.game.corpses)
         self.game.group.add(self)
+        self.game.group.change_layer(self, self.game.map.items_layer)  # Switches the corpse to items layer
         if self.equipped['race'] == 'demon':
             Player(self.game, self.pos.x, self.pos.y, 'wraith')
         if self.equipped['race'] in RACE_CORPSE_DICT:
@@ -2539,7 +2532,6 @@ class Player(Character):  # Used for humanoid NPCs and Players
             set_tile_props(self)
 
     def play_weapon_sound(self, default = None):
-        print(self.weapon_hand)
         if default == None:
             snd = choice(self.game.weapon_sounds[self.equipped[self.weapon_hand]['type']])
         else:

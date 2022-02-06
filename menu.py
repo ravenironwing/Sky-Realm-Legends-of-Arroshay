@@ -25,14 +25,6 @@ vec = pg.math.Vector2
 #default_font = pg.font.match_font('arial') #python looks for closest match to arial on whatever computer
 default_font = MENU_FONT
 
-#def empty_dictionary(d):
-#    for x in d:
-#        if x not in ['race', 'gender']
-#            d[x] = [None]
-
-def gid_remove_flags(self, gid):
-    return gid & ~(0x80000000 | 0x40000000 | 0x20000000)  # clear the flags
-
 def convert_to_item_dict(b):
     new_list = b.copy()
     new_list.pop(0)
@@ -72,20 +64,6 @@ def list_pattern(searchlist, b): # a is the list you are searching through, b is
                 return False
         return True
     return False
-
-# This makes sure the player or any other sprite is not equipping items they don't have. Also makes sure players aren't equipping armor in mechsuits
-def check_equip(sprite):
-    """
-    for item_type in ITEM_TYPE_LIST:
-        if sprite.equipped[item_type] not in sprite.inventory[item_type]:
-            sprite.equipped[item_type] = None
-        if item_type == 'weapons':
-            if sprite.equipped['weapons2'] not in sprite.inventory[item_type]:
-                sprite.equipped['weapons2'] = None
-    if sprite.equipped['race'] in NO_CLOTHES_RACES:
-        for item_type in ['hair', 'tops', 'bottoms', 'shoes', 'hats', 'gloves']:
-            sprite.equipped[item_type] = None"""
-    pass
 
 class Draw_Text():
     def draw_text(self, text, font_name, size, color, x, y, align="topleft"):
@@ -661,8 +639,6 @@ class MainMenu():  # used as the parent class for other menus.
                     self.selected_item = None
                     self.selected_text = None
                     if self.selected_heading_list == self.character_heading_list:
-                        self.create_character()
-                        #self.clear_menu()
                         self.running = False
                     elif self.selected_heading_list != self.heading_list:
                         self.change_headings(self.heading_list)
@@ -1452,9 +1428,11 @@ class MainMenu():  # used as the parent class for other menus.
         for item in self.crafting_slots:
             if item != {}:
                 self.character.add_inventory(item)
-        # Updates teh weapons you are equipping
+        # Updates the weapons you are equipping
         if ('name' in self.character.equipped[6]):
             self.character.hand2_item = self.character.equipped[6]
+        else:
+            self.character.hand2_item = {}
         if ('type' in self.character.equipped[6]) and (self.character.equipped[6]['type'] in WEAPON_TYPES):
             self.character.equipped['weapons2'] = self.character.equipped[6]
         else:
@@ -1473,12 +1451,6 @@ class MainMenu():  # used as the parent class for other menus.
         self.game.selected_hud_item = None
         self.game.in_menu = False
         self.game.beg = perf_counter()  # resets the counter so dt doesn't get messed up.
-
-    def create_character(self):
-        pass
-
-
-
 
 
 # Old menues

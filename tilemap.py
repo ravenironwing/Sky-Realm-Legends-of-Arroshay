@@ -51,7 +51,7 @@ class TiledMap:
                 self.river_layer = i
             elif layer.name == 'Trees':
                 self.trees_layer = i
-        self.items_layer = self.river_layer
+        self.items_layer = self.ocean_plants_layer
         self.mob_layer = self.river_layer
         self.player_layer = self.river_layer
         self.vehicle_layer = self.river_layer + 1

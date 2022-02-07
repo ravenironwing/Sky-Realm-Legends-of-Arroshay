@@ -340,6 +340,8 @@ class Game:
         self.player.race = self.player.equipped['race']
         self.load_over_map(self.overworld_map)
         self.load_map(self.previous_map)
+        self.map.stored_map_data = self.map_sprite_data_list[int(self.world_location.x)][int(self.world_location.y)] # Sets the map stored data object to the one that was saved for that map location.
+        self.map.load_stored_data() # Loads the stored data into the map
         self.player.human_body.update_animations()
         self.player.dragon_body.update_animations()
         self.player.calculate_fire_power()

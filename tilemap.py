@@ -70,9 +70,25 @@ class TiledMap:
     def store_map_changes(self, layer, x, y, gid):
         self.stored_map_data.tile_changes[(layer, (x, y))] = gid
         self.tmxdata.layers[layer].data[y][x] = gid
+        self.update_tile_props(x, y)
 
     def store_new_gids(self, gid, hor, vert, diag):
         self.stored_map_data.gid_changes[(gid, hor, vert, diag)] = True
+
+    def load_stored_data(self):
+        for key, value in self.stored_map_data.gid_changes.items():
+            gid = key[0]
+            hor = key[1]
+            vert = key[2]
+            diag = key[3]
+            temp_gid = self.get_new_rotated_gid(gid, hor, vert, diag)
+        for key, value in self.stored_map_data.tile_changes.items():
+            layer = key[0]
+            x = key[1][0]
+            y = key[1][1]
+            self.tmxdata.layers[layer].data[y][x] = value
+            self.update_tile_props(x, y)
+        self.redraw()
 
     def is_next_to(self, x, y, tile_prop): # Checks to see if a location is by a specific kind of tile
         surrounding_tilesxy_list = [(x, y), ((x - 1), (y - 1)), (x, (y - 1)), ((x + 1), (y - 1)), ((x - 1), y), ((x + 1), y),

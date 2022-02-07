@@ -871,9 +871,10 @@ class Game:
         self.continued_game = False
         if self.new_game:  # Why do I have to variables: new_game and conitnued_game
             self.character_menu = MainMenu(self, self.player, 'Character')
-        if self.continued_game:
+        if not self.continued_game:
             self.overworld_map = START_WORLD
             self.load_over_map(self.overworld_map) # Loads world map for first world. This will allow me to load other world maps later.
+            self.change_map(None, RACE[self.player.race]['start map'], RACE[self.player.race]['start pos'])
         self.fly_menu = None
         self.in_menu = False
         self.in_lock_menu = False
@@ -943,13 +944,13 @@ class Game:
             for x in range(0, self.world_width):
                 row = []
                 for y in range(0, self.world_height):
-                    map_data_store = MapData(x, y)
-                    row.append(map_data_store)
+                    row.append(None)
                 self.map_sprite_data_list.append(row)
 
         #world_mini_map = WorldMiniMap(self, self.map_data_list) # Only uncomment this to create a new overworld map if you edit the old one. Otherwise it will take literally forever to load every time.
         #self.load_map(str(self.map_data_list[int(self.world_location.y)][int(self.world_location.x)]) + '.tmx')
 
+    """
     def in_surrounding_tiles(self, x, y, num, layer):
         if (x < self.map.tiles_wide-1) and (y < self.map.tiles_high-1):
             if 0 not in [x, y]:
@@ -985,7 +986,7 @@ class Game:
             elif x != 0 and y == 0:
                 return num in [self.map.tmxdata.get_tile_gid(x - 1, y, layer), self.map.tmxdata.get_tile_gid(x + 1, y, layer)]
             else:
-                return num in [self.map.tmxdata.get_tile_gid(x + 1, y, layer)]
+                return num in [self.map.tmxdata.get_tile_gid(x + 1, y, layer)]"""
 
     def on_map(self, sprite):
         offset = 0
@@ -1151,7 +1152,7 @@ class Game:
                     return None
 
     def load_map(self, temp_map):
-        self.sprite_data = self.map_sprite_data_list[int(self.world_location.x)][int(self.world_location.y)]
+        #self.sprite_data = self.map_sprite_data_list[int(self.world_location.x)][int(self.world_location.y)]
         self.compass_rot = -math.atan2(49 - self.world_location.y, 89 - self.world_location.x)
         self.compass_rot = math.degrees(self.compass_rot)
         map = self.map_data_list[int(self.world_location.y)][int(self.world_location.x)]
@@ -1170,6 +1171,9 @@ class Game:
         if not self.new_game:
             self.garbage_collect()
         self.map = TiledMap(self, map)
+        if not self.map_sprite_data_list[int(self.world_location.x)][int(self.world_location.y)]:  # Stores the stored map data object so it can be accessed from any map even after the map object dies.
+            self.map_sprite_data_list[int(self.world_location.x)][int(self.world_location.y)] = self.map.stored_map_data
+        self.sprite_data = self.map_sprite_data_list[int(self.world_location.x)][int(self.world_location.y)]
         self.group = PyscrollGroup(self.map.map_layer)
         self.group.add(self.player)
         self.group.add(self.player.human_body)

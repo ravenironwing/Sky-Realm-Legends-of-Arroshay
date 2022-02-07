@@ -10,10 +10,8 @@ from pytmx import TileFlags
 logger = logging.getLogger('orthographic')
 logger.setLevel(logging.ERROR)
 
-class MapData: #Used to keep track of what NPCs, animals and objects move to what maps, and are still alive.
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+class StoredMapData: #Used to keep track of what NPCs, animals and objects move to what maps, and are still alive.
+    def __init__(self):
         self.npcs = []
         self.animals = []
         self.moved_npcs = []
@@ -23,7 +21,8 @@ class MapData: #Used to keep track of what NPCs, animals and objects move to wha
         self.vehicles = []
         self.breakable = []
         self.visited = False
-        self.tiledata = None
+        self.tile_changes = {}
+        self.gid_changes = {}
 
 class TiledMap:
     def __init__(self, game, map_name):
@@ -63,9 +62,17 @@ class TiledMap:
         self.chests =[[0 for j in range(self.tiles_high)] for i in range(self.tiles_wide)] # Makes an empty 2D array for storing chest locations. Chests will be stored in the array as dictionaries.
         self.doors = self.chests.copy()
         self.set_map_tiles_props()
-
+        self.stored_map_data = StoredMapData()
+        #self.export_tmx_data()
         #self.overlay = self.generate_over_layer()
         #self.minimap = MiniMap(tm)
+
+    def store_map_changes(self, layer, x, y, gid):
+        self.stored_map_data.tile_changes[(layer, (x, y))] = gid
+        self.tmxdata.layers[layer].data[y][x] = gid
+
+    def store_new_gids(self, gid, hor, vert, diag):
+        self.stored_map_data.gid_changes[(gid, hor, vert, diag)] = True
 
     def is_next_to(self, x, y, tile_prop): # Checks to see if a location is by a specific kind of tile
         surrounding_tilesxy_list = [(x, y), ((x - 1), (y - 1)), (x, (y - 1)), ((x + 1), (y - 1)), ((x - 1), y), ((x + 1), y),
@@ -100,6 +107,7 @@ class TiledMap:
         return flags
 
     def get_new_rotated_gid(self, gid, hor = False, vert = False, diag = False):
+        self.store_new_gids(gid, hor, vert, diag)
         if hor in [True, False]:
             tileflags = TileFlags(hor, vert, diag)
         else:
@@ -233,6 +241,49 @@ class TiledMap:
 
     def redraw(self): # Redraws the map for tile updates
         self.map_layer.redraw_tiles(self.map_layer._buffer)
+
+    def export_tmx_data(self):
+        tiled_layers = {}
+        for i, layer in enumerate(self.tmxdata.layers):
+            if isinstance(layer, pytmx.TiledTileLayer):  # Excludes object layers
+                tiled_layer = []
+                for row in self.tmxdata.layers[i].data:
+                    new_row = []
+                    for item in row:
+                        new_row.append(self.convert_to_tiled_gid(item))
+                    tiled_layer.append(row)
+                tiled_layers[layer.name] = tiled_layer
+
+        self.write_tmx_file(tiled_layers)
+
+    def convert_to_tiled_gid(self, gid):
+        if gid == 0:
+            return 0
+        tiled_gid = self.tmxdata.tiledgidmap[gid] # Does not truely map pytmx gids to tiled gids
+        return tiled_gid
+
+    def write_tmx_file(self, tiled_layers):
+        MAP_SIZE = 1000
+        filename = path.join(map_folder, "newmap.tmx")
+        outfile = open(filename, "w")
+        for layer_name, layer_data in tiled_layers.items():
+            next_layer_txt = """<layer id="5" name="{lname}" width="{mapw}" height="{mapw}">
+              <data encoding="csv">""".format(lname=layer_name, mapw=str(MAP_SIZE))
+            outfile.write(next_layer_txt)
+            outfile.write("\n")
+            for i, y in enumerate(layer_data):
+                new_row_str = str(y)
+                new_row_str = new_row_str.replace(', ', ',')
+                new_row_str = new_row_str.replace('[', '')
+                new_row_str = new_row_str.replace(']', '')
+                if i != MAP_SIZE - 1:
+                    new_row_str = new_row_str + ","
+                outfile.write(new_row_str)
+                outfile.write("\n")
+            footer = """</data>
+             </layer>"""
+            outfile.write(footer)
+        outfile.close()
 
     #def generate_under_layer(self):
     #    for layer in self.tmxdata.visible_layers:

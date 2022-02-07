@@ -163,7 +163,8 @@ def check_tile_hits(sprite):
                         orig_gid = sprite.game.map.tmxdata.get_tile_gid(x, y, sprite.game.map.ocean_plants_layer) # gets the original gid of the door tile so we know it's rotation.
                         flags = sprite.game.map.get_tile_flags(orig_gid) # gets the rotational flags of the door
                         gid = sprite.game.map.get_new_rotated_gid(new_gid, flags)
-                        sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = gid
+                        sprite.game.map.store_map_changes(sprite.game.map.ocean_plants_layer, x, y, gid)
+                        #sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = gid
                         sprite.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
                         sprite.game.map.redraw()
                         sprite.game.message_text = False
@@ -193,7 +194,8 @@ def check_tile_hits(sprite):
                                                                     sprite.game.map.ocean_plants_layer)  # gets the original gid of the door tile so we know it's rotation.
                     flags = sprite.game.map.get_tile_flags(orig_gid)  # gets the rotational flags of the door
                     gid = sprite.game.map.get_new_rotated_gid(new_gid, flags)
-                    sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = gid
+                    sprite.game.map.store_map_changes(sprite.game.map.ocean_plants_layer, x, y, gid)
+                    #sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = gid
                     sprite.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
                     sprite.game.map.redraw()
                     sprite.game.message_text = False
@@ -288,9 +290,11 @@ def check_harvest(sprite, x, y, next_x, next_y):
 def harvest_plant(sprite, x, y, props):
     if sprite.add_inventory(props['plant'], 1):
         if props['harvest'] != 'none':
-            sprite.game.map.tmxdata.layers[props['plant layer']].data[y][x] = sprite.game.map.gid_with_property('plant', props['harvest'])
+            sprite.game.map.store_map_changes(props['plant layer'], x, y, sprite.game.map.gid_with_property('plant', props['harvest']))
+            #sprite.game.map.tmxdata.layers[props['plant layer']].data[y][x] = sprite.game.map.gid_with_property('plant', props['harvest'])
         else:
-            sprite.game.map.tmxdata.layers[props['plant layer']].data[y][x] = 0
+            sprite.game.map.store_map_changes(props['plant layer'], x, y, 0)
+            #sprite.game.map.tmxdata.layers[props['plant layer']].data[y][x] = 0
         sprite.game.map.update_tile_props(x, y) # Updates properties for tiles that have changed.
         sprite.game.map.redraw()
         set_tile_props(sprite)
@@ -352,7 +356,8 @@ def harvest_tree(sprite, x, y):
     sprite.game.channel6.play(sprite.game.effects_sounds['tree fall'], loops=0)
     for j in range(yi, yf + 1):
         for i in range(xi, xf + 1):
-            sprite.game.map.tmxdata.layers[sprite.game.map.trees_layer].data[j][i] = 0
+            sprite.game.map.store_map_changes(sprite.game.map.trees_layer, i, j, 0)
+            #sprite.game.map.tmxdata.layers[sprite.game.map.trees_layer].data[j][i] = 0
             sprite.game.map.update_tile_props(i, j)  # Updates properties for tiles that have changed.
     sprite.game.map.redraw()
     Falling_Tree(sprite, x, y, xi, xf, yi, yf, name, size)
@@ -2916,11 +2921,13 @@ class Player(Character):  # Used for humanoid NPCs and Players
                 if layer == self.game.map.base_layer: # Makes it so you don't have plants on top of walls and stuff you build.
                     if self.next_tile_props['wall'] == 'wall': # Prevents you from placing walls on walls
                         return
-                    self.game.map.tmxdata.layers[self.game.map.ocean_plants_layer].data[y][x] = 0
-                    self.game.map.tmxdata.layers[self.game.map.river_layer].data[y][x] = 0
+                    self.game.map.store_map_changes(self.game.map.ocean_plants_layer, x, y, 0)
+                    self.game.map.store_map_changes(self.game.map.river_layer, x, y, 0)
+                    #self.game.map.tmxdata.layers[self.game.map.ocean_plants_layer].data[y][x] = 0
+                    #self.game.map.tmxdata.layers[self.game.map.river_layer].data[y][x] = 0
                 play_relative_volume(self, 'click')
                 temp_gid = self.game.map.gid_to_nearest_angle(gid, self.rot)
-                self.game.map.tmxdata.layers[layer].data[y][x] = temp_gid
+                self.game.map.store_map_changes(layer, x, y, temp_gid)
                 self.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
                 self.game.map.redraw()
                 set_tile_props(self)
@@ -4849,7 +4856,8 @@ class Falling_Tree(pg.sprite.Sprite): # animation of trees falling when you chop
                             kind = choice(['logs', 'logs', 'logs', 'palm branches'])
                         else:
                             kind = choice(['logs', 'logs', 'branches'])
-                        self.game.map.tmxdata.layers[self.game.map.river_layer].data[j][i] = self.game.map.gid_with_property('plant', kind)
+                        self.game.map.store_map_changes(self.game.map.river_layer, i, j, self.game.map.gid_with_property('plant', kind))
+                        #self.game.map.tmxdata.layers[self.game.map.river_layer].data[j][i] = self.game.map.gid_with_property('plant', kind)
                 self.game.map.update_tile_props(i, j)  # Updates properties for tiles that have changed.
         self.game.map.redraw()
         set_tile_props(self.sprite)

@@ -22,7 +22,7 @@ class StoredMapData: #Used to keep track of what NPCs, animals and objects move 
         self.breakable = []
         self.visited = False
         self.tile_changes = {}
-        self.gid_changes = {}
+        self.gid_changes = set()
 
 class TiledMap:
     def __init__(self, game, map_name):
@@ -73,14 +73,14 @@ class TiledMap:
         self.update_tile_props(x, y)
 
     def store_new_gids(self, gid, hor, vert, diag):
-        self.stored_map_data.gid_changes[(gid, hor, vert, diag)] = True
+        self.stored_map_data.gid_changes.add((gid, hor, vert, diag))
 
     def load_stored_data(self):
-        for key, value in self.stored_map_data.gid_changes.items():
-            gid = key[0]
-            hor = key[1]
-            vert = key[2]
-            diag = key[3]
+        for value in self.stored_map_data.gid_changes:
+            gid = value[0]
+            hor = value[1]
+            vert = value[2]
+            diag = value[3]
             temp_gid = self.get_new_rotated_gid(gid, hor, vert, diag)
         for key, value in self.stored_map_data.tile_changes.items():
             layer = key[0]

@@ -1,5 +1,5 @@
 import pygame as pg
-from sprites import Dropped_Item, toggle_equip, remove_nones, change_clothing, color_image, add_inventory, correct_filename, gender_tag
+from sprites import Dropped_Item, toggle_equip, remove_nones, change_clothing, color_image, add_inventory, correct_filename, gender_tag, Player, auto_crop
 from random import uniform, choice, randint, random, randrange
 from settings import *
 from npcs import *
@@ -19,6 +19,7 @@ from math import ceil
 #from sprites import Npc, Animal
 from time import perf_counter
 from recipes import *
+import pickle
 
 vec = pg.math.Vector2
 
@@ -114,9 +115,11 @@ class Item_Icon(pg.sprite.Sprite):
         self.groups = self.mother.menu_sprites, self.mother.item_sprites
         self.item = item
         self.text = ''
+        self.filepath = None
         pg.sprite.Sprite.__init__(self, self.groups)
         self.x = x
         self.y = y
+        self.stats = {}
         self.update()
 
     def update(self):
@@ -152,7 +155,7 @@ class Item_Icon(pg.sprite.Sprite):
                 self.item_image = pg.transform.scale(self.game.black_box_image, (ICON_SIZE - 2, ICON_SIZE - 2))
                 temp_img = pg.transform.scale(self.game.hair_images[self.item['name']], (ICON_SIZE - 2, ICON_SIZE - 2))
                 self.item_image.blit(temp_img, (0, 0))
-                self.item_image = color_image(self.item_image, self.mother.character.colors['hair'])
+                self.item_image = color_image(self.item_image, self.mother.character.expanded_inventory['colors']['hair'])
             elif self.type == 'race':
                 self.item_image = pg.transform.scale(self.game.black_box_image, (ICON_SIZE - 2, ICON_SIZE - 2))
                 temp_img = pg.transform.scale(self.game.race_images[self.item['name']], (ICON_SIZE - 2, ICON_SIZE - 2))
@@ -161,6 +164,43 @@ class Item_Icon(pg.sprite.Sprite):
                 self.text = self.item['name']
                 self.text_image = self.font.render(self.text, True, self.color)
                 self.item_image.blit(self.text_image, (1, 0))
+            elif self.dict == 'saves':
+                # Loads data from each save for preview and stat info.
+                self.item_image = pg.transform.scale(self.game.black_box_image, (100, 100))
+                self.filepath = path.join(saves_folder, self.item['filepath'])
+                load_file = []
+                with open(self.filepath, "rb", -1) as FILE:
+                    load_file = pickle.load(FILE)
+                self.mother.temp_character.inventory = load_file[0]
+                self.mother.temp_character.equipped = load_file[1]
+                self.mother.temp_character.stats = load_file[2]
+                self.mother.temp_character.expanded_inventory = load_file[3]
+                # Temporarily swaps the temp character with the player character in order to render its image for the icon preview.
+                temp_char = self.mother.character
+                self.mother.character = self.mother.temp_character
+                self.mother.temp_character = temp_char
+                self.mother.draw_character_preview()
+                char_image = pg.transform.rotate(self.mother.body_surface, -90)
+                char_image.set_colorkey(BLACK)
+                char_image = auto_crop(char_image)
+                char_image = pg.transform.scale(char_image, (40, 40))
+                temp_char = self.mother.character
+                self.mother.character = self.mother.temp_character
+                self.mother.temp_character = temp_char
+                self.mother.draw_character_preview()
+                self.item_image.blit(char_image, (30, 25))
+                self.text_image = self.font.render('LV:' + str(self.mother.temp_character.stats['level']) + ' ' + self.mother.temp_character.equipped['race'], True, self.color)
+                self.item_image.blit(self.text_image, (0, 0))
+                self.text_image = self.font.render(self.item['date'], True, self.color)
+                self.item_image.blit(self.text_image, (5, 65))
+                self.text_image = self.font.render(self.item['time'], True, self.color)
+                self.item_image.blit(self.text_image, (12, 80))
+                self.stats['Level'] = str(self.mother.temp_character.stats['level'])
+                self.stats['Gender'] = self.mother.temp_character.equipped['gender']
+                self.stats['Race'] = self.mother.temp_character.equipped['race']
+                self.stats['HP'] = str(self.mother.temp_character.stats['health'])
+                self.stats['STR'] = str(self.mother.temp_character.stats['strength'])
+
             elif ('type' in self.item) and (self.item['type'] == 'block'):
                 gid = self.game.map.get_gid_by_prop_name(self.item['name'])
                 self.item_image = self.game.map.tmxdata.get_tile_image_by_gid(gid)
@@ -242,12 +282,17 @@ class Text(pg.sprite.Sprite):
         self.text = text
 
 class Picture_Icon(pg.sprite.Sprite):
-    def __init__(self, mother, item_image, x, y, size):
+    def __init__(self, mother, item_image, x, y, size, height = None):
         self.mother = mother
         self.game = self.mother.game
         self.groups = self.mother.menu_sprites
         pg.sprite.Sprite.__init__(self, self.groups)
-        self.image = pg.transform.scale(item_image, (size, size))
+        if height:
+            self.height = height
+        else:
+            self.height = size
+        self.size = size
+        self.image = pg.transform.scale(item_image, (self.size, self.height))
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
@@ -255,18 +300,21 @@ class Picture_Icon(pg.sprite.Sprite):
         self.x = x
         self.y = y
         self.size = size
+        self.hidden = False
 
     def hide(self):
-        self.image = pg.transform.scale(self.game.black_box_image, (self.size, self.size))
+        self.image = pg.transform.scale(self.game.black_box_image, (self.size, self.height))
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = (self.x, self.y)
+        self.hidden = True
 
     def un_hide(self):
-        self.image = pg.transform.scale(self.original_image, (self.size, self.size))
+        self.image = pg.transform.scale(self.original_image, (self.size, self.height))
         self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = (self.x, self.y)
+        self.hidden = False
 
 class MainMenu():  # used as the parent class for other menus.
     def __init__(self, game, character = 'player', menu_type = 'Crafting', container = [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]):
@@ -279,10 +327,10 @@ class MainMenu():  # used as the parent class for other menus.
         else:
             self.character = character
         self.menu_type = menu_type
-        if self.menu_type in ['Game', 'Character']:
+        if self.menu_type == 'Game':
             self.menu_type = 'Crafting'
         self.container = container
-        if self.menu_type not in  ['Looting']:
+        if self.menu_type not in  ['Looting', 'Character']:
             self.recipes = RECIPIES[self.menu_type]
         else:
             self.recipes = {}
@@ -297,6 +345,7 @@ class MainMenu():  # used as the parent class for other menus.
         self.variable_equip = pg.sprite.Group()
         self.magic_icons = pg.sprite.Group()
         self.inventory_icons = pg.sprite.Group()
+        self.save_icons = pg.sprite.Group()
         self.loot_icons = pg.sprite.Group()
         self.read_menu_icons = pg.sprite.Group()
         self.item_tags_sprites = pg.sprite.Group()  # Used to show things like if the item is equipped
@@ -319,24 +368,26 @@ class MainMenu():  # used as the parent class for other menus.
         self.heading_list = ['Game', 'Map', 'Quests', 'Stats', 'Equipment']  # This is the list of headings
         self.inventory_heading_list = ['Inventory', 'Magic', self.menu_type]  # This is the list of headings
         self.character_heading_list = ['Gender', 'Race', 'Hair']
+        self.new_game_heading_list = ['Sky Realm']
+        self.new_game_selection_list = ['New Game', 'Load Game', 'Settings', 'Quit Game']
         self.game_heading_list = ['Settings', 'Save/Load Game', 'Exit Menu', 'Quit Game']
         self.quest_heading_list = ['Active Quests', 'Completed Quests']
         self.settings_heading_list = ['Controls']
         self.save_heading_list = ['Save Game', 'Load Game']
+        self.load_heading_list = ['Load Game']
         self.controls_menu_list = self.game.key_map.keys()
         if menu_type == 'Game':
             self.selected_heading_list = self.heading_list
         elif menu_type == 'Character':
-            self.selected_heading_list = self.character_heading_list
+            self.selected_heading_list = self.new_game_heading_list
         else:
             self.selected_heading_list = self.inventory_heading_list
         self.moving_item = None
         self.draw_map = False
         self.trash = Picture_Icon(self, self.game.trash_image, 932, 25, 40)
-        if menu_type == 'Character':
-            self.back_arrow = Picture_Icon(self, self.game.start_icon_image, 25, 25, 40)
-        else:
-            self.back_arrow = Picture_Icon(self, self.game.back_arrow_image, 25, 25, 40)
+        self.start_icon = Picture_Icon(self, self.game.start_icon_image, self.game.screen_width/2 - 100, 25, 80, 40)
+        self.start_icon.hide()
+        self.back_arrow = Picture_Icon(self, self.game.back_arrow_image, 25, 25, 40)
         self.read_menu_icons.add(self.back_arrow)
         self.generate_headings(True)
         self.icon_offset = (0, 0) # Used for telling where you clicked on an icon to make the motion fluid.
@@ -344,6 +395,16 @@ class MainMenu():  # used as the parent class for other menus.
         for i in range (0, 9): # generates list of slots to be used in the crafting menu to craft items.
             self.crafting_slots.append({})
         self.crafting_set_number = 0
+        self.save_slots = []
+        for i in range(0, 36):
+            self.save_slots.append({})
+        for i, filepath in enumerate(sorted(glob(path.join(saves_folder, "*.sav")), reverse=True)):
+            if i > 35:
+                break
+            fname = path.basename(filepath).replace('.sav', '')
+            slot_num, date, time = fname.split('_')
+            self.save_slots[int(slot_num)] = {'name': str(slot_num), 'filepath': path.basename(filepath), 'race': race, 'date': date, 'time': time, 'type': 'save'}
+        self.temp_character = Player(self.game) # used for previewing saves
         self.run()
 
     def draw_character_preview(self):
@@ -369,13 +430,13 @@ class MainMenu():  # used as the parent class for other menus.
                 temp_img = self.game.humanoid_images[body_part_images_list][part_image_dict[i]]
                 if i in reverse_list:
                     temp_img = pg.transform.flip(temp_img, False, True)
-                colored_img = color_image(temp_img, self.character.colors['skin'])
+                colored_img = color_image(temp_img, self.character.expanded_inventory['colors']['skin'])
                 image = pg.transform.rotate(colored_img, part[2])
                 temp_rect = image.get_rect()
                 self.body_surface.blit(image, (rect.centerx - (temp_rect.centerx - part[0]), rect.centery - (temp_rect.centery - part[1])))
                 if i == 7 and 'mechanima' in self.character.equipped['race']:  # draws back lights on mechs.
                     temp_img = self.game.mech_back_image
-                    colored_img = color_image(temp_img, self.character.colors['hair'])
+                    colored_img = color_image(temp_img, self.character.expanded_inventory['colors']['hair'])
                     temp_rect = colored_img.get_rect()
                     self.body_surface.blit(colored_img, (
                     rect.centerx - (temp_rect.centerx - part[0]), rect.centery - (temp_rect.centery - part[1])))
@@ -400,7 +461,7 @@ class MainMenu():  # used as the parent class for other menus.
             elif i == 10:
                 if self.character.equipped['hair']:
                     temp_img = self.game.hair_images[self.character.equipped['hair']]
-                    colored_img = color_image(temp_img, self.character.colors['hair'])
+                    colored_img = color_image(temp_img, self.character.expanded_inventory['colors']['hair'])
                     image = pg.transform.rotate(colored_img, part_placement[8][2])
                     temp_rect = image.get_rect()
                     self.body_surface.blit(image, (rect.centerx - (temp_rect.centerx - part_placement[8][0]),
@@ -420,17 +481,16 @@ class MainMenu():  # used as the parent class for other menus.
 
     def click_text_icon(self, item): # Used for when you click a text based icon under a listing
         self.selected_text = item
-        if self.selected_heading.text == 'Load Game':
-            if self.previous_text:
-                if self.selected_text.text == self.previous_text.text:
-                    self.game.load_save(path.join(saves_folder, self.selected_text.text))
-                    self.running = False
-        elif self.selected_heading.text in self.quest_heading_list:
+        if self.selected_heading.text in self.quest_heading_list:
             self.display_quest_info(item)
         elif self.selected_text.text == 'Save/Load Game':
             self.change_headings(self.save_heading_list)
         elif self.selected_text.text == 'Settings':
             self.change_headings(self.settings_heading_list)
+        elif self.selected_text.text == 'New Game':
+            self.change_headings(self.character_heading_list)
+        elif self.selected_text.text == 'Load Game':
+            self.change_headings(self.load_heading_list)
         elif self.selected_text.text == 'Exit Menu':
             self.running = False
         elif self.selected_text.text == 'Quit Game':
@@ -557,6 +617,7 @@ class MainMenu():  # used as the parent class for other menus.
 
     def events(self):
         use_item = False
+        activate_save = False
         now = pg.time.get_ticks()
         if now - self.last_click > DOUBLE_CLICK_TIME:
             self.previous_selected_item = None
@@ -594,13 +655,15 @@ class MainMenu():  # used as the parent class for other menus.
                         self.click_text_icon(item)
                     if item in self.item_sprites:
                         self.selected_item = item
-                        if self.selected_item and (self.selected_heading.text in (self.inventory_heading_list + WORKSTATIONS)):
+                        if self.selected_heading.text in self.save_heading_list:
                             # Lets you move items around and equip them.
-                            if self.selected_item and (
-                                    'name' in self.selected_item.item.keys()) and self.previous_selected_item and (
-                                    'name' in self.previous_selected_item.item.keys()) and (
-                                    self.previous_selected_item.item['name'] == self.selected_item.item[
-                                'name']) and not self.moving_item:
+                            if self.previous_selected_item:
+                                activate_save = True
+                            self.display_item_info()
+                            self.previous_selected_item = item
+                        elif self.selected_heading.text in (self.inventory_heading_list + WORKSTATIONS):
+                            # Lets you move items around and equip them.
+                            if ('name' in self.selected_item.item.keys()) and self.previous_selected_item and ('name' in self.previous_selected_item.item.keys()) and (self.previous_selected_item.item['name'] == self.selected_item.item['name']) and not self.moving_item:
                                 use_item = True
                             self.display_item_info()
                             if self.selected_item.dict == 'inventory':
@@ -639,37 +702,41 @@ class MainMenu():  # used as the parent class for other menus.
                             self.previous_selected_item = item
                             self.list_items()
 
-                        if self.selected_heading.text in ['Hair', 'Race', 'Gender']:
+                        elif self.selected_heading.text in ['Hair', 'Race', 'Gender']:
                             if self.selected_item.text in RACE.keys():
                                 self.character.equipped['race'] = self.selected_item.text
                                 self.character.equipped['hair'] = 'bald'
-                                self.character.colors = DEFAULT_RACE_COLORS[self.selected_item.text]
+                                self.character.expanded_inventory['colors'] = DEFAULT_RACE_COLORS[self.selected_item.text]
                             self.display_item_info()
                             if self.selected_item.dict == 'hair':
                                 self.character.equipped['hair'] = self.selected_item.item['name']
                             self.list_items()
+                        elif self.selected_heading.text in ['Load Game', 'Save Game']:
+                            self.display_item_info()
+                            self.list_items()
                 if self.palette in self.clicked_sprites:
                     pos = pg.mouse.get_pos()
                     if self.selected_heading.text == 'Hair':
-                        self.character.colors['hair'] = self.game.screen.get_at((pos[0], pos[1]))
+                        self.character.expanded_inventory['colors']['hair'] = self.game.screen.get_at((pos[0], pos[1]))
                         for icon in self.inventory_icons:
                             self.inventory_icons.update()
                         self.list_items()
                     if self.selected_heading.text == 'Race':
-                        self.character.colors['skin'] = self.game.screen.get_at((pos[0], pos[1]))
+                        self.character.expanded_inventory['colors']['skin'] = self.game.screen.get_at((pos[0], pos[1]))
                         self.list_items()
                 elif (self.trash in self.clicked_sprites) and self.moving_item and (self.selected_heading.text != 'Magic'):
                     self.drop_item(self.moving_item)
-                elif self.back_arrow in self.clicked_sprites and not self.moving_item:
+                elif (self.back_arrow in self.clicked_sprites) and (not self.back_arrow.hidden) and (not self.moving_item):
                     self.selected_item = None
                     self.selected_text = None
-                    if self.selected_heading_list == self.character_heading_list:
-                        self.running = False
+                    if (self.menu_type == 'Character') and (self.selected_heading_list != self.new_game_heading_list):
+                        self.change_headings(self.new_game_heading_list)
                     elif self.selected_heading_list != self.heading_list:
                         self.change_headings(self.heading_list)
                     else:
-                        #self.clear_menu()
                         self.running = False
+                elif (self.start_icon in self.clicked_sprites) and (not self.start_icon.hidden):
+                    self.running = False
             if (event.type == pg.MOUSEBUTTONUP) and self.moving_item:
                 self.click_event(False)
                 if not self.mouse_click[0]: # Only responds if the left mouse button goes up, not the right or middle
@@ -695,6 +762,26 @@ class MainMenu():  # used as the parent class for other menus.
                             self.list_items()
         if use_item:
             self.use_item()
+        if activate_save:
+            self.activate_save()
+
+    def activate_save(self):
+        if self.selected_heading.text == 'Load Game':
+            if self.selected_item.filepath:
+                self.game.load_save(self.selected_item.filepath)
+                self.running = False
+        elif self.selected_heading.text == 'Save Game':
+            self.game.save(self.selected_item.slot)
+            # Updates saves
+            for i, filepath in enumerate(sorted(glob(path.join(saves_folder, "*.sav")), reverse=True)):
+                if i > 35:
+                    break
+                fname = path.basename(filepath).replace('.sav', '')
+                slot_num, date, time = fname.split('_')
+                self.save_slots[int(slot_num)] = {'name': str(slot_num), 'filepath': path.basename(filepath),
+                                                  'race': race, 'date': date, 'time': time, 'type': 'save'}
+            self.list_items()
+
     def click_event(self, sound = True):
         self.mouse_click = pg.mouse.get_pressed()
         pos = pg.mouse.get_pos()
@@ -728,7 +815,7 @@ class MainMenu():  # used as the parent class for other menus.
             self.selected_heading = heading
             break
         for heading in self.menu_heading_sprites:  # Selects the heading that fits the menu_type if possible
-            if (heading.text == self.menu_type) and (self.menu_type != 'Crafting'):
+            if (heading.text == self.menu_type) and (self.menu_type not in ['Crafting', 'Character']):
                 self.selected_heading = heading
                 break
         self.selected_text = None
@@ -854,7 +941,7 @@ class MainMenu():  # used as the parent class for other menus.
 
     def draw(self):
         self.game.screen.fill(BLACK)
-        if self.selected_heading.text in ['Inventory', 'Magic'] + WORKSTATIONS + self.character_heading_list: # Draws character preview
+        if self.selected_heading.text in ['Inventory', 'Magic'] + WORKSTATIONS + self.character_heading_list + ['Load Game']: # Draws character preview
             self.game.screen.blit(pg.transform.rotate(pg.transform.scale(self.body_surface, (300, 300)), -90), (692, -7))
         list_rect = pg.Rect(10, 50, self.game.screen_width / 2 - 10, self.game.screen_height - 74)
         list_rect_fill = pg.Rect(20, 60, self.game.screen_width / 2 - 30, self.game.screen_height - 94)
@@ -894,8 +981,12 @@ class MainMenu():  # used as the parent class for other menus.
         pg.draw.rect(self.game.screen, YELLOW, selected_heading_rect, 2)
         self.menu_sprites.draw(self.game.screen)
         if self.selected_item:
-            for i, item_stat in enumerate(self.printable_stat_list):
-                self.draw_text(item_stat, default_font, 18, WHITE, 750, 300 + 20 * i, "topleft")
+            if self.selected_heading.text in ['Load Game', 'Save Game']:
+                for i, item_stat in enumerate(self.printable_stat_list):
+                    self.draw_text(item_stat, default_font, 25, WHITE, self.game.screen_width/2 + 80, 80 + 32 * i, "topleft")
+            else:
+                for i, item_stat in enumerate(self.printable_stat_list):
+                    self.draw_text(item_stat, default_font, 18, WHITE, 750, 300 + 20 * i, "topleft")
         if self.selected_text: # Used for printing out quest info
             for i, item_stat in enumerate(self.printable_stat_list):
                 self.draw_text(item_stat, default_font, 20, WHITE, self.game.screen_width / 2 + 50, self.game.screen_height / 3 + 30 * i, "topleft")
@@ -1197,6 +1288,7 @@ class MainMenu():  # used as the parent class for other menus.
 
     def list_items(self):
         self.clear_menu()
+        self.back_arrow.un_hide()
         self.draw_character_preview()
         #displayed_list = [] # Keeps track of which items have been displayed
 
@@ -1211,6 +1303,10 @@ class MainMenu():  # used as the parent class for other menus.
             self.trash.hide()
             inventory = self.magic_dict
             dict = 'magic'
+        elif self.selected_heading.text in ['Load Game', 'Save Game']:
+            self.trash.hide()
+            inventory = self.save_slots
+            dict = 'saves'
         elif self.selected_heading.text == 'Hair':
             self.trash.hide()
             inventory = RACE_HAIR[self.character.equipped['race']]
@@ -1234,7 +1330,23 @@ class MainMenu():  # used as the parent class for other menus.
                         ypos = font_space * (i - 25) + 75
                     item_name = Text(self, x, default_font, font_size, WHITE, xpos, ypos, "topleft")
                     self.text_sprites.add(item_name)
+            elif self.selected_heading.text == 'Sky Realm':
+                self.back_arrow.hide()
+                self.start_icon.hide()
+                menu_list = self.new_game_selection_list
+                font_size = 30
+                font_space = 40
+                for i, x in enumerate(menu_list):
+                    if i < 25:
+                        xpos = 50
+                        ypos = font_space * i + 75
+                    else:
+                        xpos = self.game.screen_width / 2 + 50
+                        ypos = font_space * (i - 25) + 75
+                    item_name = Text(self, x, default_font, font_size, WHITE, xpos, ypos, "topleft")
+                    self.text_sprites.add(item_name)
             elif self.selected_heading.text == 'Gender':
+                self.start_icon.un_hide()
                 self.trash.hide()
                 menu_list = ['Female', 'Male', 'Other']
                 font_size = 30
@@ -1284,16 +1396,6 @@ class MainMenu():  # used as the parent class for other menus.
                     item_name = Text(self, str(self.game.player.stats[x]), default_font, font_size, WHITE,
                                      xpos + 200, ypos, "topleft")
                     self.text_sprites.add(item_name)
-            elif self.selected_heading.text == 'Save Game':
-                self.game.save()
-            elif self.selected_heading.text == 'Load Game':
-                self.clear_menu()
-                for i, filepath in enumerate(sorted(glob(path.join(saves_folder, "*.sav")), reverse=True)):
-                    save_name = Text(self, path.basename(filepath), default_font, 20, WHITE, 50, 30 * i + 75, "topleft")
-                    if self.selected_item == None:
-                        if i == 0:
-                            self.selected_item = save_name
-                    self.text_sprites.add(save_name)
             elif self.selected_heading.text == 'Active Quests':
                 i = 0
                 for quest in self.game.quests.keys():
@@ -1331,8 +1433,10 @@ class MainMenu():  # used as the parent class for other menus.
                 self.magic_icons.add(icon)
             elif dict == 'inventory':
                 self.inventory_icons.add(icon)
+            elif dict == 'saves':
+                self.save_icons.add(icon)
 
-        if self.selected_heading.text not in ['Looting', 'Race', 'Hair']:
+        if self.selected_heading.text not in ['Looting', 'Race', 'Hair', 'Load Game', 'Save Game']:
             # Lists equipped slots
             xoffset = 495
             yoffset = spacing * 4 + 58
@@ -1441,7 +1545,13 @@ class MainMenu():  # used as the parent class for other menus.
                     item_stats += (stat + ":  " + str(item_dictionary[stat]))
                     self.printable_stat_list.append(item_stats)
                     i += 1
-
+            elif self.selected_heading.text in ['Load Game', 'Save Game']:
+                item_dictionary = self.selected_item.stats
+                i = 0
+                for stat in item_dictionary:
+                    item_stats = (stat + ":  " + str(item_dictionary[stat]))
+                    self.printable_stat_list.append(item_stats)
+                    i += 1
             else:
                 item_dictionary = self.selected_item.item
                 i = 0

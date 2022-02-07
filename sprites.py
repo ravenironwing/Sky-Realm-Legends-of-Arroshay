@@ -1344,9 +1344,9 @@ class Body(pg.sprite.Sprite):
 
     def render_animation(self, animation_list, swimming = False):
         if not self.mother.possessing:
-            self.colors = self.mother.colors
+            self.colors = self.mother.expanded_inventory['colors']
         else:
-            self.colors = self.mother.possessing.colors
+            self.colors = self.mother.possessing.expanded_inventory['colors']
         if not self.dragon:
             self.race = self.mother.equipped['race'].replace('dragon', '')
         else:
@@ -1800,13 +1800,14 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.stats = self.kind_dict['stats'].copy()
         #self.inventory = random_inventory_item(self.inventory, self.equipped['gender']) # assignes random items where it says 'random' in the inventory.
 
-        self.colors = copy.deepcopy(self.kind_dict['colors'])
-        if 'random' in self.colors['skin']:
-            skin_list = eval(self.colors['skin'].replace('random', ''))
-            self.colors['skin'] = choice(skin_list)
-        if 'random' in self.colors['hair']:
-            hair_list = eval(self.colors['hair'].replace('random', ''))
-            self.colors['hair'] = choice(hair_list)
+        colors = copy.deepcopy(self.kind_dict['colors'])
+        if 'random' in colors['skin']:
+            skin_list = eval(colors['skin'].replace('random', ''))
+            colors['skin'] = choice(skin_list)
+        if 'random' in colors['hair']:
+            hair_list = eval(colors['hair'].replace('random', ''))
+            colors['hair'] = choice(hair_list)
+        self.expanded_inventory['colors'] = colors
         if 'random' in self.kind_dict['hair']:
             random_hair(self)
         else:
@@ -2179,8 +2180,8 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         return True"""
 
 class Player(Character):  # Used for humanoid NPCs and Players
-    def __init__(self, game, x = 0, y = 0, kind = 'player', colors = None, animal = False):
-        super().__init__(game, x, y, kind, colors, animal)
+    def __init__(self, game, x = 0, y = 0, kind = 'player', animal = False):
+        super().__init__(game, x, y, kind, animal)
         self.image = self.game.body_surface
         self.rect = self.image.get_rect()
         self.hit_rect.center = self.rect.center

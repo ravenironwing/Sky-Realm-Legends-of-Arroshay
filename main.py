@@ -250,7 +250,7 @@ class Game:
         if not self.underworld:
             for npc in self.npcs:
                 if npc not in self.companions:
-                    npc_list.append({'name': npc.kind, 'location': npc.pos, 'colors': npc.colors})
+                    npc_list.append({'name': npc.kind, 'location': npc.pos})
                     self.map_sprite_data_list[int(self.world_location.x)][int(self.world_location.y)].npcs = npc_list
             for animal in self.animals:
                 if animal not in self.companions:
@@ -270,7 +270,7 @@ class Game:
         else:
             for npc in self.npcs:
                 if npc not in self.companions:
-                    npc_list.append({'name': npc.kind, 'location': npc.pos, 'colors': npc.colors})
+                    npc_list.append({'name': npc.kind, 'location': npc.pos})
                     self.underworld_sprite_data_dict[self.previous_map].npcs = npc_list
             for animal in self.animals:
                 if animal not in self.companions:
@@ -287,7 +287,7 @@ class Game:
                 breakable_list.append({'name': breakable.name, 'location': breakable.center, 'w': breakable.w, 'h': breakable.h,  'rotation': breakable.rot})
                 self.underworld_sprite_data_dict[self.previous_map].breakable = breakable_list
 
-    def save(self):
+    def save(self, slot):
         self.screen.fill(BLACK)
         self.save_sprite_locs()
         possessing = self.player.possessing
@@ -307,58 +307,43 @@ class Game:
         if self.player.in_vehicle:
             vehicle_name = self.player.vehicle.kind
 
-        #updated_equipment = [UPGRADED_WEAPONS, UPGRADED_HATS, UPGRADED_TOPS, UPGRADED_GLOVES, UPGRADED_BOTTOMS, UPGRADED_SHOES, UPGRADED_ITEMS]
-        save_list = [self.player.inventory, self.player.equipped, self.player.stats, [self.player.pos.x, self.player.pos.y], self.previous_map, [self.world_location.x, self.world_location.y], self.chests, self.overworld_map, updated_equipment, self.people, self.quests, self.player.colors, vehicle_name, companion_list, self.map_sprite_data_list, self.underworld_sprite_data_dict, self.key_map, self.animals_dict]
+        # self.previous_map is used keep track of the last map you were on.
+        save_list = [self.player.inventory, self.player.equipped, self.player.stats, self.player.expanded_inventory, [self.player.pos.x, self.player.pos.y], self.previous_map, [self.world_location.x, self.world_location.y], self.overworld_map, vehicle_name, companion_list, self.map_sprite_data_list, self.key_map, self.animals_dict, self.people, self.quests]
         if not path.isdir(saves_folder): makedirs(saves_folder)
 
-        with open(path.join(saves_folder, self.player.race + "_" + self.format_date() + ".sav"), "wb", -1) as FILE:
+        with open(path.join(saves_folder, str(slot) + "_" + self.format_date() + ".sav"), "wb", -1) as FILE:
             pickle.dump(save_list, FILE)
         if possessing:
             possessing.possess(self.player)
 
     def load_save(self, file_name):
+        self.continued_game = True
         load_file = []
         with open(file_name, "rb", -1) as FILE:
             load_file = pickle.load(FILE)
-        # Loads saved upgraded equipment:
-        self.people = load_file[9] # Updates NPCs
-        self.animals_dict = load_file[17] # Updates animals
-        self.quests = load_file[10] # Updates Quests from save
-        self.saved_vehicle = load_file[12]
-        self.chests = load_file[6] # Updates chests from dave
-        self.saved_companions = load_file[13]
-        self.map_sprite_data_list = load_file[14]
-        self.underworld_sprite_data_dict = load_file[15]
-        self.key_map = load_file[16]
-        #updated_equipment = load_file[8]
-        #UPGRADED_WEAPONS.update(updated_equipment[0])
-        #UPGRADED_HATS.update(updated_equipment[1])
-        #UPGRADED_TOPS.update(updated_equipment[2])
-        #UPGRADED_GLOVES.update(updated_equipment[3])
-        #UPGRADED_BOTTOMS.update(updated_equipment[4])
-        #UPGRADED_SHOES.update(updated_equipment[5])
-        #UPGRADED_ITEMS.update(updated_equipment[6])
-        #WEAPONS.update(UPGRADED_WEAPONS)
-        #HATS.update(UPGRADED_HATS)
-        #TOPS.update(UPGRADED_TOPS)
-        #BOTTOMS.update(UPGRADED_BOTTOMS)
-        #GLOVES.update(UPGRADED_GLOVES)
-        #SHOES.update(UPGRADED_SHOES)
-        #ITEMS.update(UPGRADED_ITEMS)
         self.player.inventory = load_file[0]
         self.player.equipped = load_file[1]
-        self.player.race = self.player.equipped['race']
         self.player.stats = load_file[2]
-        self.player.colors = load_file[11]
-        self.previous_map = load_file[4]
-        self.world_location = vec(load_file[5])
+        self.player.expanded_inventory = load_file[3]
+        self.player.pos = vec(load_file[4])
+        self.previous_map = load_file[5]
+        self.world_location = vec(load_file[6])
+        self.overworld_map = load_file[7]
+        self.saved_vehicle = load_file[8]
+        self.saved_companions = [9]
+        self.map_sprite_data_list = load_file[10]
+        self.key_map = load_file[11]
+        self.animals_dict = load_file[12]
+        self.people = load_file[13]
+        self.quests = load_file[14]
+
+        self.player.race = self.player.equipped['race']
+        self.load_over_map(self.overworld_map)
         self.load_map(self.previous_map)
-        self.player.pos = vec(load_file[3])
         self.player.human_body.update_animations()
         self.player.dragon_body.update_animations()
         self.player.calculate_fire_power()
-        self.player.calculate_perks()
-        self.overworld_map = load_file[7]
+        #self.player.calculate_perks()
         #Update hud stats
         self.hud_health_stats = self.player.stats
         self.hud_health = self.hud_health_stats['health'] / self.hud_health_stats['max health']
@@ -393,8 +378,6 @@ class Game:
             mount = Animal(self, self.player.pos.x, self.player.pos.y, self.saved_vehicle)
             mount.mount(self.player)
 
-        self.load_over_map(self.overworld_map)
-
     def update_old_save(self, file_name):
         load_file = []
         with open(file_name, "rb", -1) as FILE:
@@ -404,33 +387,28 @@ class Game:
         self.animals_dict = ANIMALS
         self.quests = QUESTS # Updates Quests from save
         self.key_map = KEY_MAP
-        updated_equipment = load_file[8]
-        #UPGRADED_WEAPONS.update(updated_equipment[0])
-        #UPGRADED_HATS.update(updated_equipment[1])
-        #UPGRADED_TOPS.update(updated_equipment[2])
-        #UPGRADED_GLOVES.update(updated_equipment[3])
-        #UPGRADED_BOTTOMS.update(updated_equipment[4])
-        #UPGRADED_SHOES.update(updated_equipment[5])
-        #UPGRADED_ITEMS.update(updated_equipment[6])
-        #WEAPONS.update(UPGRADED_WEAPONS)
-        #HATS.update(UPGRADED_HATS)
-        #TOPS.update(UPGRADED_TOPS)
-        #BOTTOMS.update(UPGRADED_BOTTOMS)
-        #GLOVES.update(UPGRADED_GLOVES)
-        #SHOES.update(UPGRADED_SHOES)
-        #ITEMS.update(UPGRADED_ITEMS)
         self.player.inventory = load_file[0]
         self.player.equipped = load_file[1]
-        self.player.race = self.player.equipped['race']
         self.player.stats = load_file[2]
-        self.previous_map = load_file[4]
-        self.world_location = vec(load_file[5])
+        self.player.expanded_inventory = load_file[3]
+        self.player.pos = vec(load_file[4])
+        self.previous_map = load_file[5]
+        self.world_location = vec(load_file[6])
+        self.overworld_map = load_file[7]
+        self.saved_vehicle = load_file[8]
+        self.saved_companions = [9]
+        self.map_sprite_data_list = load_file[10]
+        self.key_map = load_file[11]
+        self.animals_dict = load_file[12]
+        self.people = load_file[13]
+        self.quests = load_file[14]
+        self.player.race = self.player.equipped['race']
         self.load_map(self.previous_map)
         self.player.pos = vec(load_file[3])
         self.player.human_body.update_animations()
         self.player.dragon_body.update_animations()
         self.player.calculate_fire_power()
-        self.player.calculate_perks()
+        #self.player.calculate_perks()
         self.overworld_map = load_file[7]
         self.load_over_map(self.overworld_map)
 
@@ -747,7 +725,7 @@ class Game:
             title_image.set_alpha(i)
             self.screen.blit(title_image, (0, 0))
             if i > 240:
-                self.draw_text('Press any key to begin or C to continue', self.script_font, 18, WHITE, self.screen_width / 2, int(self.screen_height * 0.85),
+                self.draw_text('Press any key to start your adventure.', self.script_font, 18, WHITE, self.screen_width / 2, int(self.screen_height * 0.85),
                                align="center")
 
             for event in pg.event.get():
@@ -757,11 +735,7 @@ class Game:
                 if event.type == pg.MOUSEBUTTONDOWN:
                     waiting = False
                 if event.type == pg.KEYDOWN:
-                    if event.key == pg.K_c:
-                        waiting = False
-                        #self.in_load_menu = True
-                        self.continued_game = True
-                    elif event.key == pg.K_n:  # Enters the NPC creation tool
+                    if event.key == pg.K_n:  # Enters the NPC creation tool
                         if event.mod & pg.KMOD_CTRL:
                             pass  # I removed this but will add it again later.
                         else:
@@ -894,13 +868,12 @@ class Game:
         self.world_location = vec(1, 1)
         self.underworld_sprite_data_dict = {}
         self.player = Player(self) # Creates initial player object
+        self.continued_game = False
         if self.new_game:  # Why do I have to variables: new_game and conitnued_game
             self.character_menu = MainMenu(self, self.player, 'Character')
-        self.overworld_map = START_WORLD
-        if not self.continued_game:
+        if self.continued_game:
+            self.overworld_map = START_WORLD
             self.load_over_map(self.overworld_map) # Loads world map for first world. This will allow me to load other world maps later.
-        if not self.continued_game:
-            self.change_map(None, RACE[self.player.race]['start map'], RACE[self.player.race]['start pos'])
         self.fly_menu = None
         self.in_menu = False
         self.in_lock_menu = False
@@ -924,8 +897,6 @@ class Game:
         self.draw_debug = False
         self.paused = False
         self.effects_sounds['level_start'].play()
-        if self.continued_game:
-            pass
 
     @property
     def portal_combo(self):  # This is the method that is called whenever you access portal_combo
@@ -1230,7 +1201,7 @@ class Game:
                 companion_names.append(companion.kind)
             for npc in self.sprite_data.npcs:
                 if npc['name'] not in companion_names: # Makes it so it doesn't double load your companions.
-                    Player(self, npc['location'].x, npc['location'].y, npc['name'], npc['colors'])
+                    Player(self, npc['location'].x, npc['location'].y, npc['name'])
             for animal in self.sprite_data.animals:
                 Animal(self, animal['location'].x, animal['location'].y, animal['name'])
             for vehicle in self.sprite_data.vehicles:
@@ -1246,7 +1217,7 @@ class Game:
                 companion_names.append(companion.kind)
             for npc in self.sprite_data.moved_npcs:
                 if npc['name'] not in companion_names: # Makes it so it doesn't double load your companions.
-                    Player(self, npc['location'].x, npc['location'].y, npc['name'], npc['colors'])
+                    Player(self, npc['location'].x, npc['location'].y, npc['name'])
             self.sprite_data.moved_npcs = []
             for animal in self.sprite_data.moved_animals:
                 Animal(self, animal['location'].x, animal['location'].y, animal['name'])

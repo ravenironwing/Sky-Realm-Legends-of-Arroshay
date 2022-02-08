@@ -162,7 +162,7 @@ def check_tile_hits(sprite):
                         new_gid = sprite.game.map.gid_with_property('material', door_name) # Gets teh gid of the opposite kind of door (open/closed)
                         orig_gid = sprite.game.map.tmxdata.get_tile_gid(x, y, sprite.game.map.ocean_plants_layer) # gets the original gid of the door tile so we know it's rotation.
                         flags = sprite.game.map.get_tile_flags(orig_gid) # gets the rotational flags of the door
-                        gid = sprite.game.map.get_new_rotated_gid(new_gid, flags)
+                        gid = sprite.game.map.get_and_store_new_rotated_gid(new_gid, flags)
                         sprite.game.map.store_map_changes(sprite.game.map.ocean_plants_layer, x, y, gid)
                         #sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = gid
                         #sprite.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
@@ -193,7 +193,7 @@ def check_tile_hits(sprite):
                     orig_gid = sprite.game.map.tmxdata.get_tile_gid(x, y,
                                                                     sprite.game.map.ocean_plants_layer)  # gets the original gid of the door tile so we know it's rotation.
                     flags = sprite.game.map.get_tile_flags(orig_gid)  # gets the rotational flags of the door
-                    gid = sprite.game.map.get_new_rotated_gid(new_gid, flags)
+                    gid = sprite.game.map.get_and_store_new_rotated_gid(new_gid, flags)
                     sprite.game.map.store_map_changes(sprite.game.map.ocean_plants_layer, x, y, gid)
                     #sprite.game.map.tmxdata.layers[sprite.game.map.ocean_plants_layer].data[y][x] = gid
                     #sprite.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
@@ -633,6 +633,8 @@ def fire_collide(one, two):
 def add_inventory(inventory, item_name, count = 1): # Accepts either an item in dictionary form or by item name.
     if isinstance(item_name, dict):
         item_dict = item_name
+        if 'name' not in item_name.keys():
+            return False
     else:
         if item_name in ITEMS:
             item_dict = ITEMS[item_name]
@@ -956,7 +958,7 @@ class Turret(pg.sprite.Sprite):
 class Vehicle(pg.sprite.Sprite):
     def __init__(self, game, center, kind):
         self.game = game
-        self.kind = self.race = kind
+        self.kind = kind
         self.data = VEHICLES[kind]
         self._layer = eval(self.data['layer'])
         self.mountable = self.data['mountable']
@@ -1702,6 +1704,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.temp_equipped = None # Used for switching your body to a mech suit or for Wraith possession.
         self.possessing = None
         self.occupied = False # Used to tell if it's being ridden
+        self.inventory_empty = False # Used for wraiths and spirits so they can walk through walls.
         self.transformable = False # Used to tell if you have the Zhara talisman that lets you transform.
         self.weapon_hand = self.lamp_hand = 'weapons'
         self.flying = False
@@ -1834,7 +1837,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
             self.dialogue = None
         self.aggression = self.kind_dict['aggression']
         self.protected = self.kind_dict['protected']
-        self.race = self.equipped['race'] = self.kind_dict['race']
+        self.equipped['race'] = self.kind_dict['race']
         self.equipped['gender'] = self.kind_dict['gender']
         if self.equipped['gender'] == 'random':
             self.equipped['gender'] = choice(['male', 'female'])
@@ -1858,7 +1861,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
             self.guard = True
         if self.equipped['race'] in ['wraith', 'spirit', 'skeleton', 'mechanima']:
             self.hungers = False
-        if self.race in ['wraith', 'spirit']:
+        if self.equipped['race'] in ['wraith', 'spirit']:
             self.immaterial = True
         if self.equipped['race'] in ['wraith', 'spirit', 'skeleton']:
             self.magical_being = True
@@ -2035,7 +2038,6 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
                             if 'wraith' in self.equipped['race']:
                                 if self.equipped['race'] == 'spirit': # Turns you into a black wraith for using dark magic.
                                     self.equipped['race'] = 'wraith'
-                                    self.race = 'wraith'
                                     self.human_body.update_animations()
                                     if self.dragon:
                                         self.dragon_body.update_animations()
@@ -2047,7 +2049,6 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
                                             hits[0].possess(self, True)
                             else:
                                 self.equipped['race'] = 'wraith'
-                                self.race = 'wraith'
                                 drop_all_items(self, True)
                                 corpse = Player(self.game, self.pos.x, self.pos.y, 'villager')
                                 corpse.inventory = self.inventory
@@ -2070,6 +2071,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
                     if 'healing' in spell:
                         self.add_health(spell['healing'] + (self.stats['healing'] / 20) + (self.stats['casting'] / 100))
                     if 'fireballs' in spell:
+                        self.pre_melee()
                         balls = spell['fireballs']
                         damage = spell['damage'] + (self.stats['casting'] / 100)
                         for i in range(0, balls):
@@ -2278,6 +2280,9 @@ class Player(Character):  # Used for humanoid NPCs and Players
         self.add(self.game.corpses)
         self.game.group.add(self)
         self.game.group.change_layer(self, self.game.map.items_layer)  # Switches the corpse to items layer
+        for key, value in self.equipped.items():
+            if key in EQUIP_SLOT_LIST:
+                self.add_inventory(value)
         if self.equipped['race'] == 'demon':
             Player(self.game, self.pos.x, self.pos.y, 'wraith')
         if self.equipped['race'] in RACE_CORPSE_DICT:
@@ -2535,12 +2540,12 @@ class Player(Character):  # Used for humanoid NPCs and Players
             self.move()
 
             if not self.in_vehicle:
-                if ('wraith' not in self.race):
+                if not self.inventory_empty:
                     collide_with_tile_walls(self)
                     collide_with_moving_targets(self)
             if self.light_on:
                 if self in self.game.lights:
-                    if self.race == 'mechanima':
+                    if self.equipped['race'] == 'mechanima':
                         self.light_mask_rect.center = self.rect.center
                     elif self.lamp_hand == 'weapons':
                         self.light_mask_rect.center = self.body.melee_rect.center

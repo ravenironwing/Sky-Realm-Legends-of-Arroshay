@@ -23,7 +23,7 @@ CRAFTING_RECIPIES['brick wall'] = [1, b, b, 0,
 CRAFTING_RECIPIES['flint axe'] = [1, f, 0,
                                   0, ls, 0,
                                   0, st]
-CRAFTING_RECIPIES['leather strips'] = [1, l]
+CRAFTING_RECIPIES['leather strips'] = [3, l]
 CRAFTING_RECIPIES['thatch roof'] = [[2, pb, pb, 0,
                                       pb, pb],
                                     [1, dg, dg, dg,
@@ -59,7 +59,7 @@ for material in MATERIALS:
     FORGING_RECIPIES[material + ' leg armor'] = [1, x, x, x,
                                                 x, 0, x,
                                                 x, 0, x]
-    FORGING_RECIPIES[material + ' boots'] = [1, ls, 0, ls,
+    FORGING_RECIPIES[material + ' plated boots'] = [1, ls, 0, ls,
                                                 x, 0, x,
                                                 l, 0, l]
     FORGING_RECIPIES[material + ' gauntlets'] = [1, l, 0, l,
@@ -103,7 +103,8 @@ FORGING_RECIPIES['anvil'] = [1, icb, icb, icb,
 ENCHANTING_RECIPIES = {}
 
 TANNING_RECIPIES = {}
-TANNING_RECIPIES['leather strips'] = [1, l]
+TANNING_RECIPIES['leather strips'] = [5, l]
+TANNING_RECIPIES['leather'] = [1, 'dead rabbit']
 GRINDER_RECIPIES = {}
 COOKING_RECIPIES = {}
 COOKING_RECIPIES['roasted rabbit'] = [1, 'dead rabbit']

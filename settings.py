@@ -527,7 +527,8 @@ for race, value in RACE.items():
 #TEST_INVENTORY = {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}, 'blocks': {}}
 #slot = {'item type': 'weapons', 'name': 'sword', 'hp': 100, 'stack': 1, 'enchanted'}
 
-EMPTY_INVENTORY = {'weapons': {}, 'hats': {}, 'tops': {}, 'bottoms': {}, 'gloves': {}, 'shoes': {}, 'items': {}, 'blocks': {}}
+EMPTY_INVENTORY = {}
+EQUIP_SLOT_LIST = {'head', 'torso', 'bottom', 'feet', 'gloves', 0, 1, 2, 3, 4, 5, 6}
 EMPTY_EQUIP = {'gender': 'female', 'race': 'osidine', 'hair': None, 'weapons': None, 'weapons2': None, 'head': {}, 'torso': {}, 'bottom': {}, 'feet': {}, 'gloves': {}, 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}}
 DEFAULT_INVENTORIES = {}
 DEFAULT_INVENTORIES['osidine'] = {'orange burlap shirt': 1, 'brown pants': 1, 'Guide to Arroshay':1, "Grandpa's house key":1}

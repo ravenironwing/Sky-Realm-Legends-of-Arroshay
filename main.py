@@ -336,8 +336,6 @@ class Game:
         self.animals_dict = load_file[12]
         self.people = load_file[13]
         self.quests = load_file[14]
-
-        self.player.race = self.player.equipped['race']
         self.load_over_map(self.overworld_map)
         self.load_map(self.previous_map)
         self.map.stored_map_data = self.map_sprite_data_list[int(self.world_location.x)][int(self.world_location.y)] # Sets the map stored data object to the one that was saved for that map location.
@@ -404,7 +402,6 @@ class Game:
         self.animals_dict = load_file[12]
         self.people = load_file[13]
         self.quests = load_file[14]
-        self.player.race = self.player.equipped['race']
         self.load_map(self.previous_map)
         self.player.pos = vec(load_file[3])
         self.player.human_body.update_animations()
@@ -876,7 +873,7 @@ class Game:
         if not self.continued_game:
             self.overworld_map = START_WORLD
             self.load_over_map(self.overworld_map) # Loads world map for first world. This will allow me to load other world maps later.
-            self.change_map(None, RACE[self.player.race]['start map'], RACE[self.player.race]['start pos'])
+            self.change_map(None, RACE[self.player.equipped['race']]['start map'], RACE[self.player.equipped['race']]['start pos'])
         self.fly_menu = None
         self.in_menu = False
         self.in_lock_menu = False

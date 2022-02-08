@@ -72,16 +72,19 @@ class TiledMap:
         self.tmxdata.layers[layer].data[y][x] = gid
         self.update_tile_props(x, y)
 
-    def store_new_gids(self, gid, hor, vert, diag):
-        self.stored_map_data.gid_changes.add((gid, hor, vert, diag))
+    def get_and_store_new_rotated_gid(self, gid, hor=False, vert=False, diag=False):
+        if hor in [True, False]:
+            tileflags = TileFlags(hor, vert, diag)
+        else:
+            tileflags = hor # allows for passing tile fags as one parameter.
+        self.stored_map_data.gid_changes.add((gid, tileflags))
+        return self.get_new_rotated_gid(gid, tileflags)
 
     def load_stored_data(self):
         for value in self.stored_map_data.gid_changes:
             gid = value[0]
-            hor = value[1]
-            vert = value[2]
-            diag = value[3]
-            temp_gid = self.get_new_rotated_gid(gid, hor, vert, diag)
+            tileflags = value[1]
+            temp_gid = self.get_new_rotated_gid(gid, tileflags)
         for key, value in self.stored_map_data.tile_changes.items():
             layer = key[0]
             x = key[1][0]
@@ -90,40 +93,7 @@ class TiledMap:
             self.update_tile_props(x, y)
         self.redraw()
 
-    def is_next_to(self, x, y, tile_prop): # Checks to see if a location is by a specific kind of tile
-        surrounding_tilesxy_list = [(x, y), ((x - 1), (y - 1)), (x, (y - 1)), ((x + 1), (y - 1)), ((x - 1), y), ((x + 1), y),
-                                    ((x - 1), (y + 1)), (x, (y + 1)), ((x + 1), (y + 1))]
-        for tile_pos in surrounding_tilesxy_list:
-            if tile_prop in self.tile_props[tile_pos[1]][tile_pos[0]]['material']:
-                return True
-            elif tile_prop in self.tile_props[tile_pos[1]][tile_pos[0]]['roof']:
-                return True
-        return False
-
-    def gid_with_property(self, key, value):
-        for gid, props in self.tmxdata.tile_properties.items():
-            if props.get(key) == value:
-                return gid
-
-    def get_gid_by_prop_name(self, property_name):
-        gid = self.gid_with_property('roof', property_name)
-        if gid == None:
-            gid = self.gid_with_property('material', property_name)
-        gid = self.get_new_rotated_gid(gid)
-        return gid
-
-    def get_tile_flags(self, gid): # gets the rotational flags from the tiled map data that are associated with a gid
-        flags = TileFlags(False, False, False)
-        tiled_gid = self.tmxdata.tiledgidmap[gid]
-        gid_info = self.tmxdata.map_gid(tiled_gid)
-        for tile in gid_info:
-            if tile[0] == gid:
-                flags = tile[1]
-                return flags
-        return flags
-
     def get_new_rotated_gid(self, gid, hor = False, vert = False, diag = False):
-        self.store_new_gids(gid, hor, vert, diag)
         if hor in [True, False]:
             tileflags = TileFlags(hor, vert, diag)
         else:
@@ -150,10 +120,10 @@ class TiledMap:
         else:
             unrotated_image = original_image
         new_image = handle_transformation(unrotated_image, tileflags)
-        if len(self.tmxdata.images) <= new_gid:
+        if new_gid > len(self.tmxdata.images) - 1:
             self.tmxdata.images.append(new_image)
-        #else:
-            #self.tmxdata.images[new_gid] = new_image
+        else:
+            self.tmxdata.images[new_gid] = new_image
 
         props = self.tmxdata.get_tile_properties_by_gid(gid)
         self.tmxdata.set_tile_properties(new_gid, props)
@@ -164,11 +134,43 @@ class TiledMap:
         if nearest == 90:
             return gid
         elif nearest == 180:
-            return self.get_new_rotated_gid(gid, True, False, True)
+            return self.get_and_store_new_rotated_gid(gid, True, False, True)
         elif nearest == 270:
-            return self.get_new_rotated_gid(gid, True, True, False)
+            return self.get_and_store_new_rotated_gid(gid, True, True, False)
         elif nearest in [0, 360]:
-            return self.get_new_rotated_gid(gid, False, True, True)
+            return self.get_and_store_new_rotated_gid(gid, False, True, True)
+
+    def is_next_to(self, x, y, tile_prop): # Checks to see if a location is by a specific kind of tile
+        surrounding_tilesxy_list = [(x, y), ((x - 1), (y - 1)), (x, (y - 1)), ((x + 1), (y - 1)), ((x - 1), y), ((x + 1), y),
+                                    ((x - 1), (y + 1)), (x, (y + 1)), ((x + 1), (y + 1))]
+        for tile_pos in surrounding_tilesxy_list:
+            if tile_prop in self.tile_props[tile_pos[1]][tile_pos[0]]['material']:
+                return True
+            elif tile_prop in self.tile_props[tile_pos[1]][tile_pos[0]]['roof']:
+                return True
+        return False
+
+    def gid_with_property(self, key, value):
+        for gid, props in self.tmxdata.tile_properties.items():
+            if props.get(key) == value:
+                return gid
+
+    def get_gid_by_prop_name(self, property_name):
+        gid = self.gid_with_property('roof', property_name)
+        if gid == None:
+            gid = self.gid_with_property('material', property_name)
+        gid = self.get_and_store_new_rotated_gid(gid)
+        return gid
+
+    def get_tile_flags(self, gid): # gets the rotational flags from the tiled map data that are associated with a gid
+        flags = TileFlags(False, False, False)
+        tiled_gid = self.tmxdata.tiledgidmap[gid]
+        gid_info = self.tmxdata.map_gid(tiled_gid)
+        for tile in gid_info:
+            if tile[0] == gid:
+                flags = tile[1]
+                return flags
+        return flags
 
     def set_map_tiles_props(self):
         self.walls = []

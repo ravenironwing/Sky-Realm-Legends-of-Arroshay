@@ -5,6 +5,7 @@ from settings import *
 from npcs import *
 from quests import *
 #from tilemap import collide_hit_rect
+import os
 from os import path
 import sys
 from random import choice, shuffle
@@ -771,6 +772,8 @@ class MainMenu():  # used as the parent class for other menus.
                 self.game.load_save(self.selected_item.filepath)
                 self.running = False
         elif self.selected_heading.text == 'Save Game':
+            if 'filepath' in self.selected_item.item:
+                os.remove(path.join(saves_folder, self.selected_item.filepath))      # Removes old files in save slots
             self.game.save(self.selected_item.slot)
             # Updates saves
             for i, filepath in enumerate(sorted(glob(path.join(saves_folder, "*.sav")), reverse=True)):
@@ -1584,6 +1587,19 @@ class MainMenu():  # used as the parent class for other menus.
         for item in self.crafting_slots:
             if item != {}:
                 self.character.add_inventory(item)
+        # Checks to see if your invenotry is empty. This is used for wraiths and spirits so they can only walk through walls when not carrying things:
+        if self.character.equipped['race'] in ['wraith', 'spirit']:
+            self.character.inventory_empty = True
+            for item in self.character.inventory:
+                if (item != {}) and ('etherial' not in item['name']):
+                    self.character.inventory_empty = False
+                    break
+            if self.character.inventory_empty:
+                for key, value in self.character.equipped.items():
+                    if key not in ['race', 'gender', 'hair', 'weapons', 'weapons2']:
+                        if ('name' in self.character.equipped[key].keys()) and ('etherial' not in self.character.equipped[key]['name']):
+                            self.character.inventory_empty = False
+                            break
         # Updates the weapons you are equipping
         if ('name' in self.character.equipped[6]):
             self.character.hand2_item = self.character.equipped[6]

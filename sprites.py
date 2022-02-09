@@ -124,7 +124,7 @@ def check_tile_hits(sprite):
     if 'chest' in sprite.next_tile_props['material']:
         if not sprite.npc:
             x, y = get_next_tile_pos(sprite)
-            chest = sprite.game.map.chests[y][x]
+            chest = sprite.game.map.stored_map_data.chests[y][x]
             if not chest['locked']:
                 sprite.game.message_text = True
                 sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to open chest.'
@@ -153,7 +153,7 @@ def check_tile_hits(sprite):
             sprite.game.message_text = True
             x, y = get_next_tile_pos(sprite)
             if ('closed' in sprite.next_tile_props['material']):
-                door = sprite.game.map.doors[y][x]
+                door = sprite.game.map.stored_map_data.doors[y][x]
                 if not door['locked']:
                     sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to open door.'
                     if sprite.e_down:
@@ -814,45 +814,39 @@ def change_clothing(character, naked = False, best = False):
                         break
 
 def lamp_check(character):
-    if character.game.night:
-        # checks for lamps
-        add_light = False
-        light_reach = 1
-        for item in character.inventory['weapons']:
-            if item in LIGHTS_LIST:
-                if item['type'] in GUN_LIST:
-                    character.equipped['weapons'] = item
-                    character.lamp_hand = 'weapons'
-                else:
-                    character.equipped['weapons2'] = item
-                    character.lamp_hand = 'weapons2'
-                character.brightness = item['brightness']
-                character.mask_kind = item['light mask']
-                if 'light reach' in item:
-                    light_reach = item['light reach']
-                character.game.lights.add(character)
-                character.light_mask_orig = pg.transform.scale(character.game.light_mask_images[character.mask_kind], (int(character.brightness * light_reach), character.brightness))
-                character.light_mask = character.light_mask_orig.copy()
-                character.light_mask_rect = character.light_mask.get_rect()
-                if item['type'] in GUN_LIST:
-                    character.light_mask_rect.center = character.body.melee_rect.center
-                else:
-                    character.light_mask_rect.center = character.body.melee2_rect.center
-                character.body.update_animations()
-                add_light = True
-                break
-        if not add_light:
-            if character in character.game.lights:
-                character.game.lights.remove(character)
+    # checks for lamps
+    light_reach = 1
+    if 'brightness' in character.hand_item:
+        item = character.hand_item
+        character.lamp_hand = 'hand'
+    elif 'brightness' in character.hand2_item:
+        item = character.hand2_item
+        character.lamp_hand = 'hand2'
+    else:
+        if character in character.game.lights:
+            character.game.lights.remove(character)
         return
-    if character.equipped['weapons2'] in LIGHTS_LIST:
-        character.equipped['weapons2'] = None
-    if character.equipped['weapons'] in LIGHTS_LIST:
-        character.equipped['weapons'] = None
-    if character in character.game.lights:
-        character.game.lights.remove(character)
-    character.body.update_animations()
 
+    character.light_on = True
+    character.brightness = item['brightness']
+    character.mask_kind = item['light mask']
+    if 'light reach' in item:
+        light_reach = item['light reach']
+    character.game.lights.add(character)
+    character.light_mask_orig = pg.transform.scale(character.game.light_mask_images[character.mask_kind], (int(character.brightness * light_reach), character.brightness))
+    character.light_mask = character.light_mask_orig.copy()
+    character.light_mask_rect = character.light_mask.get_rect()
+    if character.lamp_hand == 'hand2':
+        if item['type'] in GUN_LIST:
+            character.light_mask_rect.center = character.body.melee_rect.center
+        else:
+            character.light_mask_rect.center = character.body.melee2_rect.center
+    else:
+        if item['type'] in GUN_LIST:
+            character.light_mask_rect.center = character.body.melee2_rect.center
+        else:
+            character.light_mask_rect.center = character.body.melee_rect.center
+    character.body.update_animations()
 
 def remove_nones(*my_lists):
     for my_list in my_lists:
@@ -1706,7 +1700,8 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.occupied = False # Used to tell if it's being ridden
         self.inventory_empty = False # Used for wraiths and spirits so they can walk through walls.
         self.transformable = False # Used to tell if you have the Zhara talisman that lets you transform.
-        self.weapon_hand = self.lamp_hand = 'weapons'
+        self.weapon_hand = 'weapons'
+        self.lamp_hand = 'hand'
         self.flying = False
         self.jumping = False
         self.running = False
@@ -1801,7 +1796,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         #                 'hats': None, 'tops': None, 'bottoms': None, 'shoes': None, 'gloves': None, 'items': None, 'blocks': None}
         # Character stats and inventories
         self.inventory = fix_inventory(self.kind_dict['inventory'].copy())
-        self.expanded_inventory = {'gender': list(GENDER.keys()), 'hair': list(HAIR.keys()), 'race': list(RACE.keys()), 'magic': [{'name': 'fireball', 'type': 'magic', 'fireballs': 1, 'damage': 30, 'cost': 20, 'sound': 'fire blast'}]}
+        self.expanded_inventory = {'gender': list(GENDER.keys()), 'hair': list(HAIR.keys()), 'race': list(RACE.keys()), 'magic': [MAGIC['fireball']]}
         self.equipped = EMPTY_EQUIP.copy()
         self.hand_item = self.equipped[0]
         self.hand2_item = self.equipped[6]
@@ -2264,6 +2259,9 @@ class Player(Character):  # Used for humanoid NPCs and Players
         else:
             pass
 
+    def lamp_check(self):
+        lamp_check(self)
+
     def death(self, silent = False):
         super().death()
         self.depossess()
@@ -2280,7 +2278,7 @@ class Player(Character):  # Used for humanoid NPCs and Players
         self.add(self.game.corpses)
         self.game.group.add(self)
         self.game.group.change_layer(self, self.game.map.items_layer)  # Switches the corpse to items layer
-        for key, value in self.equipped.items():
+        for key, value in self.equipped.items(): # Moves equipped stuff into inventory so you can loot it.
             if key in EQUIP_SLOT_LIST:
                 self.add_inventory(value)
         if self.equipped['race'] == 'demon':
@@ -2547,7 +2545,7 @@ class Player(Character):  # Used for humanoid NPCs and Players
                 if self in self.game.lights:
                     if self.equipped['race'] == 'mechanima':
                         self.light_mask_rect.center = self.rect.center
-                    elif self.lamp_hand == 'weapons':
+                    elif self.lamp_hand == 'hand':
                         self.light_mask_rect.center = self.body.melee_rect.center
                     else:
                         self.light_mask_rect.center = self.body.melee2_rect.center
@@ -3441,7 +3439,8 @@ class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
     def __init__(self, sprite):
         self.sprite = sprite
         self.game = self.sprite.game
-        self.target = choice(sprite.game.moving_targets.sprites())
+        self.target = choice(sprite.game.moving_targets.sprites()) # Makes sprites randomly pick another sprite to follow.
+        self.target_dist = 0 # Distance to target
         self.avoid_radius = self.sprite.avoid_radius
         self.detect_radius = self.sprite.detect_radius
         self.aggression = self.sprite.aggression
@@ -3454,21 +3453,17 @@ class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
             self.aggressive = self.offensive = True
         else:
             self.aggressive = False
-        #Changes animals behavior to be more friendly towards elves. I need to change this because it will make all animals friendly to everyone if you are an elf.
-        #if 'elf' in self.game.player.race:
-            #if self.aggression == 'awd':
-            #    self.aggression = 'awp'
-        #    if self.aggression == 'fwd':
-        #        self.aggression = 'fwp'
         if self.aggression in ['fwd', 'fup']:
-            self.detect_vector = vec(-1, 0)
+            self.approach_angle = 180
         if self.aggression == 'fup':
-            self.detect_vector = vec(-1, 0)
+            self.approach_angle = 180
         if self.aggression in ['awd', 'fwp', 'awp']:
-            self.detect_vector  = vec(1, 0)
+            self.approach_angle = 0
 
     def update(self):
-        self.sprite.rotate_to(self.target.pos - self.sprite.pos)
+        self.target_dist = self.target.pos - self.sprite.pos
+        target_vec = self.target_dist.rotate(self.approach_angle)
+        self.sprite.rotate_to(target_vec)
         self.sprite.accelerate()
         self.avoid_mobs()
 
@@ -3511,16 +3506,14 @@ class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
             else:
                 if player_dist < self.detect_radius:
                     self.target = self.game.player.vehicle
-                else:
-                    if self.target == self.game.player.vehicle:
-                        self.seek_random_target()
+                elif self.target == self.game.player.vehicle:
+                    self.seek_random_target()
         else:
             if self.target not in self.game.npcs:
                 if player_dist < self.detect_radius * 2:
                     self.target = self.game.player
-                else:
-                    if self.target == self.game.player:
-                        self.seek_random_target()
+                elif self.target == self.game.player:
+                    self.seek_random_target()
 
         if self.aggression == 'awd':
             self.offensive = True
@@ -4201,11 +4194,11 @@ class Stationary_Animated(pg.sprite.Sprite): # Used for fires and other stationa
             self.animate_speed = 50
             self.light_radius = FIRE_LIGHT_RADIUS
             if not self.offset:
-                self.center.y -= 20
-                self.center.x -= 4
+                self.center.y -= 0
+                self.center.x -= 0
             else:
-                self.center.y += 20
-                self.center.x += 10
+                self.center.y += 0
+                self.center.x += 0
         elif self.kind == 'shock':
             self.light_radius = (75, 75)
             self.image_list = self.game.shock_images

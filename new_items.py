@@ -175,6 +175,7 @@ ITEMS['roasted rabbit'] = {'name': 'roasted rabbit', 'type': 'food', 'number': 1
 
 # Lights
 ITEMS['candle'] = {'name': 'candle', 'type': 'item', 'brightness': 50, 'light mask': 1, 'hp': 100, 'max hp': 100}
+ITEMS['lantern'] = {'name': 'lantern', 'type': 'item', 'brightness': 200, 'light mask': 2, 'hp': 100, 'max hp': 100}
 
 LIGHTS_LIST = []
 for x in ITEMS:

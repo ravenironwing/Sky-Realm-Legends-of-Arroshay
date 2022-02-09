@@ -11,7 +11,7 @@ logger = logging.getLogger('orthographic')
 logger.setLevel(logging.ERROR)
 
 class StoredMapData: #Used to keep track of what NPCs, animals and objects move to what maps, and are still alive.
-    def __init__(self):
+    def __init__(self, map_width, map_hight):
         self.npcs = []
         self.animals = []
         self.moved_npcs = []
@@ -21,6 +21,9 @@ class StoredMapData: #Used to keep track of what NPCs, animals and objects move 
         self.vehicles = []
         self.breakable = []
         self.visited = False
+
+        self.chests =[[0 for j in range(map_hight)] for i in range(map_width)] # Makes an empty 2D array for storing chest locations. Chests will be stored in the array as dictionaries.
+        self.doors = self.chests.copy()
         self.tile_changes = {}
         self.gid_changes = set()
 
@@ -38,6 +41,7 @@ class TiledMap:
         self.tiles_high = tm.height
         self.tmxdata = tm
         map_data = pyscroll.data.TiledMapData(self.tmxdata)
+        self.stored_map_data = StoredMapData(self.tiles_wide, self.tiles_high)
         self.map_layer = pyscroll.BufferedRenderer(map_data, (self.game.screen_width, self.game.screen_height), clamp_camera=True)
         for i, layer in enumerate(self.tmxdata.visible_layers):
             if layer.name == 'Base Layer':
@@ -59,10 +63,7 @@ class TiledMap:
         self.sky_layer = self.river_layer + 6
         self.walls = []
         self.tile_props = []
-        self.chests =[[0 for j in range(self.tiles_high)] for i in range(self.tiles_wide)] # Makes an empty 2D array for storing chest locations. Chests will be stored in the array as dictionaries.
-        self.doors = self.chests.copy()
         self.set_map_tiles_props()
-        self.stored_map_data = StoredMapData()
         #self.export_tmx_data()
         #self.overlay = self.generate_over_layer()
         #self.minimap = MiniMap(tm)
@@ -214,23 +215,23 @@ class TiledMap:
                     if 'chest' in props['material']:
                         for chest in CHESTS.keys():
                             if (chest == (x, y)) and (CHESTS[chest]['map'] == self.name):
-                                if not self.chests[y][x]: # Assigns the chest dictionary to the chest array if it hasn't been assigned yet.
-                                    self.chests[y][x] = fix_inventory(CHESTS[chest], 'chest')
+                                if not self.stored_map_data.chests[y][x]: # Assigns the chest dictionary to the chest array if it hasn't been assigned yet.
+                                    self.stored_map_data.chests[y][x] = fix_inventory(CHESTS[chest], 'chest')
                                 chest_found = True
                         if not chest_found: # If not chest is found in the chests.py CHESTS then an empty chest is created and the map name assigned.
-                            self.chests[y][x] = fix_inventory(EMPTY_CHEST.copy(), 'chest')
-                            self.chests[y][x]['map'] = self.map_name
+                            self.stored_map_data.chests[y][x] = fix_inventory(EMPTY_CHEST.copy(), 'chest')
+                            self.stored_map_data.chests[y][x]['map'] = self.map_name
 
                     door_found = False
                     if 'door' in props['material']:
                         for door in DOORS.keys():
                             if (door == (x, y)) and (DOORS[door]['map'] == self.name):
-                                if not self.doors[y][x]: # Assigns the door dictionary to the door array if it hasn't been assigned yet.
-                                    self.doors[y][x] = DOORS[door].copy()
+                                if not self.stored_map_data.doors[y][x]: # Assigns the door dictionary to the door array if it hasn't been assigned yet.
+                                    self.stored_map_data.doors[y][x] = DOORS[door].copy()
                                 door_found = True
                         if not door_found: # If not chest is found in the chests.py CHESTS then an empty chest is created and the map name assigned.
-                            self.doors[y][x] = STANDARD_DOOR.copy()
-                            self.doors[y][x]['map'] = self.map_name
+                            self.stored_map_data.doors[y][x] = STANDARD_DOOR.copy()
+                            self.stored_map_data.doors[y][x]['map'] = self.map_name
 
                 if 'plant' in props:
                     tile_props['plant'] = props['plant']

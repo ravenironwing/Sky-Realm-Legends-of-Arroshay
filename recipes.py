@@ -46,6 +46,8 @@ WORKBENCH_RECIPIES['wooden armor'] = [1, p, 0, p,
                                       ls, p, ls,
                                       0, p, 0]
 
+WORKBENCH_RECIPIES.update(CRAFTING_RECIPIES) # Makes it so all crafting recipies work at workbenches also
+
 FORGING_RECIPIES = {}
 SMELTING_RECIPIES = {}
 for material in MATERIALS:

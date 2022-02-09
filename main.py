@@ -1755,6 +1755,11 @@ class Game:
         self.camera.update(self.player)
         self.group.center(self.player.rect.center)
 
+        # Kills certain off screen sprites
+        for corpse in self.corpses:
+            if corpse not in self.corpses_on_screen:
+                corpse.kill()
+
         ## Used for playing fire sounds at set distances:
         #closest_fire = None
         #previous_distance = 30000
@@ -2005,8 +2010,8 @@ class Game:
             elif mob.in_player_vehicle:
                 pass
             else:
-                if 'dragon' not in mob.race:
-                    if 'wyvern' not in mob.race:
+                if 'dragon' not in mob.equipped['race']:
+                    if 'wyvern' not in mob.equipped['race']:
                         for fire in hits[mob]:
                             mob.gets_hit(fire.damage, 0, mob.rot - 180)
 
@@ -2295,13 +2300,6 @@ class Game:
         pg.display.set_caption("Legends of Zhara")
         #self.group.draw(self.screen, self) # Used with my monkey patched version of the old pyscroll.
         self.group.draw(self.screen)
-        self.inventory_hud_icons.draw(self.screen)
-        if self.selected_hud_item:
-            pg.draw.rect(self.screen, YELLOW, self.selected_hud_item.rect, 1)
-
-        if ('type' in self.player.hand2_item) and (self.player.hand2_item['type'] == 'block') or ('type' in self.player.hand_item) and (self.player.hand_item['type'] == 'block'):
-            x, y = get_next_tile_pos(self.player)
-            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(pg.Rect(x * self.map.tile_size, y * self.map.tile_size,  self.map.tile_size,  self.map.tile_size)), 1)
         if self.draw_debug:
             #for wall_rect in self.map.walls_list:
             #    pg.draw.rect(self.screen, CYAN, self.camera.apply_rect(wall_rect), 1)
@@ -2349,6 +2347,14 @@ class Game:
         if self.hud_overmap:
             self.draw_overmap()
 
+        self.inventory_hud_icons.draw(self.screen)
+        if self.selected_hud_item:
+            pg.draw.rect(self.screen, YELLOW, self.selected_hud_item.rect, 1)
+
+        if ('type' in self.player.hand2_item) and (self.player.hand2_item['type'] == 'block') or ('type' in self.player.hand_item) and (self.player.hand_item['type'] == 'block'):
+            x, y = get_next_tile_pos(self.player)
+            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(pg.Rect(x * self.map.tile_size, y * self.map.tile_size,  self.map.tile_size,  self.map.tile_size)), 1)
+
         # HUD functions
         draw_player_stats(self.screen, 10, 10, self.hud_health)
         draw_player_stats(self.screen, 10, 40, self.hud_stamina, BLUE)
@@ -2394,6 +2400,7 @@ class Game:
         for icon in self.inventory_hud_icons:
             if int(icon.slot_text) == slot + 1:
                 self.selected_hud_item = icon
+        self.player.lamp_check()
         self.player.human_body.update_animations()  # Updates animations for newly equipped or removed weapons etc.
         self.player.dragon_body.update_animations()
 

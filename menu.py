@@ -1585,7 +1585,7 @@ class MainMenu():  # used as the parent class for other menus.
     def update_external_variables(self):
         # Removes any items you left on crafting tables and puts them back in your inventory
         for item in self.crafting_slots:
-            if item != {}:
+            if (item != {}) and (item['type'] != 'magic'):
                 self.character.add_inventory(item)
         # Checks to see if your invenotry is empty. This is used for wraiths and spirits so they can only walk through walls when not carrying things:
         if self.character.equipped['race'] in ['wraith', 'spirit']:
@@ -1603,6 +1603,7 @@ class MainMenu():  # used as the parent class for other menus.
         # Updates the weapons you are equipping
         if ('name' in self.character.equipped[6]):
             self.character.hand2_item = self.character.equipped[6]
+            # Checks to see if you are holding a lamp:
         else:
             self.character.hand2_item = {}
         if ('type' in self.character.equipped[6]) and (self.character.equipped[6]['type'] in WEAPON_TYPES):
@@ -1620,6 +1621,7 @@ class MainMenu():  # used as the parent class for other menus.
             icon.x = i * HUD_ICON_SIZE + iconx
             icon.y = icony
             icon.resize(HUD_ICON_SIZE)
+        self.character.lamp_check()
         self.game.selected_hud_item = None
         self.game.in_menu = False
         self.game.beg = perf_counter()  # resets the counter so dt doesn't get messed up.

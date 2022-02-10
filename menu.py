@@ -318,7 +318,7 @@ class Picture_Icon(pg.sprite.Sprite):
         self.hidden = False
 
 class MainMenu():  # used as the parent class for other menus.
-    def __init__(self, game, character = 'player', menu_type = 'Crafting', container = [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]):
+    def __init__(self, game, character = 'player', menu_type = 'Crafting', container = [{}, {}, {}, {}, {}, {}, {}, {}, {}]):
         self.game = game
         self.over_minimap_image = pg.transform.scale(self.game.over_minimap_image, (self.game.screen_height - 80, self.game.screen_height - 80))
         if menu_type != 'Character':
@@ -331,7 +331,7 @@ class MainMenu():  # used as the parent class for other menus.
         if self.menu_type == 'Game':
             self.menu_type = 'Crafting'
         self.container = container
-        if self.menu_type not in  ['Looting', 'Character']:
+        if self.menu_type not in ['Looting', 'Character']:
             self.recipes = RECIPIES[self.menu_type]
         else:
             self.recipes = {}
@@ -392,9 +392,12 @@ class MainMenu():  # used as the parent class for other menus.
         self.read_menu_icons.add(self.back_arrow)
         self.generate_headings(True)
         self.icon_offset = (0, 0) # Used for telling where you clicked on an icon to make the motion fluid.
-        self.crafting_slots = []
-        for i in range (0, 9): # generates list of slots to be used in the crafting menu to craft items.
-            self.crafting_slots.append({})
+        if (self.menu_type in WORKSTATIONS) and (self.menu_type != 'Crafting'): # Makes it so the crafting slots show items stored on crafting stations. They function like chests.
+            self.crafting_slots = self.container
+        else:
+            self.crafting_slots = []
+            for i in range (0, 9): # generates list of slots to be used in the crafting menu to craft items.
+                self.crafting_slots.append({})
         self.crafting_set_number = 0
         self.save_slots = []
         for i in range(0, 36):
@@ -1583,10 +1586,11 @@ class MainMenu():  # used as the parent class for other menus.
         self.update_external_variables()
 
     def update_external_variables(self):
-        # Removes any items you left on crafting tables and puts them back in your inventory
-        for item in self.crafting_slots:
-            if (item != {}) and (item['type'] != 'magic'):
-                self.character.add_inventory(item)
+        # Removes any items you left on crafting slots in the crafting menu and puts them back in your inventory
+        if self.menu_type == 'Crafting':
+            for item in self.crafting_slots:
+                if (item != {}) and (item['type'] != 'magic'):
+                    self.character.add_inventory(item)
         # Checks to see if your invenotry is empty. This is used for wraiths and spirits so they can only walk through walls when not carrying things:
         if self.character.equipped['race'] in ['wraith', 'spirit']:
             self.character.inventory_empty = True

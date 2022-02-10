@@ -30,23 +30,24 @@ tracemalloc.start()
 
 #npc_q = Queue()
 
-def get_tile_number(sprite, layer):  # Gets the type of tile a sprite is on.
-    x = int(sprite.pos.x / sprite.game.map.tile_size)
-    y = int(sprite.pos.y / sprite.game.map.tile_size)
-    if x < 0: x = 0
-    if y < 0: y = 0
-    if x >= sprite.game.map.tiles_wide: x = sprite.game.map.tiles_wide - 1
-    if y >= sprite.game.map.tiles_high: y = sprite.game.map.tiles_high - 1
-    return sprite.game.map.tmxdata.get_tile_gid(x, y, layer)
+#def get_tile_number(sprite, layer):  # Gets the type of tile a sprite is on.
+#    x = int(sprite.pos.x / sprite.game.map.tile_size)
+#    y = int(sprite.pos.y / sprite.game.map.tile_size)
+#    if x < 0: x = 0
+#    if y < 0: y = 0
+#    if x >= sprite.game.map.tiles_wide: x = sprite.game.map.tiles_wide - 1
+#    if y >= sprite.game.map.tiles_high: y = sprite.game.map.tiles_high - 1
+#    return sprite.game.map.tmxdata.get_tile_gid(x, y, layer)
 
-def get_tile_props(sprite, layer):  # Gets the type of tile a sprite is on.
-    x = int(sprite.pos.x / sprite.game.map.tile_size)
-    y = int(sprite.pos.y / sprite.game.map.tile_size)
-    if x < 0: x = 0
-    if y < 0: y = 0
-    if x >= sprite.game.map.tiles_wide: x = sprite.game.map.tiles_wide - 1
-    if y >= sprite.game.map.tiles_high: y = sprite.game.map.tiles_high - 1
-    return sprite.game.map.tmxdata.get_tile_properties(x, y, layer)
+#def get_tile_props(sprite, layer):  # Gets the type of tile a sprite is on.
+#    x = int(sprite.pos.x / sprite.game.map.tile_size)
+#    y = int(sprite.pos.y / sprite.game.map.tile_size)
+#    if x < 0: x = 0
+#    if y < 0: y = 0
+#    if x >= sprite.game.map.tiles_wide: x = sprite.game.map.tiles_wide - 1
+#    if y >= sprite.game.map.tiles_high: y = sprite.game.map.tiles_high - 1
+#    return sprite.game.map.tmxdata.get_tile_properties(x, y, layer)
+
 
 def trace_mem():
     snapshot = tracemalloc.take_snapshot()
@@ -555,6 +556,14 @@ class Game:
             img = pg.image.load(path.join(light_masks_folder, LIGHT_MASK_IMAGES[i])).convert_alpha()
             self.light_mask_images.append(img)
 
+        # Prescaling of lights
+        self.flame_light_mask = pg.transform.scale(self.light_mask_images[1], (FLAME_TILE_BRIGHTNESS, FLAME_TILE_BRIGHTNESS))
+        self.flame_light_mask_rect = self.flame_light_mask.get_rect()
+        self.coals_light_mask = pg.transform.scale(self.light_mask_images[0], (FLAME_TILE_BRIGHTNESS, FLAME_TILE_BRIGHTNESS))
+        self.coals_light_mask_rect = self.coals_light_mask.get_rect()
+        self.candle_light_mask = pg.transform.scale(self.light_mask_images[1], (CANDLE_BRIGHTNESS, CANDLE_BRIGHTNESS))
+        self.candle_light_mask_rect = self.candle_light_mask.get_rect()
+
         self.flashlight_masks = []
         temp_img = pg.transform.scale(self.light_mask_images[3], (int(300 * 2.8), 300))
         for rot in range(0, 120):
@@ -823,9 +832,9 @@ class Game:
         self.climbs_on_screen = pg.sprite.Group()
         self.vehicles = pg.sprite.Group()
         self.vehicles_on_screen = pg.sprite.Group()
+        self.lights = pg.sprite.Group()
 
         self.aipaths = pg.sprite.Group()
-        self.lights = pg.sprite.Group()
         self.firepots = pg.sprite.Group()
         self.arrows = pg.sprite.Group()
         self.chargers = pg.sprite.Group()
@@ -1087,7 +1096,7 @@ class Game:
             companion.map = selected_map
         self.load_map(selected_map)
 
-    def make_work_station_menu(self, station_type, inventory = None):
+    def make_work_station_menu(self, station_type, inventory):
         station = WORK_STATION_DICT[station_type]
         MainMenu(self, self.player, station, inventory)
 
@@ -2245,17 +2254,28 @@ class Game:
             self.fog.fill((180, 180, 180))
         else:
             self.fog.fill(self.dark_color)
-        if self.player_inside:
-            for light in self.lights:
-                if self.on_screen(light):
+
+        # tile_based flame lights
+        xi, xf, yi, yf = self.map.get_tiles_on_screen(self.player.pos.x, self.player.pos.y)
+        for y in range(yi, yf):
+            for x in range(xi, xf):
+                # When you are outside, lights inside should be off, otherwise all lights should be on.
+
+                if (not self.player_inside and not ('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))) or self.player_inside and (('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))):  # Prevents drawing lights inside houses so they don't shine through roofs when you are outside.
+                    if self.map.stored_map_data.lights[y][x]:
+                        light_mask = eval("self." + self.map.stored_map_data.lights[y][x] + "_light_mask")
+                        light_mask_rect = eval("self." + self.map.stored_map_data.lights[y][x] + "_light_mask_rect")
+                        light_mask_rect.center = (x * self.map.tile_size + self.map.tile_size/2, y * self.map.tile_size + self.map.tile_size/2)
+                        lightrect = self.camera.apply_rect(light_mask_rect)
+                        self.fog.blit(light_mask, lightrect)
+
+        for light in self.lights:
+            if self.on_screen(light):
+                x, y = self.map.get_tile_pos(light.pos.x, light.pos.y)
+                if (light == self.player) or (not self.player_inside and not ('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))) or self.player_inside and (('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))):  # Prevents drawing lights inside houses so they don't shine through roofs.
                     lightrect = self.camera.apply_rect(light.light_mask_rect)
                     self.fog.blit(light.light_mask, lightrect)
-        else:
-            for light in self.lights:
-                if self.on_screen(light):
-                    if not pg.sprite.spritecollide(light, self.inside_on_screen, False):
-                        lightrect = self.camera.apply_rect(light.light_mask_rect)
-                        self.fog.blit(light.light_mask, lightrect)
+
         self.screen.blit(self.fog, (0, 0), special_flags=pg.BLEND_SUB)
 
     def rot_center(self, image, angle):
@@ -2300,29 +2320,6 @@ class Game:
         pg.display.set_caption("Legends of Zhara")
         #self.group.draw(self.screen, self) # Used with my monkey patched version of the old pyscroll.
         self.group.draw(self.screen)
-        if self.draw_debug:
-            #for wall_rect in self.map.walls_list:
-            #    pg.draw.rect(self.screen, CYAN, self.camera.apply_rect(wall_rect), 1)
-            for vehicle in self.vehicles_on_screen:
-                pg.draw.rect(self.screen, CYAN, self.camera.apply_rect(vehicle.hit_rect), 1)
-                pg.draw.rect(self.screen, GREEN, self.camera.apply_rect(vehicle.hit_rect2), 1)
-                pg.draw.rect(self.screen, RED, self.camera.apply_rect(vehicle.hit_rect3), 1)
-            for mob in self.mobs_on_screen:
-                pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(mob.hit_rect), 1)
-            #for npc in self.npcs_on_screen:
-            #    pg.draw.rect(self.screen, WHITE, self.camera.apply_rect(npc.temp_target.hit_rect), 1)
-            for target in self.random_targets:
-                pg.draw.rect(self.screen, BLUE, self.camera.apply_rect(target.rect), 1)
-            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.hit_rect), 1)
-            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.mid_weapon_melee_rect), 1)
-            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.weapon_melee_rect), 1)
-            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.melee_rect), 1)
-            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.mid_weapon2_melee_rect), 1)
-            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.weapon2_melee_rect), 1)
-            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.melee2_rect), 1)
-            #for elev in self.elevations_on_screen:
-            #    pg.draw.rect(self.screen, BLUE, self.camera.apply_rect(elev.rect), 1)
-
 
         # Only draws roofs when outside of buildings
         hits = pg.sprite.spritecollide(self.player, self.inside_on_screen, False)
@@ -2346,6 +2343,31 @@ class Game:
         #    self.draw_minimap()
         if self.hud_overmap:
             self.draw_overmap()
+
+        if self.draw_debug: # Draws hit rects for debugging
+            #for wall_rect in self.map.walls_list:
+            #    pg.draw.rect(self.screen, CYAN, self.camera.apply_rect(wall_rect), 1)
+            for vehicle in self.vehicles_on_screen:
+                pg.draw.rect(self.screen, CYAN, self.camera.apply_rect(vehicle.hit_rect), 1)
+                pg.draw.rect(self.screen, GREEN, self.camera.apply_rect(vehicle.hit_rect2), 1)
+                pg.draw.rect(self.screen, RED, self.camera.apply_rect(vehicle.hit_rect3), 1)
+            for mob in self.mobs_on_screen:
+                pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(mob.hit_rect), 1)
+            for item in self.dropped_items:
+                pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(item.hit_rect), 1)
+            #for npc in self.npcs_on_screen:
+            #    pg.draw.rect(self.screen, WHITE, self.camera.apply_rect(npc.temp_target.hit_rect), 1)
+            for target in self.random_targets:
+                pg.draw.rect(self.screen, BLUE, self.camera.apply_rect(target.rect), 1)
+            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.hit_rect), 1)
+            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.mid_weapon_melee_rect), 1)
+            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.weapon_melee_rect), 1)
+            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.melee_rect), 1)
+            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.mid_weapon2_melee_rect), 1)
+            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.weapon2_melee_rect), 1)
+            pg.draw.rect(self.screen, YELLOW, self.camera.apply_rect(self.player.body.melee2_rect), 1)
+            #for elev in self.elevations_on_screen:
+            #    pg.draw.rect(self.screen, BLUE, self.camera.apply_rect(elev.rect), 1)
 
         self.inventory_hud_icons.draw(self.screen)
         if self.selected_hud_item:

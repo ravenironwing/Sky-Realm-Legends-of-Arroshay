@@ -174,8 +174,8 @@ ITEMS['dead rabbit'] = {'name': 'dead rabbit', 'type': 'item', 'number': 1, 'max
 ITEMS['roasted rabbit'] = {'name': 'roasted rabbit', 'type': 'food', 'number': 1, 'max stack': 16, 'health': 18, 'stamina': 25, 'hunger': 20}
 
 # Lights
-ITEMS['candle'] = {'name': 'candle', 'type': 'item', 'brightness': 50, 'light mask': 1, 'hp': 100, 'max hp': 100}
-ITEMS['lantern'] = {'name': 'lantern', 'type': 'item', 'brightness': 200, 'light mask': 2, 'hp': 100, 'max hp': 100}
+ITEMS['candle'] = {'name': 'candle', 'type': 'item', 'brightness': 150, 'light mask': 1, 'hp': 100, 'max hp': 100, 'side view': False}
+ITEMS['lantern'] = {'name': 'lantern', 'type': 'item', 'brightness': 200, 'light mask': 2, 'hp': 100, 'max hp': 100, 'side view': False}
 
 LIGHTS_LIST = []
 for x in ITEMS:

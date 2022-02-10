@@ -11,3 +11,7 @@ CHESTS[(568, 648)] = {'name': "Grandpa's chest", 'map': '15', 'locked': False, '
 STANDARD_DOOR = {'name': 'door', 'map': '0', 'locked': False, 'combo': None, 'difficulty': 0}
 DOORS = {}
 DOORS[573, 650] = {'name': "Grandpa's house", 'map': '15', 'locked': True, 'combo': 71, 'difficulty': 5}
+
+# Used for placing items on work stations. Note: limited to 9 item slots.
+STATIONS = {}
+STATIONS[(568, 651)] = {'map': '15', 'inventory': {'leather': 1}}

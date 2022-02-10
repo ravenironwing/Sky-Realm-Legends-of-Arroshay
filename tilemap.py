@@ -23,7 +23,9 @@ class StoredMapData: #Used to keep track of what NPCs, animals and objects move 
         self.visited = False
 
         self.chests =[[0 for j in range(map_hight)] for i in range(map_width)] # Makes an empty 2D array for storing chest locations. Chests will be stored in the array as dictionaries.
-        self.doors = self.chests.copy()
+        self.doors = copy.deepcopy(self.chests)
+        self.work_stations = copy.deepcopy(self.chests)
+        self.lights = copy.deepcopy(self.chests)
         self.tile_changes = {}
         self.gid_changes = set()
 
@@ -67,6 +69,28 @@ class TiledMap:
         #self.export_tmx_data()
         #self.overlay = self.generate_over_layer()
         #self.minimap = MiniMap(tm)
+
+    def get_tile_pos(self, x, y): # Returns a tile position for a pixel x, y location.
+        return int(x / self.tile_size), int(y / self.tile_size)
+
+    def get_tiles_on_screen(self, x, y):
+        padding = 6
+        twide = int((self.game.screen_width / self.tile_size) / 2) + padding
+        thigh = int((self.game.screen_height / self.tile_size) / 2) + padding
+        x, y = self.get_tile_pos(x, y)
+        xi = x - twide
+        if xi < 0:
+            xi = 0
+        yi = y - thigh
+        if yi < 0:
+            yi = 0
+        xf = x + twide
+        if xf > self.tiles_wide - 1:
+            xf = self.tiles_wide - 1
+        yf = y + thigh
+        if yf > self.tiles_high - 1:
+            yf = self.tiles_high - 1
+        return xi, xf, yi, yf
 
     def store_map_changes(self, layer, x, y, gid):
         self.stored_map_data.tile_changes[(layer, (x, y))] = gid
@@ -206,6 +230,11 @@ class TiledMap:
         for layer in layers:
             props = self.tmxdata.get_tile_properties(x, y, layer)
             if props != None:
+                if  layer in [self.water_layer, self.ocean_plants_layer, self.river_layer, self.trees_layer]:
+                    if ('light' in props):
+                        self.stored_map_data.lights[y][x] = props['light']
+                    else:
+                        self.stored_map_data.lights[y][x] = 0
                 if 'wall' in props:
                     tile_props['wall'] = props['wall']
                     tile_rect = pg.Rect(x * self.tile_size, y * self.tile_size, self.tile_size, self.tile_size)
@@ -220,7 +249,6 @@ class TiledMap:
                                 chest_found = True
                         if not chest_found: # If not chest is found in the chests.py CHESTS then an empty chest is created and the map name assigned.
                             self.stored_map_data.chests[y][x] = fix_inventory(EMPTY_CHEST.copy(), 'chest')
-                            self.stored_map_data.chests[y][x]['map'] = self.map_name
 
                     door_found = False
                     if 'door' in props['material']:
@@ -229,9 +257,18 @@ class TiledMap:
                                 if not self.stored_map_data.doors[y][x]: # Assigns the door dictionary to the door array if it hasn't been assigned yet.
                                     self.stored_map_data.doors[y][x] = DOORS[door].copy()
                                 door_found = True
-                        if not door_found: # If not chest is found in the chests.py CHESTS then an empty chest is created and the map name assigned.
+                        if not door_found: # If not door is found in the chests.py CHESTS then an generic door is created and the map name assigned.
                             self.stored_map_data.doors[y][x] = STANDARD_DOOR.copy()
-                            self.stored_map_data.doors[y][x]['map'] = self.map_name
+
+                    station_found = False
+                    if props['material'] in WORK_STATION_LIST:
+                        for station in STATIONS.keys():
+                            if (station == (x, y)) and (STATIONS[station]['map'] == self.name):
+                                if not self.stored_map_data.work_stations[y][x]: # Assigns the station dictionary to the work_stations array if it hasn't been assigned yet.
+                                    self.stored_map_data.work_stations[y][x] = fix_inventory(STATIONS[station]['inventory'], 'station')
+                                    station_found = True
+                        if not station_found: # If not chest is found in the chests.py CHESTS then an empty workstation is created and the map name assigned.
+                            self.stored_map_data.work_stations[y][x] = fix_inventory({}, 'station')
 
                 if 'plant' in props:
                     tile_props['plant'] = props['plant']
@@ -242,6 +279,7 @@ class TiledMap:
                     tile_props['tree'] = props['tree']
                 if 'roof' in props:
                     tile_props['roof'] = props['roof']
+
         return tile_rect, tile_props
 
     def toggle_visible_layers(self):
@@ -260,49 +298,6 @@ class TiledMap:
 
     def redraw(self): # Redraws the map for tile updates
         self.map_layer.redraw_tiles(self.map_layer._buffer)
-
-    def export_tmx_data(self):
-        tiled_layers = {}
-        for i, layer in enumerate(self.tmxdata.layers):
-            if isinstance(layer, pytmx.TiledTileLayer):  # Excludes object layers
-                tiled_layer = []
-                for row in self.tmxdata.layers[i].data:
-                    new_row = []
-                    for item in row:
-                        new_row.append(self.convert_to_tiled_gid(item))
-                    tiled_layer.append(row)
-                tiled_layers[layer.name] = tiled_layer
-
-        self.write_tmx_file(tiled_layers)
-
-    def convert_to_tiled_gid(self, gid):
-        if gid == 0:
-            return 0
-        tiled_gid = self.tmxdata.tiledgidmap[gid] # Does not truely map pytmx gids to tiled gids
-        return tiled_gid
-
-    def write_tmx_file(self, tiled_layers):
-        MAP_SIZE = 1000
-        filename = path.join(map_folder, "newmap.tmx")
-        outfile = open(filename, "w")
-        for layer_name, layer_data in tiled_layers.items():
-            next_layer_txt = """<layer id="5" name="{lname}" width="{mapw}" height="{mapw}">
-              <data encoding="csv">""".format(lname=layer_name, mapw=str(MAP_SIZE))
-            outfile.write(next_layer_txt)
-            outfile.write("\n")
-            for i, y in enumerate(layer_data):
-                new_row_str = str(y)
-                new_row_str = new_row_str.replace(', ', ',')
-                new_row_str = new_row_str.replace('[', '')
-                new_row_str = new_row_str.replace(']', '')
-                if i != MAP_SIZE - 1:
-                    new_row_str = new_row_str + ","
-                outfile.write(new_row_str)
-                outfile.write("\n")
-            footer = """</data>
-             </layer>"""
-            outfile.write(footer)
-        outfile.close()
 
     #def generate_under_layer(self):
     #    for layer in self.tmxdata.visible_layers:

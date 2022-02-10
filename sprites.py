@@ -205,15 +205,18 @@ def check_tile_hits(sprite):
     elif (sprite.next_tile_props['material'] in WORK_STATION_LIST) or (sprite.tile_props['material'] in WORK_STATION_LIST):
         if sprite.next_tile_props['material'] in WORK_STATION_LIST:
             station_type = sprite.next_tile_props['material']
+            x, y = get_next_tile_pos(sprite)
         else:
             station_type = sprite.tile_props['material']
+            x, y = get_tile_pos(sprite)
+        station = sprite.game.map.stored_map_data.work_stations[y][x]
         if not sprite.npc:
             sprite.game.message_text = True
             sprite.game.message = pg.key.name(sprite.game.key_map['interact']).upper() + ' to use ' + station_type
             if sprite.e_down:
                 sprite.game.in_station_menu = True
                 sprite.game.in_menu = True
-                sprite.game.make_work_station_menu(station_type)
+                sprite.game.make_work_station_menu(station_type, station)
                 sprite.game.message_text = False
                 sprite.e_down = False
 
@@ -2926,12 +2929,9 @@ class Player(Character):  # Used for humanoid NPCs and Players
                         return
                     self.game.map.store_map_changes(self.game.map.ocean_plants_layer, x, y, 0)
                     self.game.map.store_map_changes(self.game.map.river_layer, x, y, 0)
-                    #self.game.map.tmxdata.layers[self.game.map.ocean_plants_layer].data[y][x] = 0
-                    #self.game.map.tmxdata.layers[self.game.map.river_layer].data[y][x] = 0
                 play_relative_volume(self, 'click')
                 temp_gid = self.game.map.gid_to_nearest_angle(gid, self.rot)
                 self.game.map.store_map_changes(layer, x, y, temp_gid)
-                #self.game.map.update_tile_props(x, y)  # Updates properties for tiles that have changed.
                 self.game.map.redraw()
                 set_tile_props(self)
                 if hand_item['number'] == 1:
@@ -4097,15 +4097,22 @@ class Dropped_Item(pg.sprite.Sprite):
             self.gender = gendertag
 
         filename = correct_filename(self.item)
-        try:
-            file = filename + '_side'
-            self.item_image = self.game.item_images[file]
-        except:
+        if ('side view' in item.keys()) and not item['side view']: # For items that I don't want to show up in the side view when dropped, like lanterns and stuff that looks weird.
             try:
-                file = filename + self.gender + '_side'
+                file = filename + self.gender
                 self.item_image = self.game.item_images[file]
             except:
                 self.item_image = self.game.item_images[filename]
+        else:
+            try:
+                file = filename + '_side'
+                self.item_image = self.game.item_images[file]
+            except:
+                try:
+                    file = filename + self.gender + '_side'
+                    self.item_image = self.game.item_images[file]
+                except:
+                    self.item_image = self.game.item_images[filename]
 
         if 'color' in self.item:
             self.item_image = color_image(self.item_image, self.item['color'])
@@ -4119,6 +4126,7 @@ class Dropped_Item(pg.sprite.Sprite):
             size = ITEM_SIZE
         self.item_image = pg.transform.scale(self.item_image, (size, size))
         self.image = pg.transform.rotate(self.item_image, self.rot)
+        self.image = auto_crop(self.image)
         self.rect = self.hit_rect = self.image.get_rect()
         if self.random_spread:
             self.pos = self.pos + (randrange(-spread, spread), randrange(-spread, spread))
@@ -4158,7 +4166,7 @@ class Dropped_Item(pg.sprite.Sprite):
 
 class LightSource(pg.sprite.Sprite):
     def __init__(self, game, x, y, w, h, kind = 1, rot = 0):
-        self.groups = game.lights, game.all_static_sprites
+        self.groups = game.lights, game.all_sprites
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
         self.kind = kind
@@ -4167,6 +4175,7 @@ class LightSource(pg.sprite.Sprite):
         self.hit_rect = self.rect
         self.x = x
         self.y = y
+        self.pos = vec(x, y)
         self.rect.x = x
         self.rect.y = y
         self.light_mask = pg.transform.scale(self.game.light_mask_images[self.kind], (int(w * 3.5), int(h * 3.5)))
@@ -4186,19 +4195,13 @@ class Stationary_Animated(pg.sprite.Sprite): # Used for fires and other stationa
             self._layer = self.game.map.bullet_layer
         self.center = vec(obj_center)
         self.kind = kind
-        self.offset = offset
+        self.offset = offset # Not currently used, but may reuse in future.
         if self.kind == 'fire':
             self.image_list = self.game.fire_images
             self.groups = game.all_sprites, game.fires, game.lights
             self.damage = 1
             self.animate_speed = 50
             self.light_radius = FIRE_LIGHT_RADIUS
-            if not self.offset:
-                self.center.y -= 0
-                self.center.x -= 0
-            else:
-                self.center.y += 0
-                self.center.x += 0
         elif self.kind == 'shock':
             self.light_radius = (75, 75)
             self.image_list = self.game.shock_images
@@ -4233,12 +4236,11 @@ class Stationary_Animated(pg.sprite.Sprite): # Used for fires and other stationa
             self.animate(self.image_list)
             self.last_move = now
             self.image = self.image_list[self.frame]
-            if not self.offset:
-                self.rect.center = self.center
-                self.light_mask_rect.center = self.rect.center
-            else:
-                self.rect.center = self.center + vec(-8, -40)
-                self.light_mask_rect.center = self.rect.center
+            self.rect.center = self.center
+            self.light_mask_rect.center = self.rect.center
+            #else:
+            #    self.rect.center = self.center + vec(-8, -40)
+            #    self.light_mask_rect.center = self.rect.center
 
 
         if self.lifetime:

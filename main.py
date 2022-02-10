@@ -833,6 +833,7 @@ class Game:
         self.vehicles = pg.sprite.Group()
         self.vehicles_on_screen = pg.sprite.Group()
         self.lights = pg.sprite.Group()
+        self.lights_on_screen = pg.sprite.Group()
 
         self.aipaths = pg.sprite.Group()
         self.firepots = pg.sprite.Group()
@@ -1723,6 +1724,7 @@ class Game:
         self.animals_on_screen.empty()
         self.moving_targets_on_screen.empty()
         self.sprites_on_screen.empty()
+        self.lights_on_screen.empty()
         for sprite in self.all_sprites:
             if self.on_screen(sprite):
                 self.sprites_on_screen.add(sprite)
@@ -1744,6 +1746,8 @@ class Game:
                         self.dropped_items_on_screen.add(sprite)
                 elif sprite in self.npc_bodies:
                     self.npc_bodies_on_screen.add(sprite)
+                elif sprite in self.lights:
+                    self.lights_on_screen.add(sprite)
                 elif sprite in self.moving_targets:
                     self.moving_targets_on_screen.add(sprite)
                     if sprite in self.mobs:
@@ -1752,6 +1756,9 @@ class Game:
                             self.animals_on_screen.add(sprite)
                         elif sprite in self.npcs:
                             self.npcs_on_screen.add(sprite)
+            elif self.on_screen(sprite, 200):
+                if sprite in self.lights:
+                    self.lights_on_screen.add(sprite)
             elif sprite in self.bullets: # Kills bullets not on screen.
                 sprite.kill()
             elif sprite == self.player.vehicle:
@@ -2260,21 +2267,26 @@ class Game:
         for y in range(yi, yf):
             for x in range(xi, xf):
                 # When you are outside, lights inside should be off, otherwise all lights should be on.
-
-                if (not self.player_inside and not ('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))) or self.player_inside and (('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))):  # Prevents drawing lights inside houses so they don't shine through roofs when you are outside.
-                    if self.map.stored_map_data.lights[y][x]:
-                        light_mask = eval("self." + self.map.stored_map_data.lights[y][x] + "_light_mask")
-                        light_mask_rect = eval("self." + self.map.stored_map_data.lights[y][x] + "_light_mask_rect")
+                if self.map.stored_map_data.lights[y][x]:
+                    if (not self.player_inside and not ('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))) or self.player_inside and (('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))):  # Prevents drawing lights inside houses so they don't shine through roofs when you are outside.
+                        if self.map.stored_map_data.lights[y][x] == 'flame':
+                            light_mask = self.flame_light_mask
+                            light_mask_rect = self.flame_light_mask_rect
+                        elif self.map.stored_map_data.lights[y][x] == 'coals':
+                            light_mask = self.coals_light_mask
+                            light_mask_rect = self.coals_light_mask_rect
+                        elif self.map.stored_map_data.lights[y][x] == 'candle':
+                            light_mask = self.candle_light_mask
+                            light_mask_rect = self.candle_light_mask_rect
                         light_mask_rect.center = (x * self.map.tile_size + self.map.tile_size/2, y * self.map.tile_size + self.map.tile_size/2)
                         lightrect = self.camera.apply_rect(light_mask_rect)
                         self.fog.blit(light_mask, lightrect)
 
-        for light in self.lights:
-            if self.on_screen(light):
-                x, y = self.map.get_tile_pos(light.pos.x, light.pos.y)
-                if (light == self.player) or (not self.player_inside and not ('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))) or self.player_inside and (('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))):  # Prevents drawing lights inside houses so they don't shine through roofs.
-                    lightrect = self.camera.apply_rect(light.light_mask_rect)
-                    self.fog.blit(light.light_mask, lightrect)
+        for light in self.lights_on_screen:
+            x, y = self.map.get_tile_pos(light.pos.x, light.pos.y)
+            if (light == self.player) or (not self.player_inside and not ('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))) or self.player_inside and (('roof' in self.map.tile_props[y][x] and (self.map.tile_props[y][x]['roof'] != ''))):  # Prevents drawing lights inside houses so they don't shine through roofs.
+                lightrect = self.camera.apply_rect(light.light_mask_rect)
+                self.fog.blit(light.light_mask, lightrect)
 
         self.screen.blit(self.fog, (0, 0), special_flags=pg.BLEND_SUB)
 

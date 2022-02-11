@@ -1019,7 +1019,6 @@ class Vehicle(pg.sprite.Sprite):
         self.invisible = False
         self.protected = False
         self.offensive = False
-        self.aggression = "vehicle"
         self._forward = False
         self.elevation = 0
         self.in_vehicle = self.in_player_vehicle = False
@@ -1296,20 +1295,19 @@ class Body(pg.sprite.Sprite):
         self.swing_weapon1 = False # Used for timing melee attacks for stinging vs stabbing weapons.
         self.swing_weapon2 = False  # Used for timing melee attacks for stinging vs stabbing weapons.
         # Default Animation lists
-        if self.mother not in self.game.npcs:
-            self.climbing_shoot_anim = self.render_animation([CP_CLIMB0])
-            self.climbing_weapon_anim = self.render_animation(CLIMB)
-            self.climbing_weapon_melee_anim = self.render_animation(CLIMB_MELEE)
-            self.climbing_l_weapon_melee_anim = self.render_animation(L_CLIMB_MELEE)
-            self.walk_melee_anim = self.render_animation(WALK_PUNCH)
-            self.walk_l_melee_anim = self.render_animation(L_WALK_PUNCH)
-            self.dual_melee_anim = self.render_animation(D_PUNCH)
-            self.dual_reload_anim = self.render_animation(RELOAD + L_RELOAD)
-            self.walk_reload_anim = self.render_animation(WALK_RELOAD)
-            self.l_walk_reload_anim = self.render_animation(L_WALK_RELOAD)
-            self.walk_dual_reload_anim = self.render_animation(WALK_RELOAD + L_WALK_RELOAD)
-            self.l_shoot_anim = self.render_animation(L_SHOOT)
-            self.l_reload_anim = self.render_animation(L_RELOAD)
+        self.climbing_shoot_anim = self.render_animation([CP_CLIMB0])
+        self.climbing_weapon_anim = self.render_animation(CLIMB)
+        self.climbing_weapon_melee_anim = self.render_animation(CLIMB_MELEE)
+        self.climbing_l_weapon_melee_anim = self.render_animation(L_CLIMB_MELEE)
+        self.walk_melee_anim = self.render_animation(WALK_PUNCH)
+        self.walk_l_melee_anim = self.render_animation(L_WALK_PUNCH)
+        self.dual_melee_anim = self.render_animation(D_PUNCH)
+        self.dual_reload_anim = self.render_animation(RELOAD + L_RELOAD)
+        self.walk_reload_anim = self.render_animation(WALK_RELOAD)
+        self.l_walk_reload_anim = self.render_animation(L_WALK_RELOAD)
+        self.walk_dual_reload_anim = self.render_animation(WALK_RELOAD + L_WALK_RELOAD)
+        self.l_shoot_anim = self.render_animation(L_SHOOT)
+        self.l_reload_anim = self.render_animation(L_RELOAD)
 
         if self.mother.gun:
             self.shoot_anim = self.render_animation(SHOOT)
@@ -1324,11 +1322,10 @@ class Body(pg.sprite.Sprite):
         self.shallows_anim = self.render_animation(SHALLOWS_WALK)
         # These animations never have weapons
         toggle_equip(self.mother, True) # This makes it so these animations are not ever created with weapons
-        if self.mother not in self.game.npcs:
-            self.swim_jump_anim = self.render_animation(WATER_JUMP)
-            self.climb_jump_anim = self.render_animation(CLIMB_JUMP)
-            self.climbing_melee_anim = self.render_animation(CLIMB_MELEE)
-            self.climbing_l_melee_anim = self.render_animation(L_CLIMB_MELEE)
+        self.swim_jump_anim = self.render_animation(WATER_JUMP)
+        self.climb_jump_anim = self.render_animation(CLIMB_JUMP)
+        self.climbing_melee_anim = self.render_animation(CLIMB_MELEE)
+        self.climbing_l_melee_anim = self.render_animation(L_CLIMB_MELEE)
 
         self.climbing_anim = self.render_animation(CLIMB)
         self.swim_anim = self.render_animation(SWIM, True)
@@ -1518,23 +1515,23 @@ class Body(pg.sprite.Sprite):
         else:
             #Default animaitons if no weapons
             self.stand_anim = self.render_animation(STAND)
-            if (self.mother not in self.game.npcs) or (self.mother in self.game.companions):
-                if self.mother.bow:
-                    self.l_reload_anim = self.render_animation(L_BOW_RELOAD)
-                    self.l_shoot_anim = self.render_animation(L_BOW_SHOOT)
-                else:
-                    self.l_reload_anim = self.render_animation(L_RELOAD)
-                    self.l_shoot_anim = self.render_animation(L_SHOOT)
-                self.walk_reload_anim = self.render_animation(WALK_RELOAD)
-                self.l_walk_reload_anim = self.render_animation(L_WALK_RELOAD)
-                self.walk_dual_reload_anim = self.render_animation(WALK_RELOAD + L_WALK_RELOAD)
-                self.climbing_shoot_anim = self.render_animation(CLIMB_SHOOT)
-                self.climbing_weapon_anim = self.render_animation(CLIMB)
-                self.climbing_weapon_melee_anim = self.render_animation(CLIMB_MELEE)
-                self.climbing_l_weapon_melee_anim = self.render_animation(L_CLIMB_MELEE)
-                self.dual_melee_anim = self.render_animation(D_PUNCH)
-                self.walk_melee_anim = self.render_animation(WALK_PUNCH)
-                self.walk_l_melee_anim = self.render_animation(L_WALK_PUNCH)
+            #if (self.mother not in self.game.npcs) or (self.mother in self.game.companions):
+            if self.mother.bow:
+                self.l_reload_anim = self.render_animation(L_BOW_RELOAD)
+                self.l_shoot_anim = self.render_animation(L_BOW_SHOOT)
+            else:
+                self.l_reload_anim = self.render_animation(L_RELOAD)
+                self.l_shoot_anim = self.render_animation(L_SHOOT)
+            self.walk_reload_anim = self.render_animation(WALK_RELOAD)
+            self.l_walk_reload_anim = self.render_animation(L_WALK_RELOAD)
+            self.walk_dual_reload_anim = self.render_animation(WALK_RELOAD + L_WALK_RELOAD)
+            self.climbing_shoot_anim = self.render_animation(CLIMB_SHOOT)
+            self.climbing_weapon_anim = self.render_animation(CLIMB)
+            self.climbing_weapon_melee_anim = self.render_animation(CLIMB_MELEE)
+            self.climbing_l_weapon_melee_anim = self.render_animation(L_CLIMB_MELEE)
+            self.dual_melee_anim = self.render_animation(D_PUNCH)
+            self.walk_melee_anim = self.render_animation(WALK_PUNCH)
+            self.walk_l_melee_anim = self.render_animation(L_WALK_PUNCH)
 
             if self.mother.bow:
                 self.reload_anim = self.render_animation(BOW_RELOAD)
@@ -1554,11 +1551,11 @@ class Body(pg.sprite.Sprite):
             self.mother.current_weapon = self.mother.equipped['weapons']
             self.mother.current_weapon2 = self.mother.equipped['weapons2']
             toggle_equip(self.mother, True) # This makes it so these animations are not ever created with weapons
-            if (self.mother not in self.game.npcs) or (self.mother in self.game.companions):
-                self.swim_jump_anim = self.render_animation(WATER_JUMP)
-                self.climb_jump_anim = self.render_animation(CLIMB_JUMP)
-                self.climbing_melee_anim = self.render_animation(CLIMB_MELEE)
-                self.climbing_l_melee_anim = self.render_animation(L_CLIMB_MELEE)
+            #if (self.mother not in self.game.npcs) or (self.mother in self.game.companions):
+            self.swim_jump_anim = self.render_animation(WATER_JUMP)
+            self.climb_jump_anim = self.render_animation(CLIMB_JUMP)
+            self.climbing_melee_anim = self.render_animation(CLIMB_MELEE)
+            self.climbing_l_melee_anim = self.render_animation(L_CLIMB_MELEE)
 
             self.climbing_anim = self.render_animation(CLIMB)
             self.swim_anim = self.render_animation(SWIM, True)
@@ -1833,7 +1830,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
             self.dialogue = self.kind_dict['dialogue']
         else:
             self.dialogue = None
-        self.aggression = self.kind_dict['aggression']
+        self.ai_kind = self.kind_dict['AI']
         self.protected = self.kind_dict['protected']
         self.equipped['race'] = self.kind_dict['race']
         self.equipped['gender'] = self.kind_dict['gender']
@@ -1868,7 +1865,10 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.hit_rect = copy.deepcopy(self.kind_dict['hit rect'])
 
         # Assigns AI to character
-        self.ai = AI(self)
+        if self.ai_kind == 'ai': # generic AI class
+            self.ai = AI(self)
+        elif self.ai_kind == 'zombie':
+            self.ai = AI_Zombie(self)
 
     def accelerate(self, power = 1, direction = "forward"): # Calculates the acceleration, but def move does the moving
         self.acceleration = self.default_acceleration
@@ -1985,7 +1985,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
             # add mob hit sounds here
             self.stats['melee'] += 0.1
             self.last_damage = now
-            mob.ai.target = self
+            mob.ai.gets_hit(self)
         if not self.game.guard_alerted:
             if mob.protected:
                 self.alert_guard()
@@ -3435,137 +3435,6 @@ class Player(Character):  # Used for humanoid NPCs and Players
                 self.mag2 = 0
         self.update_hud_stats('stats')
 
-class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
-    def __init__(self, sprite):
-        self.sprite = sprite
-        self.game = self.sprite.game
-        self.target = choice(sprite.game.moving_targets.sprites()) # Makes sprites randomly pick another sprite to follow.
-        self.target_dist = 0 # Distance to target
-        self.avoid_radius = self.sprite.avoid_radius
-        self.detect_radius = self.sprite.detect_radius
-        self.aggression = self.sprite.aggression
-        self.offensive = self.sprite.offensive
-        self.eating_corpse = 0
-        self.last_wall_hit = 0
-        self.last_target_seek = 0
-        self.hit_wall = False
-        if 'a' in self.aggression:
-            self.aggressive = self.offensive = True
-        else:
-            self.aggressive = False
-        if self.aggression in ['fwd', 'fup']:
-            self.approach_angle = 180
-        if self.aggression == 'fup':
-            self.approach_angle = 180
-        if self.aggression in ['awd', 'fwp', 'awp']:
-            self.approach_angle = 0
-
-    def update(self):
-        self.target_dist = self.target.pos - self.sprite.pos
-        target_vec = self.target_dist.rotate(self.approach_angle)
-        self.sprite.rotate_to(target_vec)
-        self.sprite.accelerate()
-        self.avoid_mobs()
-
-    def avoid_mobs(self):
-        for mob in self.game.mobs_on_screen:
-            if mob != self.sprite:
-                dist = self.sprite.pos - mob.pos
-                if 0 < dist.length() < self.avoid_radius:
-                    self.sprite.acc += dist.normalize()
-        # Makes it so non aggressive mobs don't cling to you.
-        if not self.aggressive:
-            dist = self.sprite.pos - self.game.player.pos
-            if 0 < dist.length() < self.avoid_radius:
-                self.sprite.acc += dist.normalize()
-
-    def seek_random_target(self):
-        self.target = choice(list(self.game.random_targets))
-        self.detect_radius = self.game.map.height / 2
-        temp_dist = self.target.pos - self.pos
-        temp_dist = temp_dist.length()
-        if temp_dist > self.detect_radius:
-            self.target = choice(list(self.game.random_targets))
-        if temp_dist < 200:
-            self.target = choice(list(self.game.random_targets))
-
-    def seek_mobs(self):
-        last_dist = 100000
-        player_dist = self.game.player.pos - self.sprite.pos
-        player_dist = player_dist.length()
-
-        # Used for setting random NPC targets if the player isn't visible.
-        if self.game.player.invisible:
-            if self.target == self.game.player:
-                self.seek_random_target()
-
-        elif self.game.player.in_vehicle:
-            if self.game.player.vehicle.kind_dict == 'airship':
-                if not self.flying:
-                    self.seek_random_target()
-            else:
-                if player_dist < self.detect_radius:
-                    self.target = self.game.player.vehicle
-                elif self.target == self.game.player.vehicle:
-                    self.seek_random_target()
-        else:
-            if self.target not in self.game.npcs:
-                if player_dist < self.detect_radius * 2:
-                    self.target = self.game.player
-                elif self.target == self.game.player:
-                    self.seek_random_target()
-
-        if self.aggression == 'awd':
-            self.offensive = True
-            for mob in self.game.moving_targets_on_screen: # Only looks at mobs that are on screen
-                if mob != self:
-                    if mob.aggression != 'awd' or mob in self.game.npcs_on_screen:
-                        dist = self.sprite.pos - mob.pos
-                        dist = dist.length()
-                        if 0 < dist < self.detect_radius:
-                            if last_dist > dist:  # Finds closest NPC
-                                if player_dist > dist: # Only targets player if you are closer than the others NPCs
-                                    self.target = mob
-                                    self.approach_vector = vec(1, 0)
-                                    last_dist = dist
-                                else:
-                                    if self.game.player.invisible:
-                                        self.target = mob
-                                    else:
-                                        self.target = self.game.player
-
-            if self.target == self.game.player or not self.target.living:
-                for item in self.game.dropped_items_on_screen:# animals target dead animals
-                    if 'dead' in item.name:
-                        dist = self.sprite.pos - item.pos
-                        dist = dist.length()
-                        if 0 < dist < self.detect_radius:
-                            if last_dist > dist:  # Finds closest item
-                                if player_dist > dist: # Only targets player if you are closer than the others NPCs
-                                    self.target = item
-                                    self.approach_vector = vec(1, 0)
-                                    last_dist = dist
-
-            if not self.target.living: # Kills corps after so many hits.
-                if self.target in self.game.animals_on_screen:
-                    self.target.kill()
-                    self.target = self.game.player
-                else:
-                    self.eating_corpse += 1
-                    if self.eating_corpse > 4:
-                        self.target.kill()
-                        self.target = self.game.player
-                        self.eating_corpse = 0
-                        self.sprite.stats['health']= self.sprite.stats['max health'] # heals animal
-            else:
-                self.eating_coprse = 0
-
-        if self.target not in self.game.random_targets:
-            self.detect_radius = self.default_detect_radius
-
-
-
-
 class Animal(Character):
     def __init__(self, game, x=0, y=0, kind='rabbit', colors=None, animal = True):
         super().__init__(game, x, y, kind, colors, animal)
@@ -3688,7 +3557,6 @@ class Animal(Character):
         self.update_collide_list()
         self.target = self.game.player
         self.approach_vector = vec(1, 0)
-        self.aggression = 'awp'
         self.default_detect_radius = self.detect_radius = self.game.screen_height
         self.guard = True
         #self.speed = self.walk_speed = 200
@@ -3940,6 +3808,100 @@ class Arrow(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = self.mother.pos + self.offset.rotate(-self.mother.rot)
 
+
+class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
+    def __init__(self, sprite):
+        self.sprite = sprite
+        self.game = self.sprite.game
+        self.target = choice(sprite.game.moving_targets.sprites()) # Makes sprites randomly pick another sprite to follow.
+        self.target_dist = 0 # Distance to target
+        self.avoid_radius = self.sprite.avoid_radius
+        self.detect_radius = self.sprite.detect_radius
+        self.eating_corpse = 0
+        self.last_wall_hit = 0
+        self.last_target_seek = 0
+        self.hit_wall = False
+        self.approach_angle = 0
+
+    def update(self):
+        self.target_dist = self.target.pos - self.sprite.pos
+        target_vec = self.target_dist.rotate(self.approach_angle)
+        self.sprite.rotate_to(target_vec)
+        self.sprite.accelerate()
+        self.avoid_mobs()
+
+    def avoid_mobs(self):
+        for mob in self.game.mobs_on_screen:
+            if mob != self.sprite:
+                dist = self.sprite.pos - mob.pos
+                if 0 < dist.length() < self.avoid_radius:
+                    self.sprite.acc += dist.normalize()
+        # # Makes it so non aggressive mobs don't cling to you.
+        # if not self.aggressive:
+        #     dist = self.sprite.pos - self.game.player.pos
+        #     if 0 < dist.length() < self.avoid_radius:
+        #         self.sprite.acc += dist.normalize()
+
+    def seek_random_target(self):
+        self.target = choice(list(self.game.random_targets))
+        self.detect_radius = self.game.map.height / 2
+        temp_dist = self.target.pos - self.pos
+        temp_dist = temp_dist.length()
+        if temp_dist > self.detect_radius:
+            self.target = choice(list(self.game.random_targets))
+        if temp_dist < 200:
+            self.target = choice(list(self.game.random_targets))
+
+    def seek_moving_target(self):
+        last_dist = 100000
+        for mob in self.game.moving_targets_on_screen: # Only looks at mobs that are on screen
+            if mob != self.sprite:
+                if mob.kind != self.sprite.kind:
+                    dist = self.sprite.pos - mob.pos
+                    dist = dist.length()
+                    if 0 < dist < self.detect_radius:
+                        if last_dist > dist:  # Finds closest NPC
+                            self.target = mob
+
+    def gets_hit(self, offender):
+        self.target = offender
+
+class AI_Zombie(AI):
+    def __init__(self, sprite):
+        super().__init__(sprite)
+        self.target = sprite.game.player
+
+    def update(self):
+        super().update()
+        if self.target_dist.length() < 40:
+            self.sprite.pre_melee()
+        now = pg.time.get_ticks()
+        if now - self.last_target_seek > 1000:
+            self.last_target_seek = now
+            self.seek_moving_target()
+        if not self.target.living:
+            self.seek_moving_target()
+
+    def avoid_mobs(self):
+        for mob in self.game.mobs_on_screen:
+            if mob not in [self.sprite, self.target]:
+                dist = self.sprite.pos - mob.pos
+                if 0 < dist.length() < self.avoid_radius:
+                    self.sprite.acc += dist.normalize()
+
+    def seek_moving_target(self):
+        last_dist = 100000
+        for mob in self.game.moving_targets_on_screen: # Only looks at mobs that are on screen
+            if (mob != self.sprite) and (mob not in self.game.animals_on_screen):
+                if mob.kind != self.sprite.kind:
+                    dist = self.sprite.pos - mob.pos
+                    dist = dist.length()
+                    if last_dist > dist:  # Finds closest NPC
+                        self.target = mob
+
+    def gets_hit(self, offender):
+        if offender.kind != self.sprite.kind:
+            self.target = offender
 
 class Bullet(pg.sprite.Sprite):
     def __init__(self, mother, game, pos, dir, rot, weapon, enemy = False, sky = False):
@@ -5212,7 +5174,6 @@ class Detector(pg.sprite.Sprite): # Used to rest in
     def do_action(self, detectable):
         if self.action == 'changeKimmy':
             detectable.kind['dialogue'] = 'KIMMY_DLG2'
-            detectable.kind['aggression'] = 'awp'
         if self.action == 'changeFelius':
             detectable.remove(self.game.companions)
             try:

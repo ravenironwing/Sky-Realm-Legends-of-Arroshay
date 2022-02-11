@@ -34,7 +34,7 @@ PEOPLE = {}
     # 'dialogue': None, 'store': None, 'climbing': True
 
 # NPCs I have fixed for the new system.
-PEOPLE['player'] = {'name': 'Adventurer', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'awp', 'is dragon': True,
+PEOPLE['player'] = {'name': 'Adventurer', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'AI': 'ai', 'is dragon': True,
     'gender': 'female', 'race': 'osidine', 'hair': 'medium messy', 'magic': [],
     'colors':  {'hair': DEFAULT_HAIR_COLOR, 'skin': DEFAULT_SKIN_COLOR},
     'dialogue': 'random PLAYER_DLG',
@@ -45,7 +45,7 @@ PEOPLE['player'] = {'name': 'Adventurer', 'protected': True, 'hit rect': PLAYER_
               'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0,
               'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'acceleration': 38, 'level': 0}}
 
-PEOPLE['tod'] = {'name': 'Tod', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'aggression': 'fwp',
+PEOPLE['tod'] = {'name': 'Tod', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'AI': 'ai',
     'gender': 'male', 'race': 'osidine', 'hair': 'beard', 'magic': [],
     'colors':  {'hair': OSIDINE_SKIN_TONES[10], 'skin':  OSIDINE_SKIN_TONES[3]},
     'dialogue': 'random VILLAGER_DLG',
@@ -56,12 +56,22 @@ PEOPLE['tod'] = {'name': 'Tod', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 
               'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0,
               'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'acceleration': 10, 'level': 0}}
 
+PEOPLE['immortui'] = {'name': 'immortui', 'protected': False, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'AI': 'zombie',
+    'gender': 'male', 'race': 'immortui', 'hair': '', 'magic': [],
+    'colors':  {'hair': IMMORTUI_SKIN_TONES[10], 'skin':  IMMORTUI_SKIN_TONES[3]},
+    'inventory':{'brown pants': 1, 'orange burlap shirt': 1},
+    'stats': {'health': 100, 'max health': 100, 'stamina': 100, 'max stamina': 100, 'magica': 100, 'max magica': 100,
+              'hunger': 100, 'max hunger': 100, 'strength': 10, 'agility': 1, 'armor': 0,
+              'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0,
+              'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0,
+              'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'acceleration': 10, 'level': 0}}
+
 ANIMALS = {}
-ANIMALS['rabbit'] = {'name': 'Rabbit', 'protected': False, 'hit rect': SMALL_HIT_RECT, 'detect radius': 400, 'avoid radius': 100,'aggression': 'fwd',
+ANIMALS['rabbit'] = {'name': 'Rabbit', 'protected': False, 'hit rect': SMALL_HIT_RECT, 'detect radius': 400, 'avoid radius': 100,'AI': 'ai',
     'gender': 'random', 'race': 'rabbit', 'hair': 'random', 'magic': [],
     'colors': {'hair': 'random COLOR_PALETTE', 'skin': 'random COLOR_PALETTE'},
     'grabable': True, 'item type': 'weapons', 'item': 'live rabbit',
-    'inventory': {'red crystal': 10},
+    'inventory': {},
     'stats': {'health': 10, 'max health': 10, 'stamina': 100, 'max stamina': 100,'magica': 10,'max magica': 10,
            'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 2,'agility': 1, 'armor': 0,
            'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0,'marksmanship accuracy': 0, 'melee': 0,

@@ -1874,7 +1874,7 @@ class Game:
                                 self.message_text = True
                                 self.message = pg.key.name(self.key_map['interact']).upper() + ' to talk'
                                 if self.player.e_down:
-                                    hits[0].target = self.player
+                                    hits[0].ai.target = self.player
                                     hits[0].talk_attempt = True
                                     self.message_text = False
                                     self.player.e_down = False
@@ -2097,9 +2097,9 @@ class Game:
                         if not mob.in_player_vehicle:
                             if mob != self.player:
                                 if bullet.mother == self.player: # Makes it so NPCs attack you if you shoot them.
-                                    if mob.aggression in ['awd', 'sap', 'fup']:
-                                        mob.offensive = True
-                                        mob.provoked = True
+                                    #if mob.aggression in ['awd', 'sap', 'fup']:
+                                    #    mob.offensive = True
+                                    #    mob.provoked = True
                                     mob.gets_hit(bullet.damage, bullet.knockback, bullet.rot)
                                     self.hud_mobhp = mob.stats['health'] / mob.stats['max health']
                                     self.show_mobhp = True

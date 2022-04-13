@@ -45,20 +45,20 @@ PEOPLE['player'] = {'name': 'Adventurer', 'protected': True, 'hit rect': PLAYER_
               'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0,
               'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'acceleration': 38, 'level': 0}}
 
-PEOPLE['tod'] = {'name': 'Tod', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'AI': 'ai',
-    'gender': 'male', 'race': 'osidine', 'hair': 'beard', 'magic': [],
+PEOPLE['guard'] = {'name': 'Guard', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'AI': 'guard',
+    'gender': 'male', 'race': 'osidine', 'hair': 'short', 'magic': [],
     'colors':  {'hair': OSIDINE_SKIN_TONES[10], 'skin':  OSIDINE_SKIN_TONES[3]},
     'dialogue': 'random VILLAGER_DLG',
-    'inventory':{'steel ingot': 1, 'steel armor': 1, 'steel leg armor': 1, 'steel plated boots': 1},
-    'stats': {'health': 1, 'max health': 1, 'stamina': 100, 'max stamina': 100, 'magica': 100, 'max magica': 100,
-              'hunger': 100, 'max hunger': 100, 'strength': 1, 'agility': 1, 'armor': 0,
+    'inventory':{'steel armor': 1, 'steel leg armor': 1, 'steel plated boots': 1, 'steel helmet': 1, 'steel broadsword': 1},
+    'stats': {'health': 120, 'max health': 120, 'stamina': 100, 'max stamina': 100, 'magica': 100, 'max magica': 100,
+              'hunger': 100, 'max hunger': 100, 'strength': 15, 'agility': 1, 'armor': 0,
               'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0,
               'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0,
               'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'acceleration': 10, 'level': 0}}
 
-PEOPLE['immortui'] = {'name': 'immortui', 'protected': False, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'AI': 'zombie',
-    'gender': 'male', 'race': 'immortui', 'hair': '', 'magic': [],
-    'colors':  {'hair': IMMORTUI_SKIN_TONES[10], 'skin':  IMMORTUI_SKIN_TONES[3]},
+PEOPLE['immortui'] = {'name': 'Immortui', 'protected': False, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'AI': 'zombie',
+    'gender': 'male', 'race': 'immortui', 'hair': 'short messy', 'magic': [],
+    'colors':  {'hair': IMMORTUI_SKIN_TONES[15], 'skin':  IMMORTUI_SKIN_TONES[3]},
     'inventory':{'brown pants': 1, 'orange burlap shirt': 1},
     'stats': {'health': 100, 'max health': 100, 'stamina': 100, 'max stamina': 100, 'magica': 100, 'max magica': 100,
               'hunger': 100, 'max hunger': 100, 'strength': 10, 'agility': 1, 'armor': 0,

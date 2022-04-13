@@ -507,6 +507,18 @@ def collide_with_walls(sprite, group, dir):
             sprite.vel.y = 0
             sprite.hit_rect.centery = sprite.pos.y
 
+# Used to define hits from melee attacks
+def melee_hit_rect(one, two):
+    if one.mother.weapon_hand == 'weapons':
+        if True in (one.mid_weapon_melee_rect.colliderect(two.hit_rect), one.weapon_melee_rect.colliderect(two.hit_rect), one.melee_rect.colliderect(two.hit_rect)): #checks for either the fist hitting a mob or the cente or tip of weapon.
+            return True
+        else:
+            return False
+    elif one.mother.weapon_hand == 'weapons2':
+        if True in (one.mid_weapon2_melee_rect.colliderect(two.hit_rect), one.weapon2_melee_rect.colliderect(two.hit_rect), one.melee2_rect.colliderect(two.hit_rect)): #checks for either the fist hitting a mob or the center or tip of weapon.
+            return True
+    return False
+
 def moving_target_hit_rect(one, two):
     return one.hit_rect.colliderect(two.hit_rect)
 
@@ -1666,7 +1678,6 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.last_shift = 0
         self.last_stam_regen = 0
         self.last_move = 0
-        self.last_damage = 0
         self.last_magica_drain = 0
         self.last_hunger = 0
         self.last_fireball = 0
@@ -1869,6 +1880,8 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
             self.ai = AI(self)
         elif self.ai_kind == 'zombie':
             self.ai = AI_Zombie(self)
+        elif self.ai_kind == 'guard':
+            self.ai = AI_Guard(self)
 
     def accelerate(self, power = 1, direction = "forward"): # Calculates the acceleration, but def move does the moving
         self.acceleration = self.default_acceleration
@@ -1959,36 +1972,35 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
 
     def does_melee_damage(self, mob):
         damage_reduction = self.stats['stamina'] / self.stats['max stamina']
-        now = pg.time.get_ticks()
-        if now - self.last_damage > self.melee_rate:
-            if self.equipped[self.weapon_hand] == None:
-                damage = damage_reduction * self.stats['strength']
-                mob.vel = vec(0, 0)
-                play_relative_volume(self, choice(self.game.punch_sounds), False)
-                mob.gets_hit(damage, 2, self.rot)
-                self.game.hud_mobhp = mob.stats['health'] / mob.stats['max health']
-                self.game.last_mobhp_update = pg.time.get_ticks()
-                self.game.show_mobhp = True
+        if self.equipped[self.weapon_hand] == None:
+            play_relative_volume(self, choice(self.game.punch_sounds), False)
+            damage = damage_reduction * self.stats['strength']
+            mob.vel = vec(0, 0)
+            mob.gets_hit(damage, 2, self.rot)
+            self.update_mobhp(mob)
+        else:
+            self.play_weapon_hit_sound()
+            weapon_damage = self.equipped[self.weapon_hand]['damage']
+            damage = damage_reduction * (self.stats['strength'] + weapon_damage) + weapon_damage/4
+            mob.vel = vec(0, 0)
+            if 'knockback' in self.equipped[self.weapon_hand]:
+                knockback = self.equipped[self.weapon_hand]['knockback']
             else:
-                weapon_damage = self.equipped[self.weapon_hand]['damage']
-                damage = damage_reduction * (self.stats['strength'] + weapon_damage) + weapon_damage/4
-                mob.vel = vec(0, 0)
-                if 'knockback' in self.equipped[self.weapon_hand]:
-                    knockback = self.equipped[self.weapon_hand]['knockback']
-                else:
-                    knockback = self.equipped[self.weapon_hand]['weight'] * 3
-                self.play_weapon_hit_sound()
-                mob.gets_hit(damage, knockback, self.rot)
-                self.game.hud_mobhp = mob.stats['health'] / mob.stats['max health']
-                self.game.last_mobhp_update = pg.time.get_ticks()
-                self.game.show_mobhp = True
+                knockback = self.equipped[self.weapon_hand]['weight'] * 3
+            mob.gets_hit(damage, knockback, self.rot)
+            self.update_mobhp(mob)
             # add mob hit sounds here
             self.stats['melee'] += 0.1
-            self.last_damage = now
             mob.ai.gets_hit(self)
         if not self.game.guard_alerted:
             if mob.protected:
                 self.alert_guard()
+
+    def update_mobhp(self, mob):
+        if self == self.game.player:  # Only displays mob hp if hit by player
+            self.game.hud_mobhp = mob.stats['health'] / mob.stats['max health']
+            self.game.last_mobhp_update = pg.time.get_ticks()
+            self.game.show_mobhp = True
 
     def gets_hit(self, damage, knockback = 0, rot = 0, dam_rate = DAMAGE_RATE):
         if self.in_vehicle:
@@ -2273,12 +2285,15 @@ class Player(Character):  # Used for humanoid NPCs and Players
         self.body.kill()
         if self.npc:
             self.remove(self.game.mobs)
+            self.remove(self.game.mobs_on_screen)
             self.remove(self.game.npcs)
+            self.remove(self.game.npcs_on_screen)
         else:
             self.remove(self.game.players)
             self.game.playing = False
         self.remove(self.game.moving_targets)
         self.add(self.game.corpses)
+        self.add(self.game.corpses_on_screen)
         self.game.group.add(self)
         self.game.group.change_layer(self, self.game.map.items_layer)  # Switches the corpse to items layer
         for key, value in self.equipped.items(): # Moves equipped stuff into inventory so you can loot it.
@@ -2607,14 +2622,17 @@ class Player(Character):  # Used for humanoid NPCs and Players
 
     def melee(self): # Used for the melee animations
         # Default values if no weapons
-        rate = 200 #default timing between melee attacks if no agility. Reduces with higher agility
+        rate = 140 #default timing between melee attacks if no agility. Reduces with higher agility
         rate_reduction_factor = rate/(rate + self.stats['agility'])
         def_speed = 60 #default speed of melee attacks
         speed_reduction_factor = def_speed/(def_speed + self.stats['agility'])
-        self.melee_rate = rate * rate_reduction_factor + 90 # Makes it so the timing can't drop bellow 90
+        self.melee_rate = rate * rate_reduction_factor + 50 # Makes it so the timing can't drop bellow 90
         speed = def_speed * speed_reduction_factor + 10 # Makes it so the timing can't drop bellow 10
+        strike_frame = 4 # The default frame where melee does damage
 
         if self.weapon_hand == 'weapons':
+            if self.body.swing_weapon1:
+                strike_frame = 6
             climbing_anim = self.body.climbing_melee_anim
             climbing_weapon_anim = self.body.climbing_weapon_melee_anim
             if self.moving_melee:
@@ -2622,6 +2640,8 @@ class Player(Character):  # Used for humanoid NPCs and Players
             else:
                 melee_anim = self.body.melee_anim
         else:
+            if self.body.swing_weapon2:
+                strike_frame = 6
             climbing_anim = self.body.climbing_l_melee_anim
             climbing_weapon_anim = self.body.climbing_l_weapon_melee_anim
             if self.moving_melee:
@@ -2672,6 +2692,35 @@ class Player(Character):  # Used for humanoid NPCs and Players
                     self.melee_playing = False
                     self.dual_melee = False
                     self.last_shot = pg.time.get_ticks()
+
+        # Checks to see if it's execution the animation frame where the strike happens.
+        if self.body.frame == strike_frame:
+            self.check_melee_hit()
+
+
+    def check_melee_hit(self): # Checks to see if player melee strike hits anything.
+        hits = pg.sprite.spritecollide(self.body, self.game.moving_targets_on_screen, False, melee_hit_rect)
+        for mob in hits:
+            if mob.immaterial:
+                if self.equipped[self.weapon_hand]:
+                    if ('aetherial' not in self.equipped[self.weapon_hand]) or ('plasma' not in self.equipped[self.weapon_hand]):
+                        continue
+            if mob.in_player_vehicle:
+                continue
+            elif mob in self.game.flying_vehicles:
+                continue
+            elif mob.in_vehicle:
+                continue
+            elif self.in_vehicle: # Makes it so you can't attack your own vehicle
+                if mob == self.vehicle:
+                    continue
+
+            if self == self.game.player:
+                if mob not in self.game.companions:
+                    mob.offensive = True
+                    mob.provoked = True
+
+            self.does_melee_damage(mob)
 
     def pre_jump(self):
         if not (self.melee_playing or self.in_vehicle or self.is_reloading):
@@ -3531,8 +3580,11 @@ class Animal(Character):
             self.game.animals_dict[self.name.lower()]['dead'] = True
         if 'corpse' in self.kind_dict.keys() and self.kind_dict['corpse']:
             self.remove(self.game.mobs)
+            self.remove(self.game.mobs_on_screen)
             self.remove(self.game.animals)
+            self.remove(self.game.animals_on_screen)
             self.remove(self.game.moving_targets)
+            self.remove(self.game.moving_targets_on_screen)
             self.add(self.game.corpses)
             self.game.group.change_layer(self, self.game.map.items_layer) # Switches the corpse to items layer
             self.image = pg.transform.rotate(self.game.corpse_images[self.kind_dict['corpse']], self.rot)
@@ -3903,6 +3955,43 @@ class AI_Zombie(AI):
         if offender.kind != self.sprite.kind:
             self.target = offender
 
+class AI_Guard(AI):
+    def __init__(self, sprite):
+        super().__init__(sprite)
+        self.target = sprite.game.player
+
+    def update(self):
+        super().update()
+        if self.target_dist.length() < 40:
+            self.sprite.pre_melee()
+        now = pg.time.get_ticks()
+        if now - self.last_target_seek > 1000:
+            self.last_target_seek = now
+            self.seek_moving_target()
+        if not self.target.living:
+            self.seek_moving_target()
+
+    def avoid_mobs(self):
+        for mob in self.game.mobs_on_screen:
+            if mob not in [self.sprite, self.target]:
+                dist = self.sprite.pos - mob.pos
+                if 0 < dist.length() < self.avoid_radius:
+                    self.sprite.acc += dist.normalize()
+
+    def seek_moving_target(self):
+        last_dist = 100000
+        for mob in self.game.moving_targets_on_screen: # Only looks at mobs that are on screen
+            if (mob != self.sprite) and (mob not in self.game.animals_on_screen):
+                if mob.kind != self.sprite.kind:
+                    dist = self.sprite.pos - mob.pos
+                    dist = dist.length()
+                    if last_dist > dist:  # Finds closest NPC
+                        self.target = mob
+
+    def gets_hit(self, offender):
+        if offender.kind != self.sprite.kind:
+            self.target = offender
+
 class Bullet(pg.sprite.Sprite):
     def __init__(self, mother, game, pos, dir, rot, weapon, enemy = False, sky = False):
         self.game = game
@@ -3935,7 +4024,7 @@ class Bullet(pg.sprite.Sprite):
         self.lifetime = self.weapon['bullet_lifetime']
 
         self.spawn_time = pg.time.get_ticks()
-        self.damage = self.weapon['damage']
+        self.damage = self.weapon['shot damage']
         self.exp_damage = self.damage
         self.exp = False
         self.energy = False

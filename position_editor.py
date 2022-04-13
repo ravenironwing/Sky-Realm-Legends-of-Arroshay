@@ -4,15 +4,15 @@ from os import path
 from character_positions import *
 vec = pg.math.Vector2
 
-WING1_OFFSET = (35, 121)
-WING2_OFFSET = (35, 74)
+WING1_OFFSET = (69, 107)
+WING2_OFFSET = (69, 86)
 
 WIDTH = 480
 HEIGHT = 600
 FPS = 60
 
 default = CP_BOWWALK0
-animation = RUNNING
+animation = SWIPE
 
 
 # define some colors (R, G, B)

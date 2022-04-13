@@ -5,13 +5,14 @@ vec = pg.math.Vector2
 
 ITEMS = {}
 
-WEAPON_TYPES = ['axe', 'sword', 'dagger', 'pickaxe', 'gun']
+WEAPON_TYPES = ['axe', 'sword', 'dagger', 'pickaxe', 'shotgun', 'pistol', 'rifle', 'laser', 'bow']
 SHARP_WEAPON_TYPES = ['axe', 'sword', 'dagger', 'pickaxe']
 EQUIP_TYPES = WEAPON_TYPES + ['head', 'torso', 'gloves', 'feet', 'bottom']
-WEAPON_GRIPS = {'axe': 'CP_SWORD_GRIP', 'sword': 'CP_SWORD_GRIP', 'dagger': 'CP_SWORD_GRIP', 'pickaxe': 'CP_SWORD_GRIP'}
-WEAPON_WALKS = {'axe': 'WALK', 'sword': 'WALK', 'dagger': 'WALK', 'pickaxe': 'WALK'}
-WEAPON_MELEE_ANIM = {'axe': 'SWIPE', 'sword': 'PUNCH', 'dagger': 'PUNCH', 'pickaxe': 'SWIPE'}
-GUN_LIST = ['hand gun', 'shotgun', 'rifle', 'laser']
+WEAPON_GRIPS = {'axe': 'CP_SWORD_GRIP', 'sword': 'CP_SWORD_GRIP', 'dagger': 'CP_SWORD_GRIP', 'pickaxe': 'CP_SWORD_GRIP', 'shotgun': 'CP_SHOTGUN0', 'riffle': 'CP_SHOTGUN0', 'pistol': 'CP_PISTOL0', 'bow': 'BOWWALK0', 'laser': 'CP_PISTOL0'}
+WEAPON_WALKS = {'axe': 'WALK', 'sword': 'WALK', 'dagger': 'WALK', 'pickaxe': 'WALK', 'shotgun': 'SHOTGUN_WALK', 'riffle': 'SHOTGUN_WALK', 'pistol': 'PISTOL_WALK', 'bow': 'BOW_WALK', 'laser': 'PISTOL_WALK'}
+WEAPON_MELEE_ANIM = {'axe': 'SWIPE', 'sword': 'PUNCH', 'dagger': 'PUNCH', 'pickaxe': 'SWIPE', 'shotgun': 'SWIPE', 'riffle': 'SWIPE', 'pistol': 'PUNCH', 'bow': 'SWIPE', 'laser': 'SWIPE'}
+GUN_LIST = ['pistol', 'shotgun', 'rifle', 'laser']
+
 ITEM_SIZE = 20 # Size items are displayed in world.
 
 for material in MATERIALS:
@@ -85,6 +86,25 @@ ITEMS['flint axe'] = {'name': 'flint axe', 'type': 'axe',
                             'weight': 4,
                             'hp': 80,
                             'max hp': 80}
+
+# Guns
+ITEMS['shotgun'] = {'name': 'shotgun', 'type': 'shotgun',
+                      'hp': 1000, 'max hp': 1000,
+                      'bullet_speed': 200,
+                      'bullet_lifetime': 600,
+                      'magazine size': 2,
+                      'reload speed': 150,
+                      'rate': 900,
+                      'auto': False,
+                      'kickback': 50,
+                      'knockback': 0.5,
+                      'spread': 20,
+                      'shot damage': 25,
+                      'damage': 2,
+                      'bullet_size': 'sm1',
+                      'bullet_count': 12,
+                      'offset': vec(29, 0),
+                      'weight': 2.7}
 
 for color in CLOTHING_COLORS:
     ITEMS[color + ' pants'] = {'name': color + ' pants', 'type': 'bottom', 'armor': 3, 'hp': 100, 'max hp': 100, 'color': CLOTHING_COLORS[color]}

@@ -108,26 +108,6 @@ def mob_hit_rect(one, two):
     else:
         return False
 
-# Used to define hits from melee attacks
-def melee_hit_rect(one, two):
-    if one.mother.weapon_hand == 'weapons':
-        if True in (one.mid_weapon_melee_rect.colliderect(two.hit_rect), one.weapon_melee_rect.colliderect(two.hit_rect), one.melee_rect.colliderect(two.hit_rect)): #checks for either the fist hitting a mob or the cente or tip of weapon.
-            if one.swing_weapon1: # This differentiates between weapons that are being swung and those that are thrusted.
-                if one.frame > 3:
-                    return True
-            elif one.frame < 3:
-                return True
-        else:
-            return False
-    elif one.mother.weapon_hand == 'weapons2':
-        if True in (one.mid_weapon2_melee_rect.colliderect(two.hit_rect), one.weapon2_melee_rect.colliderect(two.hit_rect), one.melee2_rect.colliderect(two.hit_rect)): #checks for either the fist hitting a mob or the center or tip of weapon.
-            if one.swing_weapon2:
-                if one.frame > 3:
-                    return True
-            elif one.frame < 3:
-                return True
-    return False
-
 def breakable_melee_hit_rect(one, two):
     if one.mother.weapon_hand == 'weapons':
         if True in (one.mid_weapon_melee_rect.colliderect(two.trunk.hit_rect), one.weapon_melee_rect.colliderect(two.trunk.hit_rect), one.melee_rect.colliderect(two.trunk.hit_rect)):
@@ -1818,13 +1798,13 @@ class Game:
                 self.change_map(None, None, None, hits[0].map)
 
             # player melee hits entryway (door)
-            if self.player.melee_playing:
-                hits = pg.sprite.spritecollide(self.player.body, self.entryways_on_screen, False, melee_hit_rect)
-                if hits:
-                    if hits[0] in self.electric_doors_on_screen:
-                        hits[0].gets_hit(40, 0, 0, 100, self.player)
-                    else:
-                        self.player.does_melee_damage(hits[0])
+            #if self.player.melee_playing:
+            #    hits = pg.sprite.spritecollide(self.player.body, self.entryways_on_screen, False, melee_hit_rect)
+            #    if hits:
+            #        if hits[0] in self.electric_doors_on_screen:
+            #            hits[0].gets_hit(40, 0, 0, 100, self.player)
+            #        else:
+            #            self.player.does_melee_damage(hits[0])
 
             # player hits entryway (a door)
             hits = pg.sprite.spritecollide(self.player, self.entryways_on_screen, False, entryway_collide)
@@ -1984,6 +1964,8 @@ class Game:
             self.player.in_grass = False
 
 
+        """
+        #Moving into Player class into the melee def. It makes way more sense to check hits in there.
         # NPC or Player melee hits moving_target
         hits = pg.sprite.groupcollide(self.npc_bodies_on_screen, self.moving_targets_on_screen, False, False, melee_hit_rect)
         for body in hits:
@@ -2015,6 +1997,7 @@ class Game:
                             mob.offensive = True
                             mob.provoked = True
                     body.mother.does_melee_damage(mob)
+        """
 
         # fire hit moving target
         hits = pg.sprite.groupcollide(self.moving_targets, self.fires_on_screen, False, False, pg.sprite.collide_circle_ratio(0.5))

@@ -3,15 +3,31 @@ from color_palettes import *
 from chests import *
 vec = pg.math.Vector2
 
-ITEMS = {}
+# Weapon settings
+BULLET_SIZES = ['sm', 'md', 'lg', 'xl', 'ar']
+ENCHANTED_BULLETS = ['2', '3', '5', '6', '7', '8', '9', '12']
+ROB_HEALTH_BULLETS = ['12']
+FIRE_BULLETS = ['3', '5', '6', '9']
+SHOCK_BULLETS = ['2', '7', '8', '9']
+EXPLOSIVE_BULLETS = ['4', '5', '8', '10', '0']
+ENCHANTED_OFFSET = vec(19, 0)
+
+WEAPON_SOUNDS = {'shovel': ['mace_swipe.ogg'], 'pistol': ['pistol.ogg'], 'laser': ['laser.ogg'], 'grenades': ['shotgun.ogg'], 'pickaxe': ['mace_swipe.ogg'], 'axe': ['mace_swipe.ogg'], 'plasma': ['plasma_swipe.ogg', 'plasma_swipe2.ogg'],
+                 'shotgun': ['shotgun.ogg'], 'rifle': ['assault rifle.ogg'], 'turret': ['turret.ogg'], 'sword': ['sword_swipe.ogg'], 'mace': ['mace_swipe.ogg'], 'dagger': ['sword_swipe.ogg'], 'shield': ['mace_swipe.ogg'], 'bow': ['arrow.ogg']}
+WEAPON_HIT_SOUNDS = {'pistol': ['gun_hit1.ogg'], 'laser': ['gun_hit1.ogg'], 'grenades': ['shotgun.ogg'], 'pickaxe': ['pickaxe.ogg'], 'axe': ['axe.ogg'], 'shovel': ['rock_hit.ogg'],
+                 'shotgun': ['gun_hit1.ogg'], 'rifle': ['gun_hit1.ogg'], 'turret': ['turret_hit1.ogg'], 'sword': ['sword_hit1.ogg'], 'mace': ['mace_hit1.ogg', 'mace_hit2.ogg'], 'dagger': ['sword_hit1.ogg'], 'shield': ['punch1.ogg', 'punch2.ogg'], 'bow': ['punch1.ogg', 'punch2.ogg'], 'plasma': ['plasma_hit.ogg', 'plasma_hit2.ogg']}
+
 
 WEAPON_TYPES = ['axe', 'sword', 'dagger', 'pickaxe', 'shotgun', 'pistol', 'rifle', 'laser', 'bow']
 SHARP_WEAPON_TYPES = ['axe', 'sword', 'dagger', 'pickaxe']
 EQUIP_TYPES = WEAPON_TYPES + ['head', 'torso', 'gloves', 'feet', 'bottom']
-WEAPON_GRIPS = {'axe': 'CP_SWORD_GRIP', 'sword': 'CP_SWORD_GRIP', 'dagger': 'CP_SWORD_GRIP', 'pickaxe': 'CP_SWORD_GRIP', 'shotgun': 'CP_SHOTGUN0', 'riffle': 'CP_SHOTGUN0', 'pistol': 'CP_PISTOL0', 'bow': 'BOWWALK0', 'laser': 'CP_PISTOL0'}
-WEAPON_WALKS = {'axe': 'WALK', 'sword': 'WALK', 'dagger': 'WALK', 'pickaxe': 'WALK', 'shotgun': 'SHOTGUN_WALK', 'riffle': 'SHOTGUN_WALK', 'pistol': 'PISTOL_WALK', 'bow': 'BOW_WALK', 'laser': 'PISTOL_WALK'}
-WEAPON_MELEE_ANIM = {'axe': 'SWIPE', 'sword': 'PUNCH', 'dagger': 'PUNCH', 'pickaxe': 'SWIPE', 'shotgun': 'SWIPE', 'riffle': 'SWIPE', 'pistol': 'PUNCH', 'bow': 'SWIPE', 'laser': 'SWIPE'}
+WEAPON_GRIPS = {'axe': 'CP_SWORD_GRIP', 'sword': 'CP_SWORD_GRIP', 'dagger': 'CP_SWORD_GRIP', 'pickaxe': 'CP_SWORD_GRIP', 'shotgun': 'CP_SHOTGUN0', 'rifle': 'CP_SHOTGUN0', 'pistol': 'CP_PISTOL0', 'bow': 'BOWWALK0', 'laser': 'CP_PISTOL0'}
+WEAPON_WALKS = {'axe': 'WALK', 'sword': 'WALK', 'dagger': 'WALK', 'pickaxe': 'WALK', 'shotgun': 'SHOTGUN_WALK', 'rifle': 'SHOTGUN_WALK', 'pistol': 'PISTOL_WALK', 'bow': 'BOW_WALK', 'laser': 'PISTOL_WALK'}
+WEAPON_MELEE_ANIM = {'axe': 'SWIPE', 'sword': 'PUNCH', 'dagger': 'PUNCH', 'pickaxe': 'SWIPE', 'shotgun': 'SWIPE', 'rifle': 'SWIPE', 'pistol': 'PUNCH', 'bow': 'SWIPE', 'laser': 'SWIPE'}
 GUN_LIST = ['pistol', 'shotgun', 'rifle', 'laser']
+
+#ITEMS, weapons, armor, etc.
+ITEMS = {}
 
 ITEM_SIZE = 20 # Size items are displayed in world.
 
@@ -88,23 +104,56 @@ ITEMS['flint axe'] = {'name': 'flint axe', 'type': 'axe',
                             'max hp': 80}
 
 # Guns
-ITEMS['shotgun'] = {'name': 'shotgun', 'type': 'shotgun',
+# Optional parameters: bullet_lifetime
+ITEMS['double barrel shotgun'] = {'name': 'double barrel shotgun', 'type': 'shotgun',
                       'hp': 1000, 'max hp': 1000,
                       'bullet_speed': 200,
-                      'bullet_lifetime': 600,
                       'magazine size': 2,
                       'reload speed': 150,
-                      'rate': 900,
+                      'rate': 100,
                       'auto': False,
                       'kickback': 50,
                       'knockback': 0.5,
                       'spread': 20,
                       'shot damage': 25,
-                      'damage': 2,
+                      'damage': 3,
                       'bullet_size': 'sm1',
                       'bullet_count': 12,
                       'offset': vec(29, 0),
                       'weight': 2.7}
+
+ITEMS['Barlita M92'] = {'name': 'Barlita M92', 'type': 'pistol',
+                     'bullet_speed': 250,
+                     'magazine size': 6,
+                     'reload speed': 100,
+                     'rate': 250,
+                     'auto': False,
+                     'kickback': 5,
+                     'knockback': 0.2,
+                     'spread': 5,
+                     'shot damage': 10,
+                     'damage': 2,
+                     'bullet_size': 'md1',
+                     'bullet_count': 1,
+                     'offset': vec(14, 0),
+                     'weight': 1.4}
+
+ITEMS['HJ416'] = {'name': 'HJ416', 'type': 'rifle',
+                      'bullet_speed': 350,
+                      'bullet_lifetime': 700,
+                      'magazine size': 30,
+                      'reload speed': 160,
+                      'rate': 100,
+                      'auto': True,
+                      'kickback': 0.4,
+                      'knockback': 5,
+                      'spread': 7,
+                      'shot damage': 12,
+                      'damage': 3,
+                      'bullet_size': 'sm1',
+                      'bullet_count': 1,
+                      'offset': vec(29, 0),
+                      'weight': 2.9}
 
 for color in CLOTHING_COLORS:
     ITEMS[color + ' pants'] = {'name': color + ' pants', 'type': 'bottom', 'armor': 3, 'hp': 100, 'max hp': 100, 'color': CLOTHING_COLORS[color]}

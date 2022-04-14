@@ -1,7 +1,6 @@
 from tkinter import *
 from armor import *
 from new_items import *
-from weapons import *
 
 class Npc_Info_Designer(Tk):
 

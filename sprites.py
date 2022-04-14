@@ -38,6 +38,15 @@ def play_relative_volume(source, sound, effect = True):  # This def plays sounds
                 channel.play(snd, loops=0)
                 break
 
+def apply_knockback(sprite, knockback, rot):
+    kb_vec = vec(knockback, 0).rotate(-rot)
+    if wall_check(sprite, kb_vec.x, kb_vec.y):
+        return
+    else:
+        sprite.vel += kb_vec
+    if pg.sprite.spritecollide(sprite, sprite.game.barriers, False):  # Prevents sprite from being knocked through a wall object.
+        sprite.pos -= vec(knockback, 0).rotate(-rot)
+
 def gender_tag(sprite):
     if sprite.equipped['gender'] == 'male':
         return "_M"
@@ -68,8 +77,8 @@ def correct_filename(item):
 def round_to_base(x, base=90):
     return base * round(x / base)
 
-def get_tile_pos(sprite):
-    return int(sprite.pos.x / sprite.game.map.tile_size), int(sprite.pos.y / sprite.game.map.tile_size)
+def get_tile_pos(sprite, offset_x = 0, offset_y = 0):
+    return int((sprite.pos.x + offset_x) / sprite.game.map.tile_size), int((sprite.pos.y + offset_y)/ sprite.game.map.tile_size)
 
 def get_next_tile_pos(sprite):
     pdir = vec(1, 0).rotate(-sprite.rot)
@@ -403,37 +412,6 @@ def auto_crop(surf):
     rect = surf.get_bounding_rect()
     return surf.subsurface(rect)
 
-def wall_check(sprite):  # Used for tile-based wall collisions
-    if sprite.tile_props['wall'] == 'wall':
-        return True
-    else:
-        return False
-
-def next_wall_check(sprite, x_off = 0, y_off = 0):  # Used for tile-based wall detection
-    pdir = vec(1, 0).rotate(-sprite.rot)
-    x = int(sprite.pos.x / sprite.game.map.tile_size + pdir.x) + x_off
-    y = int(sprite.pos.y / sprite.game.map.tile_size + pdir.y) + y_off
-    return xy_wall_check(sprite, x, y)
-
-def xy_wall_check(sprite, x, y):  # Used for tile-based wall checks
-    if x < 0: return False
-    if y < 0: return False
-    if x >= sprite.game.map.tiles_wide: return False
-    if y >= sprite.game.map.tiles_high: return False
-    if sprite.tmxdata.walls[y][x]:
-        return True
-    else:
-        return False
-
-#def in_wall(game, group, pos):
-#    for wall in group:
-#        if wall not in game.door_walls:
-#            if wall.rect.left < pos.x < wall.rect.right:
-#                if wall.rect.top < pos.y < wall.rect.bottom:
-#                    return wall
-#    else:
-#        return False
-
 def set_elevation(sprite):
     # Sets elevation to the highest elevation you hit.
     hit_level = sprite
@@ -451,6 +429,34 @@ def color_image(image, color):
     color_image.fill(color)
     temp_image.blit(color_image, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
     return temp_image
+
+#def next_wall_check(sprite, x_off = 0, y_off = 0):  # Used for tile-based wall detection
+#    pdir = vec(1, 0).rotate(-sprite.rot)
+#    x = int(sprite.pos.x / sprite.game.map.tile_size + pdir.x) + x_off
+#    y = int(sprite.pos.y / sprite.game.map.tile_size + pdir.y) + y_off
+#    return xy_wall_check(sprite, x, y)
+
+#def in_wall(game, group, pos):
+#    for wall in group:
+#        if wall not in game.door_walls:
+#            if wall.rect.left < pos.x < wall.rect.right:
+#                if wall.rect.top < pos.y < wall.rect.bottom:
+#                    return wall
+#    else:
+#        return False
+
+def wall_check(sprite, offset_x = 0, offset_y = 0):  # Used for tile-based wall checks for bullet collisions etc.
+    pos = get_tile_pos(sprite)
+    x = pos[0]
+    y = pos[1]
+    if x < 0: return False
+    if y < 0: return False
+    if x >= sprite.game.map.tiles_wide: return False
+    if y >= sprite.game.map.tiles_high: return False
+    if sprite.game.map.walls[pos[1]][pos[0]]:
+        return True
+    else:
+        return False
 
 def get_surrounding_walls(sprite, x_off = 0, y_off = 0):
     pos = get_tile_pos(sprite)
@@ -1687,6 +1693,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.last_melee_sound = 0
         self.last_throw = 0
         self.last_climb = 0
+        self.melee_frame_hits = 0
 
         # vars for leveling
         self.last_kills = 0
@@ -1976,7 +1983,10 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
             play_relative_volume(self, choice(self.game.punch_sounds), False)
             damage = damage_reduction * self.stats['strength']
             mob.vel = vec(0, 0)
-            mob.gets_hit(damage, 2, self.rot)
+            knockback = self.stats['strength'] + self.stats['agility']
+            if knockback > 10:
+                knockback = 10
+            mob.gets_hit(damage, knockback, self.rot)
             self.update_mobhp(mob)
         else:
             self.play_weapon_hit_sound()
@@ -1986,12 +1996,11 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
             if 'knockback' in self.equipped[self.weapon_hand]:
                 knockback = self.equipped[self.weapon_hand]['knockback']
             else:
-                knockback = self.equipped[self.weapon_hand]['weight'] * 3
+                knockback = self.equipped[self.weapon_hand]['weight'] * 20
             mob.gets_hit(damage, knockback, self.rot)
             self.update_mobhp(mob)
             # add mob hit sounds here
             self.stats['melee'] += 0.1
-            mob.ai.gets_hit(self)
         if not self.game.guard_alerted:
             if mob.protected:
                 self.alert_guard()
@@ -2010,6 +2019,8 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         else:
             now = pg.time.get_ticks()
             if now - self.last_hit > dam_rate:
+                if self != self.game.player:
+                    self.ai.gets_hit(self)
                 self.last_hit = now
                 # Player takes damage based on their armor rating/
                 temp_val = (damage + self.stats['armor']) # This part prevents division by 0 in the damage_reduction_factor calculation
@@ -2024,9 +2035,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
                         else:
                             play_relative_volume(self, choice(self.game.female_player_hit_sounds), False)
                     self.add_health(-damage_done)
-                self.pos += vec(knockback, 0).rotate(-rot)
-                if pg.sprite.spritecollide(self, self.game.barriers, False): #Prevents sprite from being knocked through a wall.
-                    self.pos -= vec(knockback, 0).rotate(-rot)
+                    apply_knockback(self, knockback, rot)
                 self.rect.center = self.hit_rect.center = self.pos
                 self.stats['hits taken'] += 1
 
@@ -2596,6 +2605,7 @@ class Player(Character):  # Used for humanoid NPCs and Players
     def pre_melee(self, shot = False): # Used to get the timing correct between each melee strike, and for the sounds
         if True not in [self.jumping, self.is_reloading, self.arrow]:
             if not self.melee_playing:
+                self.melee_frame_hits = 0 # Resets hit counter for how many frames past the strike point the weapon is in contact for.
                 # Subtracts stamina
                 if self.equipped[self.weapon_hand]:
                     self.add_stamina(-self.equipped[self.weapon_hand]['weight']/50, 100)
@@ -2609,7 +2619,7 @@ class Player(Character):  # Used for humanoid NPCs and Players
                         self.last_melee_sound = now
                         if shot:  # Used for weapons that shoot and attack at the same time.
                             self.fire_bullets()
-                        if self.equipped[self.weapon_hand]['type'] in GUN_LIST:
+                        if self.equipped[self.weapon_hand]['type'] not in GUN_LIST:
                             self.play_weapon_sound()
                         else:
                             self.play_weapon_sound('gun')
@@ -2632,7 +2642,7 @@ class Player(Character):  # Used for humanoid NPCs and Players
 
         if self.weapon_hand == 'weapons':
             if self.body.swing_weapon1:
-                strike_frame = 6
+                strike_frame = 5
             climbing_anim = self.body.climbing_melee_anim
             climbing_weapon_anim = self.body.climbing_weapon_melee_anim
             if self.moving_melee:
@@ -2641,7 +2651,7 @@ class Player(Character):  # Used for humanoid NPCs and Players
                 melee_anim = self.body.melee_anim
         else:
             if self.body.swing_weapon2:
-                strike_frame = 6
+                strike_frame = 5
             climbing_anim = self.body.climbing_l_melee_anim
             climbing_weapon_anim = self.body.climbing_l_weapon_melee_anim
             if self.moving_melee:
@@ -2694,13 +2704,14 @@ class Player(Character):  # Used for humanoid NPCs and Players
                     self.last_shot = pg.time.get_ticks()
 
         # Checks to see if it's execution the animation frame where the strike happens.
-        if self.body.frame == strike_frame:
+        if self.body.frame > strike_frame:
             self.check_melee_hit()
-
 
     def check_melee_hit(self): # Checks to see if player melee strike hits anything.
         hits = pg.sprite.spritecollide(self.body, self.game.moving_targets_on_screen, False, melee_hit_rect)
         for mob in hits:
+            if mob in [self, self.body]: # Makes it so you can't attack yourself.
+                pass
             if mob.immaterial:
                 if self.equipped[self.weapon_hand]:
                     if ('aetherial' not in self.equipped[self.weapon_hand]) or ('plasma' not in self.equipped[self.weapon_hand]):
@@ -2720,7 +2731,9 @@ class Player(Character):  # Used for humanoid NPCs and Players
                     mob.offensive = True
                     mob.provoked = True
 
-            self.does_melee_damage(mob)
+            self.melee_frame_hits += 1 # Only damages mob once per hit.
+            if self.melee_frame_hits == 1:
+                self.does_melee_damage(mob)
 
     def pre_jump(self):
         if not (self.melee_playing or self.in_vehicle or self.is_reloading):
@@ -3284,7 +3297,8 @@ class Player(Character):  # Used for humanoid NPCs and Players
             mag_selected = self.mag2
         if mag_selected > 0:
             if not self.in_vehicle:
-                self.vel += vec(-self.equipped[self.weapon_hand]['kickback'], 0).rotate(-self.rot)
+                apply_knockback(self, -self.equipped[self.weapon_hand]['kickback'], -self.rot)
+                #self.vel += vec(-self.equipped[self.weapon_hand]['kickback'], 0).rotate(-self.rot)
             dir = vec(1, 0).rotate(-(self.rot + angle))
             if self.weapon_hand == 'weapons':
                 pos = self.pos + (self.body.weapon_pos + self.equipped['weapons']['offset']).rotate(-(self.rot + angle))
@@ -4021,8 +4035,10 @@ class Bullet(pg.sprite.Sprite):
         spread = uniform(-self.weapon['spread'], self.weapon['spread'])
         self.dir = dir.rotate(spread)
         self.vel = self.dir * self.weapon['bullet_speed'] * uniform(0.9, 1.1) + self.mother.vel
-        self.lifetime = self.weapon['bullet_lifetime']
-
+        if 'bullet_lifetime' in self.weapon.keys(): # Optional parameter for special bullets
+            self.lifetime = self.weapon['bullet_lifetime']
+        else:
+            self.lifetime = 560 # about half a second to for a bullet to fall from shooting distance
         self.spawn_time = pg.time.get_ticks()
         self.damage = self.weapon['shot damage']
         self.exp_damage = self.damage
@@ -4056,10 +4072,12 @@ class Bullet(pg.sprite.Sprite):
     def update(self):
         self.pos += self.vel * self.game.dt
         self.rect.center = self.pos
-        if pg.sprite.spritecollideany(self, self.game.walls_on_screen):
+        if wall_check(self):
+            self.death()
+        elif pg.sprite.spritecollideany(self, self.game.walls_on_screen):
             self.death()
         # Kills bullets of current and previous weapons
-        if pg.time.get_ticks() - self.spawn_time > self.lifetime:
+        elif pg.time.get_ticks() - self.spawn_time > self.lifetime:
             self.death()
 
     def death(self, target = None):

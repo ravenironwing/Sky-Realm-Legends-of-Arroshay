@@ -1,6 +1,5 @@
 from settings import *
 from random import choice, randrange
-from weapons import *
 from character_positions import *
 import pygame as pg
 

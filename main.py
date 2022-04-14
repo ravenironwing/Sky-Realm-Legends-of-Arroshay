@@ -187,12 +187,13 @@ class Game:
             self.clock.tick(120)
             self.screen.fill(BLACK)
             pg.display.flip()
-        self.channel3 = pg.mixer.Channel(2)
-        self.channel4 = pg.mixer.Channel(3) # sound effects 1st layer
-        self.channel5 = pg.mixer.Channel(4) # sound effects 2nd layer
-        self.channel6 = pg.mixer.Channel(5) # sound effects 3rd layer
-        self.channel7 = pg.mixer.Channel(6) # sound effects 4th layer
-        self.channel_list = [self.channel4, self.channel5, self.channel6, self.channel7]
+        self.channel2 = pg.mixer.Channel(2)
+        self.channel3 = pg.mixer.Channel(3)
+        self.channel4 = pg.mixer.Channel(4)
+        self.channel5 = pg.mixer.Channel(5)
+        self.channel6 = pg.mixer.Channel(6)
+        self.channel7 = pg.mixer.Channel(7)
+        self.channel_list = [self.channel2, self.channel3, self.channel4, self.channel5, self.channel6, self.channel7]
 
     def on_screen(self, sprite, threshold = 50):
         rect = self.camera.apply(sprite)

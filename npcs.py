@@ -43,7 +43,7 @@ PEOPLE['player'] = {'name': 'Adventurer', 'protected': True, 'hit rect': PLAYER_
               'hunger': 100, 'max hunger': 100, 'strength': 1, 'agility': 1, 'armor': 0,
               'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0,
               'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0,
-              'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'acceleration': 38, 'level': 0}}
+              'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'mass': 60, 'acceleration': 1500, 'level': 0}}
 
 PEOPLE['guard'] = {'name': 'Guard', 'protected': True, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'AI': 'guard',
     'gender': 'male', 'race': 'osidine', 'hair': 'short', 'magic': [],
@@ -54,7 +54,7 @@ PEOPLE['guard'] = {'name': 'Guard', 'protected': True, 'hit rect': PLAYER_HIT_RE
               'hunger': 100, 'max hunger': 100, 'strength': 15, 'agility': 1, 'armor': 0,
               'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0,
               'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0,
-              'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'acceleration': 10, 'level': 0}}
+              'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'mass': 70, 'acceleration': 1000, 'level': 0}}
 
 PEOPLE['immortui'] = {'name': 'Immortui', 'protected': False, 'hit rect': PLAYER_HIT_RECT, 'detect radius': DEFAULT_DETECT_RADIUS, 'avoid radius': DEFAULT_AVIOD_RADIUS, 'AI': 'zombie',
     'gender': 'male', 'race': 'immortui', 'hair': 'short messy', 'magic': [],
@@ -64,7 +64,7 @@ PEOPLE['immortui'] = {'name': 'Immortui', 'protected': False, 'hit rect': PLAYER
               'hunger': 100, 'max hunger': 100, 'strength': 10, 'agility': 1, 'armor': 0,
               'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0, 'marksmanship accuracy': 0, 'melee': 0,
               'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0, 'magica regen': 0, 'looting': 0,
-              'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'acceleration': 10, 'level': 0}}
+              'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'mass': 50, 'acceleration': 600, 'level': 0}}
 
 ANIMALS = {}
 ANIMALS['rabbit'] = {'name': 'Rabbit', 'protected': False, 'hit rect': SMALL_HIT_RECT, 'detect radius': 400, 'avoid radius': 100,'AI': 'ai',
@@ -76,7 +76,7 @@ ANIMALS['rabbit'] = {'name': 'Rabbit', 'protected': False, 'hit rect': SMALL_HIT
            'hunger': 100, 'max hunger': 100, 'weight': 0, 'max weight': 100, 'strength': 2,'agility': 1, 'armor': 0,
            'kills': 0, 'marksmanship hits': 0, 'marksmanship shots fired': 0,'marksmanship accuracy': 0, 'melee': 0,
            'hits taken': 0, 'exercise': 0, 'healing': 0, 'stamina regen': 0,'magica regen': 0,'looting': 0,
-           'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0,'acceleration': 15, 'level': 0}}
+           'casting': 0, 'lock picking': 0, 'touch damage': 0, 'touch knockback': 0, 'mass': 2,'acceleration': 25, 'level': 0}}
 
 #Animation patterns:
 BASIC3 = [1, 2, 3, 2]

@@ -789,10 +789,6 @@ class Game:
         self.animals_on_screen = pg.sprite.Group()
         self.fires = pg.sprite.Group()
         self.fires_on_screen = pg.sprite.Group()
-        self.electric_doors = pg.sprite.Group()
-        self.electric_doors_on_screen = pg.sprite.Group()
-        self.entryways = pg.sprite.Group()
-        self.entryways_on_screen = pg.sprite.Group()
         self.breakable = pg.sprite.Group()
         self.breakable_on_screen = pg.sprite.Group()
         self.corpses = pg.sprite.Group()
@@ -851,7 +847,7 @@ class Game:
         self.occupied_vehicles = pg.sprite.Group()
         self.random_targets = pg.sprite.Group()
         self.clicked_sprites = []
-        self.target_list = [self.random_targets, self.entryways, self.work_stations, self.moving_targets,  self.aipaths]
+        self.target_list = [self.random_targets, self.moving_targets,  self.aipaths]
         self.new_game = True
         self.respawn = False
         self.previous_map = "1.tmx"
@@ -1288,8 +1284,8 @@ class Game:
             if tile_object.name:
                 obj_center = vec(tile_object.x + tile_object.width / 2, tile_object.y + tile_object.height / 2)
                 # These are paths for the AIs to follow.
-                if tile_object.name in AIPATHS:
-                    AIPath(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height, tile_object.name)
+                # if tile_object.name in AIPATHS:
+                #     AIPath(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height, tile_object.name)
                 # It's super important that all elevations spawn before the player and mobs.
                 if 'EL' in tile_object.name:
                     try:
@@ -1408,68 +1404,68 @@ class Game:
                             temp_npc = Player(self, obj_center.x, obj_center.y, npc)
                             if command == 'kill':
                                 temp_npc.death()
-                if tile_object.name == 'fire':
-                    Stationary_Animated(self, obj_center, 'fire')
-                if tile_object.name == 'shock':
-                    Stationary_Animated(self, obj_center, 'shock')
-                if tile_object.name == 'charger':
-                    Charger(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
+                # if tile_object.name == 'fire':
+                #     Stationary_Animated(self, obj_center, 'fire')
+                # if tile_object.name == 'shock':
+                #     Stationary_Animated(self, obj_center, 'shock')
+                # if tile_object.name == 'charger':
+                #     Charger(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
                 if tile_object.name == 'portal':
                     self.portal_location = obj_center
                 if 'firepot' in tile_object.name:
                     number = tile_object.name[-1:]
                     FirePot(self, obj_center, number)
-                if tile_object.name == 'wall':
-                    Obstacle(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
-                if tile_object.name == 'light':
-                    LightSource(self, tile_object.x, tile_object.y,
-                             tile_object.width, tile_object.height)
-                if 'lightsource' in tile_object.name:
-                    numvars = tile_object.name.count('_')
-                    if numvars == 2:
-                        _, kind, rot = tile_object.name.split('_')
-                    elif numvars == 1:
-                        _, kind = tile_object.name.split('_')
-                        rot = 0
-                    kind = int(kind)
-                    if rot == 'R':
-                        rot = 0
-                    elif rot == 'U':
-                        rot = 90
-                    elif rot == 'L':
-                        rot = 180
-                    elif rot == 'D':
-                        rot = 270
-                    else:
-                        rot = int(rot)
-                    LightSource(self, tile_object.x, tile_object.y,
-                             tile_object.width, tile_object.height, kind, rot)
-                if tile_object.name == 'inside':
-                    Inside(self, tile_object.x, tile_object.y,
-                             tile_object.width, tile_object.height)
+                # if tile_object.name == 'wall':
+                #     Obstacle(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
+                # if tile_object.name == 'light':
+                #     LightSource(self, tile_object.x, tile_object.y,
+                #              tile_object.width, tile_object.height)
+                # if 'lightsource' in tile_object.name:
+                #     numvars = tile_object.name.count('_')
+                #     if numvars == 2:
+                #         _, kind, rot = tile_object.name.split('_')
+                #     elif numvars == 1:
+                #         _, kind = tile_object.name.split('_')
+                #         rot = 0
+                #     kind = int(kind)
+                #     if rot == 'R':
+                #         rot = 0
+                #     elif rot == 'U':
+                #         rot = 90
+                #     elif rot == 'L':
+                #         rot = 180
+                #     elif rot == 'D':
+                #         rot = 270
+                #     else:
+                #         rot = int(rot)
+                #     LightSource(self, tile_object.x, tile_object.y,
+                #              tile_object.width, tile_object.height, kind, rot)
+                # if tile_object.name == 'inside':
+                #     Inside(self, tile_object.x, tile_object.y,
+                #              tile_object.width, tile_object.height)
                 if tile_object.name == 'nospawn':
                     NoSpawn(self, tile_object.x, tile_object.y,
                              tile_object.width, tile_object.height)
-                if tile_object.name == 'electric entry':
-                    ElectricDoor(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
-                if 'entryway' in tile_object.name:  # Used for animated doors that can be opened, closed or locked.
-                    numvars = tile_object.name.count('_')
-                    if numvars == 0:
-                        entryway = Entryway(self, tile_object.x, tile_object.y)
-                    elif numvars == 1:
-                        _, orientation  = tile_object.name.split('_')
-                        entryway = Entryway(self, tile_object.x, tile_object.y, orientation)
-                    elif numvars == 2:
-                        _, orientation, kind  = tile_object.name.split('_')
-                        entryway = Entryway(self, tile_object.x, tile_object.y, orientation, kind)
-                    elif numvars == 3:
-                        _, orientation, kind, name = tile_object.name.split('_')
-                        locked = eval(locked)
-                        entryway = Entryway(self, tile_object.x, tile_object.y, orientation, kind, name)
-                    elif numvars == 4:
-                        _, orientation, kind, name, locked = tile_object.name.split('_')
-                        locked = eval(locked)
-                        entryway = Entryway(self, tile_object.x, tile_object.y, orientation, kind, name, locked)
+                # if tile_object.name == 'electric entry':
+                #     ElectricDoor(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
+                # if 'entryway' in tile_object.name:  # Used for animated doors that can be opened, closed or locked.
+                #     numvars = tile_object.name.count('_')
+                #     if numvars == 0:
+                #         entryway = Entryway(self, tile_object.x, tile_object.y)
+                #     elif numvars == 1:
+                #         _, orientation  = tile_object.name.split('_')
+                #         entryway = Entryway(self, tile_object.x, tile_object.y, orientation)
+                #     elif numvars == 2:
+                #         _, orientation, kind  = tile_object.name.split('_')
+                #         entryway = Entryway(self, tile_object.x, tile_object.y, orientation, kind)
+                #     elif numvars == 3:
+                #         _, orientation, kind, name = tile_object.name.split('_')
+                #         locked = eval(locked)
+                #         entryway = Entryway(self, tile_object.x, tile_object.y, orientation, kind, name)
+                #     elif numvars == 4:
+                #         _, orientation, kind, name, locked = tile_object.name.split('_')
+                #         locked = eval(locked)
+                #         entryway = Entryway(self, tile_object.x, tile_object.y, orientation, kind, name, locked)
                 if 'door' in tile_object.name:  # This block of code positions the player at the correct door when changing maps
                     door = Door(self, tile_object.x, tile_object.y,
                              tile_object.width, tile_object.height, tile_object.name)
@@ -1606,7 +1602,7 @@ class Game:
             pg.mixer.music.play(loops=-1)
 
         # sets up NPC target list for map
-        self.target_list = [self.random_targets, self.entryways, self.work_stations, self.moving_targets, self.aipaths]
+        self.target_list = [self.random_targets, self.work_stations, self.moving_targets, self.aipaths]
         for x in self.target_list:  # Replaces empty sprite groups with the random targets group.
             if list(x) == []:
                 x = self.random_targets
@@ -1693,8 +1689,8 @@ class Game:
 
         # dynamic sprites on screen
         self.vehicles_on_screen.empty()
-        self.entryways_on_screen.empty()
-        self.electric_doors_on_screen.empty()
+        #self.entryways_on_screen.empty()
+        #self.electric_doors_on_screen.empty()
         self.breakable_on_screen.empty()
         self.corpses_on_screen.empty()
         self.dropped_items_on_screen.empty()
@@ -1709,11 +1705,11 @@ class Game:
         for sprite in self.all_sprites:
             if self.on_screen(sprite):
                 self.sprites_on_screen.add(sprite)
-                if sprite in self.entryways:
-                    self.entryways_on_screen.add(sprite)
-                    if sprite in self.electric_doors:
-                        self.electric_doors_on_screen.add(sprite)
-                elif sprite in self.vehicles:
+                # if sprite in self.entryways:
+                #     self.entryways_on_screen.add(sprite)
+                #     if sprite in self.electric_doors:
+                #         self.electric_doors_on_screen.add(sprite)
+                if sprite in self.vehicles:
                     self.vehicles_on_screen.add(sprite)
                     if sprite in self.walls:
                         self.walls_on_screen.add(sprite)
@@ -1808,31 +1804,31 @@ class Game:
             #            self.player.does_melee_damage(hits[0])
 
             # player hits entryway (a door)
-            hits = pg.sprite.spritecollide(self.player, self.entryways_on_screen, False, entryway_collide)
-            if hits:
-                self.message_text = True
-                if hits[0].locked:
-                    self.message = hits[0].name + ' is locked. ' + pg.key.name(self.key_map['interact']).upper() + ' to unlock'
-                    if self.player.e_down:
-                        if not self.in_lock_menu:
-                            self.in_lock_menu = self.in_menu = True
-                            self.lock_menu = Lock_Menu(self, hits[0])
-                            self.message_text = False
-                        self.player.e_down = False
-                elif not hits[0].opened:
-                    self.message = pg.key.name(self.key_map['interact']).upper() + ' to open'
-                    if self.player.e_down:
-                        hits[0].open = True
-                        hits[0].close = False
-                        self.message_text = False
-                        self.player.e_down = False
-                elif hits[0].opened:
-                    self.message = pg.key.name(self.key_map['interact']).upper() + ' to close'
-                    if self.player.e_down:
-                        hits[0].close = True
-                        hits[0].open = False
-                        self.message_text = False
-                        self.player.e_down = False
+            #hits = pg.sprite.spritecollide(self.player, self.entryways_on_screen, False, entryway_collide)
+            #if hits:
+            #    self.message_text = True
+            #    if hits[0].locked:
+            #        self.message = hits[0].name + ' is locked. ' + pg.key.name(self.key_map['interact']).upper() + ' to unlock'
+            #        if self.player.e_down:
+            #            if not self.in_lock_menu:
+            #                self.in_lock_menu = self.in_menu = True
+            #                self.lock_menu = Lock_Menu(self, hits[0])
+            #                self.message_text = False
+            #             self.player.e_down = False
+            #     elif not hits[0].opened:
+            #         self.message = pg.key.name(self.key_map['interact']).upper() + ' to open'
+            #         if self.player.e_down:
+            #             hits[0].open = True
+            #             hits[0].close = False
+            #             self.message_text = False
+            #             self.player.e_down = False
+            #     elif hits[0].opened:
+            #         self.message = pg.key.name(self.key_map['interact']).upper() + ' to close'
+            #         if self.player.e_down:
+            #             hits[0].close = True
+            #             hits[0].open = False
+            #             self.message_text = False
+            #             self.player.e_down = False
 
             # player hit corps
             hits = pg.sprite.spritecollide(self.player, self.corpses_on_screen, False)

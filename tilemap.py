@@ -224,6 +224,7 @@ class TiledMap:
         tile_props['harvest'] = ''
         tile_props['tree'] = ''
         tile_props['roof'] = ''
+        tile_props['friction'] = DEFAULT_FRICTION
         tile_rect = False
 
         layers = [self.trees_layer, self.river_layer, self.ocean_plants_layer, self.water_layer, self.base_layer]
@@ -279,6 +280,8 @@ class TiledMap:
                     tile_props['tree'] = props['tree']
                 if 'roof' in props:
                     tile_props['roof'] = props['roof']
+                if 'friction' in props:
+                    tile_props['friction'] = float(props['friction'])
 
         return tile_rect, tile_props
 

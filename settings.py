@@ -177,11 +177,12 @@ WORK_STATION_DICT = {'crafting': 'Crafting', 'work bench': 'Work Bench', 'anvil'
 #PLAYER_STAMINA = 100
 #PLAYER_STRENGTH = 1
 #PLAYER_ACC = 38
-RUN_INCREASE = 12
+MAX_RUN = 5000
+RUN_INCREASE = 2 #speed multiplier when running.
 #PLAYER_CLIMB = 14
-MAX_RUN = 80
 CLIMB_TIME = 1000
-PLAYER_FRIC = -0.17
+DEFAULT_FRICTION = 0.17
+
 PLAYER_ROT_SPEED = 200
 PLAYER_TUR = 'turret.png'
 PLAYER_TANK = 'tank.png'

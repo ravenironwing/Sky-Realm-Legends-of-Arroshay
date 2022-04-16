@@ -11,8 +11,10 @@ from math import ceil
 from time import perf_counter, sleep
 
 vec = pg.math.Vector2
+last_channel = 1
 
 def play_relative_volume(source, sound, effect = True):  # This def plays sounds where the volume is adjusted according to the distance the source is from the player (the listener).
+    global last_channel
     volume = 1
     if source != source.game.player:
         player_dist = source.game.player.pos - source.pos
@@ -32,11 +34,26 @@ def play_relative_volume(source, sound, effect = True):  # This def plays sounds
             snd = source.game.effects_sounds[sound]
         else:
             snd = sound
-        for channel in source.game.channel_list:
+        # Looks for a free channel to play the sound and plays it if found.
+        selected_channel = -1
+        for i, channel in enumerate(source.game.channel_list):
             if not channel.get_busy():
-                channel.set_volume(volume)
-                channel.play(snd, loops=0)
+                selected_channel = i
                 break
+
+        if selected_channel == -1: # If not free channel is found.
+            if source == source.game.player:  # gives player the priority
+                selected_channel = 0
+            else:  # Picks the channel that was used least recently to play the sound
+                if last_channel + 1 >= len(source.game.channel_list):
+                    selected_channel = 1
+                else:
+                    selected_channel = last_channel + 1
+
+        # Plays sound through selected_channel
+        source.game.channel_list[selected_channel].set_volume(volume)
+        source.game.channel_list[selected_channel].play(snd, loops=0)
+        last_channel = selected_channel
 
 def apply_knockback(sprite, knockback, rot):
     kb_vec = vec(knockback, 0).rotate(-rot)
@@ -102,7 +119,8 @@ def get_next_tile_pos(sprite):
 def set_tile_props(sprite): # sets a variable that keeps track of the important properties a sprite is on in order of their priority.
     x, y = get_tile_pos(sprite)
     sprite.tile_props = sprite.game.map.tile_props[y][x]
-
+    sprite.friction = sprite.tile_props['friction']
+    
     # Sets sprite environmental state variables
     if 'water' in sprite.tile_props['material']:
         sprite.swimming = True
@@ -528,7 +546,7 @@ def melee_hit_rect(one, two):
 def moving_target_hit_rect(one, two):
     return one.hit_rect.colliderect(two.hit_rect)
 
-def collide_with_moving_targets(sprite):
+def collide_with_moving_targets(sprite): # When sprites collide
     sprite.remove(sprite.game.moving_targets_on_screen)
     hits = pg.sprite.spritecollide(sprite, sprite.game.moving_targets_on_screen, False, moving_target_hit_rect)
     if hits and not hits[0].flying:
@@ -554,21 +572,39 @@ def collide_with_moving_targets(sprite):
                         sprite.game.message_text = False
                         sprite.e_down = False
 
-        sprite.hit_rect.centerx = sprite.pos.x
-        if hits[0].hit_rect.centerx > sprite.hit_rect.centerx:  # going right
-            sprite.pos.x = hits[0].hit_rect.left - sprite.hit_rect.width / 2
-        if hits[0].hit_rect.centerx < sprite.hit_rect.centerx:  # going left
-            sprite.pos.x = hits[0].hit_rect.right + sprite.hit_rect.width / 2
-        sprite.vel.x = (sprite.vel.x + hits[0].vel.x) / 2
-        sprite.hit_rect.centerx = sprite.pos.x
-        sprite.hit_rect.centery = sprite.pos.y
-        if hits[0].hit_rect.centery > sprite.hit_rect.centery:  # going down
-            sprite.pos.y = hits[0].hit_rect.top - sprite.hit_rect.height / 2
-        if hits[0].hit_rect.centery < sprite.hit_rect.centery:  # going up
-            sprite.pos.y = hits[0].hit_rect.bottom + sprite.hit_rect.height / 2
-        sprite.vel.y = (sprite.vel.y + hits[0].vel.y) / 2
-        sprite.hit_rect.centery = sprite.pos.y
-        sprite.rect.center = sprite.hit_rect.center
+        for mob in hits:
+            if mob != sprite:
+                dist = sprite.pos - mob.pos
+                if 0 < dist.length() < sprite.avoid_radius: # Conservation of momentum. Inelastic collisions assuming head on collisions for simplified calculations.
+                    pi = mob.mass * mob.vel.magnitude() + sprite.mass * sprite.vel.magnitude()
+                    vf = pi / (mob.mass + sprite.mass)
+                    mobdv = vf - mob.vel.magnitude()
+                    spritedv = vf - sprite.vel.magnitude()
+                    sprite.acc = dist.normalize() * (sprite.acc.magnitude() + spritedv)
+
+
+        # origpos = sprite.pos # Pre-pushed position.
+        #if hits[0].next_tile_props['wall'] != 'wall':
+        # sprite.hit_rect.centerx = sprite.pos.x
+        # if hits[0].hit_rect.centerx > sprite.hit_rect.centerx:  # going right
+        #     sprite.pos.x = hits[0].hit_rect.left - sprite.hit_rect.width / 2
+        # if hits[0].hit_rect.centerx < sprite.hit_rect.centerx:  # going left
+        #     sprite.pos.x = hits[0].hit_rect.right + sprite.hit_rect.width / 2
+        # sprite.vel.x = (sprite.vel.x + hits[0].vel.x) / 2
+        # sprite.hit_rect.centerx = sprite.pos.x
+        # sprite.hit_rect.centery = sprite.pos.y
+        # if hits[0].hit_rect.centery > sprite.hit_rect.centery:  # going down
+        #     sprite.pos.y = hits[0].hit_rect.top - sprite.hit_rect.height / 2
+        # if hits[0].hit_rect.centery < sprite.hit_rect.centery:  # going up
+        #     sprite.pos.y = hits[0].hit_rect.bottom + sprite.hit_rect.height / 2
+        # sprite.vel.y = (sprite.vel.y + hits[0].vel.y) / 2
+        # sprite.hit_rect.centery = sprite.pos.y
+        # sprite.rect.center = sprite.hit_rect.center
+        # if wall_check(sprite): # If the sprite is pushed into a wall then it resets it to where it was before being pushed.
+        #     sprite.pos = origpos
+        #     sprite.vel = vec(0, 0)
+        #     sprite.hit_rect.center= sprite.pos
+        #     sprite.rect.center = sprite.hit_rect.center
     sprite.add(sprite.game.moving_targets_on_screen)
 
 
@@ -1168,7 +1204,7 @@ class Vehicle(pg.sprite.Sprite):
         self.pos = vec(self.rect.center)
         self.occupied = False
         self.driver.in_vehicle = False
-        self.driver.friction = PLAYER_FRIC
+        self.driver.friction = DEFAULT_FRICTION
         self.driver.acceleration = PLAYER_ACC
         if self.data['weapons']:
             self.driver.inventory['weapons'].remove(self.data['weapons'])
@@ -1670,7 +1706,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.direction = vec(1, 0) # A unit vector that represents the direction the player is facing.
         self.mouse_direction = vec(0, 0)
         self.mouse_pos = vec(0, 0)
-        self.friction = PLAYER_FRIC
+        self.friction = DEFAULT_FRICTION
         self.rot = randrange(0, 360)
         self.rot_speed = 0
         self.approach_vector = vec(1, 0)
@@ -1838,12 +1874,11 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         self.name = self.kind_dict['name']
         self.touch_damage = self.stats['touch damage']
         self.touch_knockback = self.stats['touch knockback']
-        self.default_acceleration = self.acceleration = self.stats['acceleration']
-        self.run_acc = self.default_acceleration + RUN_INCREASE
-        self.jum_acc = self.default_acceleration + RUN_INCREASE
+        self.mass = self.stats['mass']
+        self.default_acceleration = self.acceleration = self.stats['acceleration'] # This isn't actually acceleration, but the default magnitude of the moving force.
+        self.run_acc = self.default_acceleration * RUN_INCREASE
+        self.jum_acc = self.default_acceleration * RUN_INCREASE
         self.climb_acc = self.default_acceleration / 2
-        self.grass_acc = self.default_acceleration * (3/4)
-        self.shallows_acc = self.default_acceleration * (2/3)
         if 'dialogue' in self.kind_dict.keys():
             self.dialogue = self.kind_dict['dialogue']
         else:
@@ -1890,21 +1925,19 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         elif self.ai_kind == 'guard':
             self.ai = AI_Guard(self)
 
-    def accelerate(self, power = 1, direction = "forward"): # Calculates the acceleration, but def move does the moving
-        self.acceleration = self.default_acceleration
-        self.run_acc = self.default_acceleration + RUN_INCREASE + self.stats['agility'] / 4
-        if self.run_acc > MAX_RUN:
-            self.run_acc = MAX_RUN
-        self.jum_acc = self.default_acceleration + RUN_INCREASE
-        self.climb_acc = self.default_acceleration / 2
-        self.grass_acc = self.default_acceleration * (3/4)
-        self.shallows_acc = self.default_acceleration * (2/3)
+    def accelerate(self, power = 1, direction = "forward"): # Calculates the acceleration, but the move method does the moving
+         self.acceleration = self.default_acceleration
+         self.run_acc = self.default_acceleration * RUN_INCREASE + self.stats['agility']
+         if self.run_acc > MAX_RUN:
+             self.run_acc = MAX_RUN
+         self.jum_acc = self.default_acceleration * RUN_INCREASE
+         self.climb_acc = self.default_acceleration / 2
 
     def move(self):
         self.rot = (self.rot + self.rot_speed * self.game.dt) % 360
         self.direction = self.approach_vector.rotate(-self.rot)
         self.rect.center = self.pos
-        self.acc += self.vel * self.friction
+        self.acc += self.vel * -self.friction
         self.vel += self.acc
         self.pos += self.vel * self.game.dt + 0.5 * self.acc * self.game.dt ** 2
 
@@ -2404,7 +2437,6 @@ class Player(Character):  # Used for humanoid NPCs and Players
 
     def accelerate(self, power = 1, direction = "forward"): # Calculates the acceleration, but def move does the moving
         super().accelerate()
-
         perp = 0
         if self.melee_playing:
             self.moving_melee = True
@@ -2427,14 +2459,12 @@ class Player(Character):  # Used for humanoid NPCs and Players
                     if not self.in_vehicle:
                         self.add_stamina(-1)
             elif self.in_shallows:
-                self.acceleration = self.shallows_acc
                 self.animation_playing = self.body.shallows_anim
                 animate_speed = 120
                 if now - self.last_move > self.game.effects_sounds['shallows'].get_length() * 1000:
                     self.last_move = now
                     play_relative_volume(self, 'shallows')
             elif self.in_grass:
-                self.acceleration = self.grass_acc
                 self.animation_playing = self.body.shallows_anim
                 animate_speed = 120
                 if now - self.last_move > self.game.effects_sounds['grass'].get_length() * 1000:
@@ -2485,7 +2515,7 @@ class Player(Character):  # Used for humanoid NPCs and Players
             elif direction == "diagonal left":
                 speed = self.acceleration
                 perp = -self.acceleration
-            self.acc = vec(speed * power, perp * power).rotate(-self.rot)
+            self.acc = vec(speed * power, perp * power).rotate(-self.rot)/self.mass
 
     def update_player_only(self):
         now = pg.time.get_ticks()
@@ -2562,12 +2592,13 @@ class Player(Character):  # Used for humanoid NPCs and Players
             else:
                 self.update_player_only()
 
+            collide_with_moving_targets(self)
+
             self.move()
 
             if not self.in_vehicle:
                 if not self.inventory_empty:
                     collide_with_tile_walls(self)
-                    collide_with_moving_targets(self)
             if self.light_on:
                 if self in self.game.lights:
                     if self.equipped['race'] == 'mechanima':
@@ -3647,7 +3678,7 @@ class Animal(Character):
         self.hit_rect.center = vec(old_center) #+ self.rect_offset.rotate(-self.rot)
 
     def accelerate(self):
-        super().accelerate()
+        super().accelerate
         self.selected_image_list = self.walk_image_list
         animate_speed = self.walk_animate_speed
         if self.running:
@@ -3655,10 +3686,8 @@ class Animal(Character):
             self.acceleration = self.run_acc
             animate_speed = self.run_animate_speed
         elif self.in_shallows:
-            self.acceleration = self.shallows_acc
             animate_speed = self.walk_animate_speed - 50
         elif self.in_grass:
-            self.acceleration = self.grass_acc
             animate_speed = self.walk_animate_speed - 40
         elif self.climbing:
             self.acceleration = self.climb_acc
@@ -3667,13 +3696,15 @@ class Animal(Character):
             self.acceleration = self.jump_acc
         elif self.swimming:
             self.selected_image_list = self.swim_image_list
-        self.acc = vec(self.acceleration, 0).rotate(-self.rot)
         now = pg.time.get_ticks()
         if now - self.last_move > animate_speed:  # animates animal
             self.animate(self.selected_image_list)
             self.last_move = now
         if self.frame > len(self.selected_image_list) - 1:
             self.frame = 0
+
+        self.acc = vec(self.acceleration, 0).rotate(-self.rot)/self.mass
+
 
     def get_keys(self):
         keys = pg.key.get_pressed()
@@ -3720,8 +3751,7 @@ class Animal(Character):
         self.occupied = False
         self.knockback = self.kind_dict['knockback']
         self.driver.in_vehicle = False
-        self.driver.friction = PLAYER_FRIC
-        self.driver.acceleration = PLAYER_ACC
+        self.driver.acceleration = self.driver.default_acc
         if self.driver.swimming:
             self.driver.equipped['weapons'] = None
             self.driver.current_weapon = self.driver.last_weapon
@@ -3746,6 +3776,7 @@ class Animal(Character):
         if self.living:
             if not self.occupied:
                 self.ai.update()
+                collide_with_moving_targets(self)
                 self.move()
                 self.rotate_image(self.selected_image_list)
                 #now0 = pg.time.get_ticks()
@@ -3842,7 +3873,6 @@ class Animal(Character):
                 self.get_keys()  # this needs to be last in this method to avoid executing the rest of the update section if you exit
             if not self.flying:
                 collide_with_tile_walls(self)
-                collide_with_moving_targets(self)
         set_tile_props(self)
 
     def check_empty(self): # Gets rid of empty carcases
@@ -3894,14 +3924,15 @@ class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
         target_vec = self.target_dist.rotate(self.approach_angle)
         self.sprite.rotate_to(target_vec)
         self.sprite.accelerate()
-        self.avoid_mobs()
+        #self.avoid_mobs()
 
     def avoid_mobs(self):
         for mob in self.game.mobs_on_screen:
             if mob != self.sprite:
                 dist = self.sprite.pos - mob.pos
                 if 0 < dist.length() < self.avoid_radius:
-                    self.sprite.acc += dist.normalize()
+                    self.sprite.acc = dist.normalize() * self.sprite.acc.magnitude()
+
         # # Makes it so non aggressive mobs don't cling to you.
         # if not self.aggressive:
         #     dist = self.sprite.pos - self.game.player.pos
@@ -3948,12 +3979,13 @@ class AI_Zombie(AI):
         if not self.target.living:
             self.seek_moving_target()
 
-    def avoid_mobs(self):
-        for mob in self.game.mobs_on_screen:
-            if mob not in [self.sprite, self.target]:
-                dist = self.sprite.pos - mob.pos
-                if 0 < dist.length() < self.avoid_radius:
-                    self.sprite.acc += dist.normalize()
+    # def avoid_mobs(self):
+    #     for mob in self.game.mobs_on_screen:
+    #         if mob not in [self.sprite, self.target]:
+    #             dist = self.sprite.pos - mob.pos
+    #             if 0 < dist.length() < self.avoid_radius:
+    #                 self.sprite.acc += dist.normalize()
+
 
     def seek_moving_target(self):
         last_dist = 100000
@@ -3985,12 +4017,12 @@ class AI_Guard(AI):
         if not self.target.living:
             self.seek_moving_target()
 
-    def avoid_mobs(self):
-        for mob in self.game.mobs_on_screen:
-            if mob not in [self.sprite, self.target]:
-                dist = self.sprite.pos - mob.pos
-                if 0 < dist.length() < self.avoid_radius:
-                    self.sprite.acc += dist.normalize()
+    # def avoid_mobs(self):
+    #     for mob in self.game.mobs_on_screen:
+    #         if mob not in [self.sprite, self.target]:
+    #             dist = self.sprite.pos - mob.pos
+    #             if 0 < dist.length() < self.avoid_radius:
+    #                 self.sprite.acc += dist.normalize()
 
     def seek_moving_target(self):
         last_dist = 100000
@@ -4321,270 +4353,6 @@ class Stationary_Animated(pg.sprite.Sprite): # Used for fires and other stationa
         if self.frame > len(images) - 1:
             self.frame = 0
 
-class Entryway(pg.sprite.Sprite):
-    def __init__(self, game, x, y, orientation = 'L', kind = 'wood', name = 'generic', locked = False):
-        self.game = game
-        self._layer = self.game.map.items_layer
-        self.groups = game.all_sprites, game.entryways
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game.group.add(self)
-        self.name = name
-        self.kind = kind
-        self.orientation = orientation
-        self.locked = locked
-        self.combo = randrange(10, 350)
-        self.difficulty = randrange(0, 30)
-        self.length = 88
-        self.stats = {'health': DOOR_STYLES[self.kind]['hp'], 'max health': DOOR_STYLES[self.kind]['hp']}
-        self.protected = False
-        self.orig_rot = 0
-        temp_img = self.game.door_images[DOOR_STYLES[self.kind]['image']]
-        if self.orientation in 'L':
-            self.image_orig = temp_img
-            self.image = self.image_orig.copy()
-            self.rect = self.image.get_rect()
-            self.rect.x = x - 19
-            self.rect.y = y
-            self.wall = Obstacle(self.game, self.rect.x, self.rect.y, 20, self.length)
-            self.wall.add(self.game.door_walls)
-        elif self.orientation == 'R':
-            self.image_orig = pg.transform.rotate(temp_img, 180)
-            self.image = self.image_orig.copy()
-            self.rect = self.image.get_rect()
-            self.rect.x = x - 10
-            self.rect.y = y - self.length
-            self.wall = Obstacle(self.game, self.rect.x, self.rect.y + self.length, 20, self.length)
-            self.wall.add(self.game.door_walls)
-            self.orig_rot = 180
-        elif self.orientation == 'D':
-            self.image_orig = pg.transform.rotate(temp_img, 90)
-            self.image = self.image_orig.copy()
-            self.rect = self.image.get_rect()
-            self.rect.x = x
-            self.rect.y = y - 10
-            self.wall = Obstacle(self.game, self.rect.x, self.rect.y, self.length, 20)
-            self.wall.add(self.game.door_walls)
-            self.orig_rot = 90
-        elif self.orientation == 'U':
-            self.image_orig = pg.transform.rotate(temp_img, -90)
-            self.image = self.image_orig.copy()
-            self.rect = self.image.get_rect()
-            self.rect.x = x - self.length
-            self.rect.y = y - 19
-            self.wall = Obstacle(self.game, self.rect.x + self.length, self.rect.y, self.length, 20)
-            self.wall.add(self.game.door_walls)
-            self.orig_rot = -90
-        self.last_move = 0
-        self.rot = 0
-        self.animate_speed = 10
-        self.rotate_amount = 5
-        self.open = False
-        self.close = False
-        self.opened = False
-        self.hit_rect = self.wall.rect
-        self.hit_rect.center = self.wall.rect.center
-        self.sound_played = False
-        self.inventory = {'locked': self.locked, 'combo': self.combo,'difficulty': self.difficulty}
-        self.last_hit = 0
-        self.living = True
-        self.frame = 0
-        self.pos = vec(self.hit_rect.centerx, self.hit_rect.centery)
-        self.vel = vec(0, 0)
-        self.acc = vec(0, 0)
-
-    def update(self):
-        if self.open:
-            now = pg.time.get_ticks()
-            if now - self.last_move > self.animate_speed:
-                self.animate_open()
-                self.rotate_image()
-                self.last_move = now
-
-        if self.close:
-            now = pg.time.get_ticks()
-            if now - self.last_move > self.animate_speed:
-                self.animate_close()
-                self.rotate_image()
-                self.last_move = now
-
-        if not self.living:
-            now = pg.time.get_ticks()
-            if now - self.last_move > self.animate_speed:
-                self.animate_death()
-                self.last_move = now
-
-
-    def rotate_image(self):
-        new_image = pg.transform.rotate(self.image_orig, self.rot)
-        old_center = self.rect.center
-        self.image = new_image
-        self.rect = self.image.get_rect()
-        self.rect.center = old_center
-
-    def animate_open(self):
-        if not self.sound_played:
-            play_relative_volume(self,'door open')
-            self.sound_played = True
-        self.rot += self.rotate_amount
-        if self.rot > 90:
-            self.rot = 90
-            self.open = False
-            self.opened = True
-            self.wall.kill()
-            if self.orientation == 'L':
-                self.wall = Obstacle(self.game, self.rect.x, self.rect.y, self.length, 20)
-            elif self.orientation == 'D':
-                self.wall = Obstacle(self.game, self.rect.x, self.rect.y + self.length, 20, self.length)
-            elif self.orientation == 'R':
-                self.wall = Obstacle(self.game, self.rect.x + self.length, self.rect.y, self.length, 20)
-            elif self.orientation == 'U':
-                self.wall = Obstacle(self.game, self.rect.x, self.rect.y, 20, self.length)
-            self.hit_rect = self.wall.rect
-            self.hit_rect.center = self.wall.rect.center
-            self.sound_played = False
-
-    def animate_close(self):
-        self.rot -= self.rotate_amount
-        if self.rot < 0:
-            self.rot = 0
-            self.close = False
-            self.opened = False
-            self.wall.kill()
-            if self.orientation == 'L':
-                self.wall = Obstacle(self.game, self.rect.x, self.rect.y, 20, self.length)
-                self.wall.add(self.game.door_walls)
-            elif self.orientation == 'D':
-                self.wall = Obstacle(self.game, self.rect.x, self.rect.y, self.length, 20)
-                self.wall.add(self.game.door_walls)
-            elif self.orientation == 'R':
-                self.wall = Obstacle(self.game, self.rect.x, self.rect.y + self.length, 20, self.length)
-                self.wall.add(self.game.door_walls)
-            elif self.orientation == 'U':
-                self.wall = Obstacle(self.game, self.rect.x + self.length, self.rect.y, self.length, 20)
-                self.wall.add(self.game.door_walls)
-            self.hit_rect = self.wall.rect
-            self.hit_rect.center = self.wall.rect.center
-            play_relative_volume(self, 'door close')
-
-    def animate_death(self):
-        if len(self.game.door_break_images) > self.frame:
-            temp_image = self.game.door_break_images[self.frame]
-            self.frame += 1
-            new_image = pg.transform.rotate(temp_image, self.rot + self.orig_rot)
-            old_center = self.rect.center
-            self.image = new_image
-            self.rect = self.image.get_rect()
-            self.rect.center = old_center
-        else:
-            self.wall.kill()
-            self.kill()
-
-    def gets_hit(self, damage, knockback = 0, rot = 0, dam_rate = DAMAGE_RATE):
-        now = pg.time.get_ticks()
-        if now - self.last_hit > dam_rate:
-            self.last_hit = now
-            self.stats['health'] -= damage
-        if self.stats['health'] <= 0:
-            if self.living:
-                play_relative_volume(self, 'rocks')
-                self.animate_speed = 50
-            self.living = False
-
-class ElectricDoor(pg.sprite.Sprite): # Used for fires and other stationary animated sprites
-    def __init__(self, game, x, y, w, h, locked = False):
-        self.game = game
-        self._layer = self.game.map.bullet_layer
-        self.image_list = self.game.electric_door_images
-        self.groups = game.all_sprites, game.entryways, game.lights, game.electric_doors
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.animate_speed = 50
-        self.game.group.add(self)
-        if h > w:
-            self.orientation = 'v'
-            self.image = pg.transform.rotate(self.image_list[0], 90)
-        else:
-            self.orientation = 'h'
-            self.image = self.image_list[0]
-        self.rect = self.image.get_rect()
-        self.center = (x + w/2, y + h/2)
-        self.hit_rect = self.rect
-        self.hit_rect.center = self.rect.center = self.center
-        self.w = w
-        self.h = h
-        self.light_mask = pg.transform.scale(self.game.light_mask_images[4], (int(self.w + 90), int(self.h + 90)))
-        self.light_mask_rect = self.light_mask.get_rect()
-        self.light_mask_rect.center = self.rect.center
-        self.frame = 0
-        self.last_move = 0
-        self.locked = locked
-        self.combo = randrange(10, 350)
-        self.difficulty = randrange(0, 30)
-        self.length = 88
-        self.stats = {'health': 100, 'max health': 100}
-        self.protected = False
-        self.open = False
-        self.close = False
-        self.opened = False
-        self.inventory = {'locked': self.locked, 'combo': self.combo,'difficulty': self.difficulty}
-        self.last_hit = 0
-        self.living = True
-        self.pos = vec(self.rect.centerx, self.rect.centery)
-        self.vel = vec(0, 0)
-        self.acc = vec(0, 0)
-        self.damage = 50
-
-    def update(self):
-        now = pg.time.get_ticks()
-        if now - self.last_move > self.animate_speed:
-            self.animate()
-            self.last_move = now
-            if self.orientation == 'v':
-                self.image = pg.transform.rotate(self.image_list[self.frame], 90)
-                self.rect = self.image.get_rect()
-            else:
-                self.image = self.image_list[self.frame]
-            self.rect.center = self.center
-            self.light_mask_rect.center = self.rect.center
-
-        if self.open:
-            now = pg.time.get_ticks()
-            if now - self.last_move > self.animate_speed:
-                self.animate_open()
-                self.last_move = now
-
-        if self.close:
-            now = pg.time.get_ticks()
-            if now - self.last_move > self.animate_speed:
-                self.animate_close()
-                self.last_move = now
-
-    def animate(self):
-        self.frame += 1
-        if self.frame > len(self.image_list) - 1:
-            self.frame = 0
-
-    def animate_open(self):
-        self.open = False
-        self.opened = True
-
-    def animate_close(self):
-        self.close = False
-        self.opened = False
-        #self.game.effects_sounds['door close'].play()
-
-    def gets_hit(self, damage, knockback = 0, rot = 0, dam_rate = DAMAGE_RATE, player = None):
-        if not player:
-            return
-        elif 'plasma' in player.equipped[player.weapon_hand]:  #makes it so plasma weapons can kill electric doors.
-            now = pg.time.get_ticks()
-            if now - self.last_hit > dam_rate:
-                self.last_hit = now
-                self.stats['health'] -= damage
-                play_relative_volume(self, self.game.weapon_hit_sounds['plasma'][0], False)
-            if self.stats['health'] <= 0:
-                self.kill()
-
-
 class Explosion(pg.sprite.Sprite):
     def __init__(self, game, target = None, knockback = 0, damage = 0, center = None, after_effect = None, sky = False):
         self.game = game
@@ -4826,8 +4594,6 @@ class Spell_Animation(pg.sprite.Sprite):
         #Explosion(self.game, None, 0.5, self.damage, pos, self.after_effect)
         self.kill()
 
-
-
 class Portal(pg.sprite.Sprite):
     def __init__(self, game, obj_center, coordinate, location):
         self.game = game
@@ -4931,6 +4697,517 @@ class Falling_Tree(pg.sprite.Sprite): # animation of trees falling when you chop
         self.game.map.redraw()
         set_tile_props(self.sprite)
         self.kill()
+
+
+# The rest of these sprites are static sprites that are never updated: water, walls, etc.
+
+class Obstacle(pg.sprite.Sprite):
+    def __init__(self, game, x, y, w, h):
+        self.groups = game.obstacles, game.walls, game.all_static_sprites, game.barriers
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.rect = pg.Rect(x, y, w, h)
+        self.hit_rect = self.rect
+        self.x = x
+        self.y = y
+        self.rect.x = x
+        self.rect.y = y
+        if self.rect.width > self.rect.height:
+            self.orient = 'h'
+        else:
+            self.orient = 'v'
+
+class NoSpawn(pg.sprite.Sprite):
+    def __init__(self, game, x, y, w, h):
+        self.groups = game.nospawn, game.all_static_sprites
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.rect = pg.Rect(x, y, w, h)
+        self.hit_rect = self.rect
+        self.x = x
+        self.y = y
+        self.rect.x = x
+        self.rect.y = y
+
+class Elevation(pg.sprite.Sprite):
+    def __init__(self, game, x, y, w, h, elev, climb = False, kind = None):
+        if climb:
+            self.groups = game.elevations, game.all_static_sprites, game.climbs, game.barriers
+        elif kind:
+            self.groups = game.elevations, game.all_static_sprites, game.climbables_and_jumpables, game.barriers
+        else:
+            self.groups = game.elevations, game.all_static_sprites, game.barriers
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.rect = pg.Rect(x, y, w, h)
+        self.hit_rect = self.rect
+        self.x = x
+        self.y = y
+        self.rect.x = x
+        self.rect.y = y
+        self.elevation = elev
+        self.climb = climb
+        if kind == 'jumpable':
+            set_elevation(self)
+            self.elevation += 2
+        if kind == 'climbable':
+            set_elevation(self)
+            self.elevation += 3
+        if self.rect.width > self.rect.height:
+            self.orient = 'h'
+        else:
+            self.orient = 'v'
+
+class Door(pg.sprite.Sprite):
+    def __init__(self, game, x, y, w, h, name):
+        self.groups = game.doors, game.all_static_sprites
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.name = name
+        self.rect = pg.Rect(x, y, w, h)
+        self.hit_rect = self.rect
+        self.x = x
+        self.y = y
+        self.rect.x = x
+        self.rect.y = y
+        self.map = self.name[:-5]
+        locx = int(self.name[-4:-2])
+        locy = int(self.name[-2:])
+        self.loc = vec(locx, locy)
+        self.map = self.map[4:] + '.tmx'
+
+class Detector(pg.sprite.Sprite): # Used to rest in
+    def __init__(self, game, x, y, w, h, name):
+        self.groups = game.detectors, game.all_static_sprites
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.name = name
+        self.quest = 'None'
+        self.item = None
+        self.action = 'None'
+        self.detected = False
+        self.kill_item = False
+        _, self.item, self.action, self.quest, self.kill_item = self.name.split('_')
+        self.kill_item = eval(self.kill_item)
+        self.rect = pg.Rect(x, y, w, h)
+        self.hit_rect = self.rect
+        self.x = x
+        self.y = y
+        self.rect.x = x
+        self.rect.y = y
+
+    def trigger(self, detectable):
+        if not self.detected:
+            if self.action != 'None':
+                self.do_action(detectable)
+            if self.quest != 'None':
+                self.game.quests[self.quest]['completed'] = True
+            self.detected = True
+
+    def do_action(self, detectable):
+        if self.action == 'changeKimmy':
+            detectable.kind['dialogue'] = 'KIMMY_DLG2'
+        if self.action == 'changeFelius':
+            detectable.remove(self.game.companions)
+            try:
+                detectable.body.remove(self.game.companion_bodies)
+            except:
+                pass
+            detectable.default_detect_radius = detectable.detect_radius = 250
+            detectable.guard = False
+            detectable.speed = detectable.walk_speed = 80
+            detectable.run_speed = 100
+            self.game.people['catrina']['dialogue'] = 'CATRINA_DLG2'
+
+# This class generates random points for NPCs and animals to walk towards
+class Target(pg.sprite.Sprite): # Used for fires and other stationary animated sprites
+    def __init__(self, game, x = 0, y = 0):
+        self.game = game
+        self._layer = self.game.map.items_layer
+        self.groups = game.all_static_sprites, game.random_targets
+        self.rect_size = 60
+        pg.sprite.Sprite.__init__(self, self.groups)
+        if x == 0:
+            x = randrange(200, self.game.map.width - 200)
+            y = randrange(200, self.game.map.height - 200)
+        self.rect = self.hit_rect = pg.Rect(x, y, self.rect_size, self.rect_size)
+        self.pos = vec(self.rect.centerx, self.rect.centery)
+        self.vel = vec(0, 0)
+        self.acc = vec(0, 0)
+        self.living = True
+
+    def new_position(self, npc_loc):
+        x = randrange(self.game.screen_width, self.game.map.width - self.game.screen_width)
+        y = randrange(self.game.screen_width, self.game.map.height - self.game.screen_width)
+        self.rect = self.hit_rect = pg.Rect(x, y, self.rect_size, self.rect_size)
+        self.pos = vec(self.rect.centerx, self.rect.centery)
+
+    def set_position(self, x, y):
+        self.rect = self.hit_rect = pg.Rect(x - self.rect_size/2, y - self.rect_size/2, self.rect_size, self.rect_size)
+        self.pos = vec(self.rect.centerx, self.rect.centery)
+
+# Obsolete classes that may need to be rescripted for tile-based detection etc.
+
+# class Charger(pg.sprite.Sprite):
+#     def __init__(self, game, x, y, w, h, amount = 4, rate = 2000):
+#         self.groups = game.chargers, game.all_static_sprites
+#         pg.sprite.Sprite.__init__(self, self.groups)
+#         self.game = game
+#         self.rect = pg.Rect(x, y, w, h)
+#         self.hit_rect = self.rect
+#         self.pos = vec(self.rect.center)
+#         self.x = x
+#         self.y = y
+#         self.rect.x = x
+#         self.rect.y = y
+#         self.energy = 1000
+#         self.last_charge = 0
+#         self.rate = rate
+#         self.amount = amount
+#
+#     def charge(self, hit):
+#         player_dist = self.game.player.pos - self.pos
+#         player_dist = player_dist.length()
+#         now = pg.time.get_ticks()
+#         if now - self.last_charge > self.rate:
+#             self.last_charge = now
+#             if hit.possessing:
+#                 if hit.possessing.race == 'mech_suit':
+#                     hit.possessing.add_health(self.amount)
+#             else:
+#                 hit.add_health(self.amount)
+#                 try:
+#                     hit.add_magica(self.amount)
+#                     hit.add_stamina(self.amount)
+#                 except:
+#                     pass
+#             play_relative_volume(self, 'charge')
+
+# class Inside(pg.sprite.Sprite):
+#     def __init__(self, game, x, y, w, h):
+#         self.groups = game.inside, game.all_static_sprites
+#         pg.sprite.Sprite.__init__(self, self.groups)
+#         self.game = game
+#         self.rect = pg.Rect(x, y, w, h)
+#         self.hit_rect = self.rect
+#         self.x = x
+#         self.y = y
+#         self.rect.x = x
+#         self.rect.y = y
+
+# class Water(pg.sprite.Sprite):
+#     def __init__(self, game, x, y, w, h):
+#         self.groups = game.water, game.obstacles, game.all_static_sprites
+#         pg.sprite.Sprite.__init__(self, self.groups)
+#         self.game = game
+#         self.rect = pg.Rect(x, y, w, h)
+#         self.hit_rect = self.rect
+#         self.x = x
+#         self.y = y
+#         self.rect.x = x
+#         self.rect.y = y
+#
+# class Shallows(pg.sprite.Sprite):
+#     def __init__(self, game, x, y, w, h):
+#         self.groups = game.shallows, game.obstacles, game.all_static_sprites
+#         pg.sprite.Sprite.__init__(self, self.groups)
+#         self.game = game
+#         self.rect = pg.Rect(x, y, w, h)
+#         self.hit_rect = self.rect
+#         self.x = x
+#         self.y = y
+#         self.rect.x = x
+#         self.rect.y = y
+#
+# class LongGrass(pg.sprite.Sprite):
+#     def __init__(self, game, x, y, w, h):
+#         self.groups = game.long_grass, game.all_static_sprites
+#         pg.sprite.Sprite.__init__(self, self.groups)
+#         self.game = game
+#         self.rect = pg.Rect(x, y, w, h)
+#         self.hit_rect = self.rect
+#         self.x = x
+#         self.y = y
+#         self.rect.x = x
+#         self.rect.y = y
+
+# class AIPath(pg.sprite.Sprite):
+#     def __init__(self, game, x, y, w, h, kind):
+#         self.groups = game.aipaths, game.all_static_sprites
+#         pg.sprite.Sprite.__init__(self, self.groups)
+#         self.game = game
+#         self.rect = pg.Rect(x, y, w, h)
+#         self.hit_rect = self.rect
+#         self.x = x
+#         self.y = y
+#         self.rect.x = x
+#         self.rect.y = y
+#         self.kind = kind
+#         self.pos = vec(self.rect.centerx, self.rect.centery)
+
+
+# class Entryway(pg.sprite.Sprite):
+#     def __init__(self, game, x, y, orientation = 'L', kind = 'wood', name = 'generic', locked = False):
+#         self.game = game
+#         self._layer = self.game.map.items_layer
+#         self.groups = game.all_sprites, game.entryways
+#         pg.sprite.Sprite.__init__(self, self.groups)
+#         self.game.group.add(self)
+#         self.name = name
+#         self.kind = kind
+#         self.orientation = orientation
+#         self.locked = locked
+#         self.combo = randrange(10, 350)
+#         self.difficulty = randrange(0, 30)
+#         self.length = 88
+#         self.stats = {'health': DOOR_STYLES[self.kind]['hp'], 'max health': DOOR_STYLES[self.kind]['hp']}
+#         self.protected = False
+#         self.orig_rot = 0
+#         temp_img = self.game.door_images[DOOR_STYLES[self.kind]['image']]
+#         if self.orientation in 'L':
+#             self.image_orig = temp_img
+#             self.image = self.image_orig.copy()
+#             self.rect = self.image.get_rect()
+#             self.rect.x = x - 19
+#             self.rect.y = y
+#             self.wall = Obstacle(self.game, self.rect.x, self.rect.y, 20, self.length)
+#             self.wall.add(self.game.door_walls)
+#         elif self.orientation == 'R':
+#             self.image_orig = pg.transform.rotate(temp_img, 180)
+#             self.image = self.image_orig.copy()
+#             self.rect = self.image.get_rect()
+#             self.rect.x = x - 10
+#             self.rect.y = y - self.length
+#             self.wall = Obstacle(self.game, self.rect.x, self.rect.y + self.length, 20, self.length)
+#             self.wall.add(self.game.door_walls)
+#             self.orig_rot = 180
+#         elif self.orientation == 'D':
+#             self.image_orig = pg.transform.rotate(temp_img, 90)
+#             self.image = self.image_orig.copy()
+#             self.rect = self.image.get_rect()
+#             self.rect.x = x
+#             self.rect.y = y - 10
+#             self.wall = Obstacle(self.game, self.rect.x, self.rect.y, self.length, 20)
+#             self.wall.add(self.game.door_walls)
+#             self.orig_rot = 90
+#         elif self.orientation == 'U':
+#             self.image_orig = pg.transform.rotate(temp_img, -90)
+#             self.image = self.image_orig.copy()
+#             self.rect = self.image.get_rect()
+#             self.rect.x = x - self.length
+#             self.rect.y = y - 19
+#             self.wall = Obstacle(self.game, self.rect.x + self.length, self.rect.y, self.length, 20)
+#             self.wall.add(self.game.door_walls)
+#             self.orig_rot = -90
+#         self.last_move = 0
+#         self.rot = 0
+#         self.animate_speed = 10
+#         self.rotate_amount = 5
+#         self.open = False
+#         self.close = False
+#         self.opened = False
+#         self.hit_rect = self.wall.rect
+#         self.hit_rect.center = self.wall.rect.center
+#         self.sound_played = False
+#         self.inventory = {'locked': self.locked, 'combo': self.combo,'difficulty': self.difficulty}
+#         self.last_hit = 0
+#         self.living = True
+#         self.frame = 0
+#         self.pos = vec(self.hit_rect.centerx, self.hit_rect.centery)
+#         self.vel = vec(0, 0)
+#         self.acc = vec(0, 0)
+#
+#     def update(self):
+#         if self.open:
+#             now = pg.time.get_ticks()
+#             if now - self.last_move > self.animate_speed:
+#                 self.animate_open()
+#                 self.rotate_image()
+#                 self.last_move = now
+#
+#         if self.close:
+#             now = pg.time.get_ticks()
+#             if now - self.last_move > self.animate_speed:
+#                 self.animate_close()
+#                 self.rotate_image()
+#                 self.last_move = now
+#
+#         if not self.living:
+#             now = pg.time.get_ticks()
+#             if now - self.last_move > self.animate_speed:
+#                 self.animate_death()
+#                 self.last_move = now
+#
+#
+#     def rotate_image(self):
+#         new_image = pg.transform.rotate(self.image_orig, self.rot)
+#         old_center = self.rect.center
+#         self.image = new_image
+#         self.rect = self.image.get_rect()
+#         self.rect.center = old_center
+#
+#     def animate_open(self):
+#         if not self.sound_played:
+#             play_relative_volume(self,'door open')
+#             self.sound_played = True
+#         self.rot += self.rotate_amount
+#         if self.rot > 90:
+#             self.rot = 90
+#             self.open = False
+#             self.opened = True
+#             self.wall.kill()
+#             if self.orientation == 'L':
+#                 self.wall = Obstacle(self.game, self.rect.x, self.rect.y, self.length, 20)
+#             elif self.orientation == 'D':
+#                 self.wall = Obstacle(self.game, self.rect.x, self.rect.y + self.length, 20, self.length)
+#             elif self.orientation == 'R':
+#                 self.wall = Obstacle(self.game, self.rect.x + self.length, self.rect.y, self.length, 20)
+#             elif self.orientation == 'U':
+#                 self.wall = Obstacle(self.game, self.rect.x, self.rect.y, 20, self.length)
+#             self.hit_rect = self.wall.rect
+#             self.hit_rect.center = self.wall.rect.center
+#             self.sound_played = False
+#
+#     def animate_close(self):
+#         self.rot -= self.rotate_amount
+#         if self.rot < 0:
+#             self.rot = 0
+#             self.close = False
+#             self.opened = False
+#             self.wall.kill()
+#             if self.orientation == 'L':
+#                 self.wall = Obstacle(self.game, self.rect.x, self.rect.y, 20, self.length)
+#                 self.wall.add(self.game.door_walls)
+#             elif self.orientation == 'D':
+#                 self.wall = Obstacle(self.game, self.rect.x, self.rect.y, self.length, 20)
+#                 self.wall.add(self.game.door_walls)
+#             elif self.orientation == 'R':
+#                 self.wall = Obstacle(self.game, self.rect.x, self.rect.y + self.length, 20, self.length)
+#                 self.wall.add(self.game.door_walls)
+#             elif self.orientation == 'U':
+#                 self.wall = Obstacle(self.game, self.rect.x + self.length, self.rect.y, self.length, 20)
+#                 self.wall.add(self.game.door_walls)
+#             self.hit_rect = self.wall.rect
+#             self.hit_rect.center = self.wall.rect.center
+#             play_relative_volume(self, 'door close')
+#
+#     def animate_death(self):
+#         if len(self.game.door_break_images) > self.frame:
+#             temp_image = self.game.door_break_images[self.frame]
+#             self.frame += 1
+#             new_image = pg.transform.rotate(temp_image, self.rot + self.orig_rot)
+#             old_center = self.rect.center
+#             self.image = new_image
+#             self.rect = self.image.get_rect()
+#             self.rect.center = old_center
+#         else:
+#             self.wall.kill()
+#             self.kill()
+#
+#     def gets_hit(self, damage, knockback = 0, rot = 0, dam_rate = DAMAGE_RATE):
+#         now = pg.time.get_ticks()
+#         if now - self.last_hit > dam_rate:
+#             self.last_hit = now
+#             self.stats['health'] -= damage
+#         if self.stats['health'] <= 0:
+#             if self.living:
+#                 play_relative_volume(self, 'rocks')
+#                 self.animate_speed = 50
+#             self.living = False
+
+# class ElectricDoor(pg.sprite.Sprite): # Used for fires and other stationary animated sprites
+#     def __init__(self, game, x, y, w, h, locked = False):
+#         self.game = game
+#         self._layer = self.game.map.bullet_layer
+#         self.image_list = self.game.electric_door_images
+#         self.groups = game.all_sprites, game.entryways, game.lights, game.electric_doors
+#         pg.sprite.Sprite.__init__(self, self.groups)
+#         self.animate_speed = 50
+#         self.game.group.add(self)
+#         if h > w:
+#             self.orientation = 'v'
+#             self.image = pg.transform.rotate(self.image_list[0], 90)
+#         else:
+#             self.orientation = 'h'
+#             self.image = self.image_list[0]
+#         self.rect = self.image.get_rect()
+#         self.center = (x + w/2, y + h/2)
+#         self.hit_rect = self.rect
+#         self.hit_rect.center = self.rect.center = self.center
+#         self.w = w
+#         self.h = h
+#         self.light_mask = pg.transform.scale(self.game.light_mask_images[4], (int(self.w + 90), int(self.h + 90)))
+#         self.light_mask_rect = self.light_mask.get_rect()
+#         self.light_mask_rect.center = self.rect.center
+#         self.frame = 0
+#         self.last_move = 0
+#         self.locked = locked
+#         self.combo = randrange(10, 350)
+#         self.difficulty = randrange(0, 30)
+#         self.length = 88
+#         self.stats = {'health': 100, 'max health': 100}
+#         self.protected = False
+#         self.open = False
+#         self.close = False
+#         self.opened = False
+#         self.inventory = {'locked': self.locked, 'combo': self.combo,'difficulty': self.difficulty}
+#         self.last_hit = 0
+#         self.living = True
+#         self.pos = vec(self.rect.centerx, self.rect.centery)
+#         self.vel = vec(0, 0)
+#         self.acc = vec(0, 0)
+#         self.damage = 50
+#
+#     def update(self):
+#         now = pg.time.get_ticks()
+#         if now - self.last_move > self.animate_speed:
+#             self.animate()
+#             self.last_move = now
+#             if self.orientation == 'v':
+#                 self.image = pg.transform.rotate(self.image_list[self.frame], 90)
+#                 self.rect = self.image.get_rect()
+#             else:
+#                 self.image = self.image_list[self.frame]
+#             self.rect.center = self.center
+#             self.light_mask_rect.center = self.rect.center
+#
+#         if self.open:
+#             now = pg.time.get_ticks()
+#             if now - self.last_move > self.animate_speed:
+#                 self.animate_open()
+#                 self.last_move = now
+#
+#         if self.close:
+#             now = pg.time.get_ticks()
+#             if now - self.last_move > self.animate_speed:
+#                 self.animate_close()
+#                 self.last_move = now
+#
+#     def animate(self):
+#         self.frame += 1
+#         if self.frame > len(self.image_list) - 1:
+#             self.frame = 0
+#
+#     def animate_open(self):
+#         self.open = False
+#         self.opened = True
+#
+#     def animate_close(self):
+#         self.close = False
+#         self.opened = False
+#         #self.game.effects_sounds['door close'].play()
+#
+#     def gets_hit(self, damage, knockback = 0, rot = 0, dam_rate = DAMAGE_RATE, player = None):
+#         if not player:
+#             return
+#         elif 'plasma' in player.equipped[player.weapon_hand]:  #makes it so plasma weapons can kill electric doors.
+#             now = pg.time.get_ticks()
+#             if now - self.last_hit > dam_rate:
+#                 self.last_hit = now
+#                 self.stats['health'] -= damage
+#                 play_relative_volume(self, self.game.weapon_hit_sounds['plasma'][0], False)
+#             if self.stats['health'] <= 0:
+#                 self.kill()
 
 """
 class Breakable(pg.sprite.Sprite): # Used for breakable things
@@ -5090,246 +5367,4 @@ class Breakable(pg.sprite.Sprite): # Used for breakable things
         self.kill()
 """
 
-# The rest of these sprites are static sprites that are never updated: water, walls, etc.
 
-class Obstacle(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h):
-        self.groups = game.obstacles, game.walls, game.all_static_sprites, game.barriers
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-        if self.rect.width > self.rect.height:
-            self.orient = 'h'
-        else:
-            self.orient = 'v'
-
-class Charger(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h, amount = 4, rate = 2000):
-        self.groups = game.chargers, game.all_static_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.pos = vec(self.rect.center)
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-        self.energy = 1000
-        self.last_charge = 0
-        self.rate = rate
-        self.amount = amount
-
-    def charge(self, hit):
-        player_dist = self.game.player.pos - self.pos
-        player_dist = player_dist.length()
-        now = pg.time.get_ticks()
-        if now - self.last_charge > self.rate:
-            self.last_charge = now
-            if hit.possessing:
-                if hit.possessing.race == 'mech_suit':
-                    hit.possessing.add_health(self.amount)
-            else:
-                hit.add_health(self.amount)
-                try:
-                    hit.add_magica(self.amount)
-                    hit.add_stamina(self.amount)
-                except:
-                    pass
-            play_relative_volume(self, 'charge')
-
-class Inside(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h):
-        self.groups = game.inside, game.all_static_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-
-class NoSpawn(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h):
-        self.groups = game.nospawn, game.all_static_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-
-class Elevation(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h, elev, climb = False, kind = None):
-        if climb:
-            self.groups = game.elevations, game.all_static_sprites, game.climbs, game.barriers
-        elif kind:
-            self.groups = game.elevations, game.all_static_sprites, game.climbables_and_jumpables, game.barriers
-        else:
-            self.groups = game.elevations, game.all_static_sprites, game.barriers
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-        self.elevation = elev
-        self.climb = climb
-        if kind == 'jumpable':
-            set_elevation(self)
-            self.elevation += 2
-        if kind == 'climbable':
-            set_elevation(self)
-            self.elevation += 3
-        if self.rect.width > self.rect.height:
-            self.orient = 'h'
-        else:
-            self.orient = 'v'
-
-class Water(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h):
-        self.groups = game.water, game.obstacles, game.all_static_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-
-class Shallows(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h):
-        self.groups = game.shallows, game.obstacles, game.all_static_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-
-class LongGrass(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h):
-        self.groups = game.long_grass, game.all_static_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-
-class Door(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h, name):
-        self.groups = game.doors, game.all_static_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.name = name
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-        self.map = self.name[:-5]
-        locx = int(self.name[-4:-2])
-        locy = int(self.name[-2:])
-        self.loc = vec(locx, locy)
-        self.map = self.map[4:] + '.tmx'
-
-class Detector(pg.sprite.Sprite): # Used to rest in
-    def __init__(self, game, x, y, w, h, name):
-        self.groups = game.detectors, game.all_static_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.name = name
-        self.quest = 'None'
-        self.item = None
-        self.action = 'None'
-        self.detected = False
-        self.kill_item = False
-        _, self.item, self.action, self.quest, self.kill_item = self.name.split('_')
-        self.kill_item = eval(self.kill_item)
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-
-    def trigger(self, detectable):
-        if not self.detected:
-            if self.action != 'None':
-                self.do_action(detectable)
-            if self.quest != 'None':
-                self.game.quests[self.quest]['completed'] = True
-            self.detected = True
-
-    def do_action(self, detectable):
-        if self.action == 'changeKimmy':
-            detectable.kind['dialogue'] = 'KIMMY_DLG2'
-        if self.action == 'changeFelius':
-            detectable.remove(self.game.companions)
-            try:
-                detectable.body.remove(self.game.companion_bodies)
-            except:
-                pass
-            detectable.default_detect_radius = detectable.detect_radius = 250
-            detectable.guard = False
-            detectable.speed = detectable.walk_speed = 80
-            detectable.run_speed = 100
-            self.game.people['catrina']['dialogue'] = 'CATRINA_DLG2'
-
-# This class generates random points for NPCs and animals to walk towards
-class Target(pg.sprite.Sprite): # Used for fires and other stationary animated sprites
-    def __init__(self, game, x = 0, y = 0):
-        self.game = game
-        self._layer = self.game.map.items_layer
-        self.groups = game.all_static_sprites, game.random_targets
-        self.rect_size = 60
-        pg.sprite.Sprite.__init__(self, self.groups)
-        if x == 0:
-            x = randrange(200, self.game.map.width - 200)
-            y = randrange(200, self.game.map.height - 200)
-        self.rect = self.hit_rect = pg.Rect(x, y, self.rect_size, self.rect_size)
-        self.pos = vec(self.rect.centerx, self.rect.centery)
-        self.vel = vec(0, 0)
-        self.acc = vec(0, 0)
-        self.living = True
-
-    def new_position(self, npc_loc):
-        x = randrange(self.game.screen_width, self.game.map.width - self.game.screen_width)
-        y = randrange(self.game.screen_width, self.game.map.height - self.game.screen_width)
-        self.rect = self.hit_rect = pg.Rect(x, y, self.rect_size, self.rect_size)
-        self.pos = vec(self.rect.centerx, self.rect.centery)
-
-    def set_position(self, x, y):
-        self.rect = self.hit_rect = pg.Rect(x - self.rect_size/2, y - self.rect_size/2, self.rect_size, self.rect_size)
-        self.pos = vec(self.rect.centerx, self.rect.centery)
-
-class AIPath(pg.sprite.Sprite):
-    def __init__(self, game, x, y, w, h, kind):
-        self.groups = game.aipaths, game.all_static_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.hit_rect = self.rect
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-        self.kind = kind
-        self.pos = vec(self.rect.centerx, self.rect.centery)

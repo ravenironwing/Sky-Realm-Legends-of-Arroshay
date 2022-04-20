@@ -415,6 +415,8 @@ class Game:
         self.over_minimap_image = pg.image.load(path.join(img_folder, OVERWORLD_MAP_IMAGE)).convert()
         self.over_minimap_image = pg.transform.scale(self.over_minimap_image, (self.screen_height, self.screen_height))
         self.compass_image = pg.image.load(path.join(img_folder, 'compass.png')).convert_alpha()
+        self.crosshair_image = pg.image.load(path.join(img_folder, 'crosshair.png')).convert_alpha()
+        self.crosshair_offset = int(self.crosshair_image.get_width()/2)
         self.player_tur = pg.image.load(path.join(img_folder, PLAYER_TUR)).convert_alpha()
         #self.player_tank = pg.image.load(path.join(img_folder, PLAYER_TANK)).convert_alpha()
         #self.tank_in_water = pg.image.load(path.join(img_folder, TANK_IN_WATER)).convert_alpha()
@@ -665,12 +667,17 @@ class Game:
                 s.set_volume(0.3)
                 self.weapon_sounds[weapon].append(s)
         self.weapon_hit_sounds = {}
-        for weapon in WEAPON_SOUNDS:
+        for weapon in WEAPON_HIT_SOUNDS:
             self.weapon_hit_sounds[weapon] = []
             for snd in WEAPON_HIT_SOUNDS[weapon]:
                 s = pg.mixer.Sound(path.join(snd_folder, snd))
                 s.set_volume(0.3)
                 self.weapon_hit_sounds[weapon].append(s)
+        self.weapon_reload_sounds = {}
+        for weapon, snd in WEAPON_RELOAD_SOUNDS.items():
+            s = pg.mixer.Sound(path.join(snd_folder, snd))
+            s.set_volume(0.3)
+            self.weapon_reload_sounds[weapon] = s
         self.zombie_moan_sounds = []
         for snd in ZOMBIE_MOAN_SOUNDS:
             s = pg.mixer.Sound(path.join(snd_folder, snd))
@@ -2378,10 +2385,19 @@ class Game:
         if self.player.hungers:
             draw_player_stats(self.screen, 10, 100, self.hud_hunger, BROWN)
             self.draw_text("HGR {:.0f}".format(self.player.stats['hunger']), self.hud_font, 20, WHITE, 120, 100, align="topleft")
+        draw_crosshair = False
         if self.hud_ammo1 != '':
             self.draw_text(self.hud_ammo1, self.hud_font, 20, WHITE, 50, self.screen_height - 100, align="topleft")
+            draw_crosshair = True
         if self.hud_ammo2 != '':
             self.draw_text(self.hud_ammo2, self.hud_font, 20, WHITE, 50, self.screen_height - 50, align="topleft")
+            draw_crosshair = True
+        if draw_crosshair:
+            pg.mouse.set_visible(False)
+            mouse_pos = pg.mouse.get_pos()
+            self.screen.blit(self.crosshair_image, (mouse_pos[0] - self.crosshair_offset, mouse_pos[1] - self.crosshair_offset))
+        elif not pg.mouse.get_visible():
+            pg.mouse.set_visible(True)
         if self.paused:
             self.screen.blit(self.dim_screen, (0, 0))
             self.draw_text("Paused", self.title_font, 105, RED, self.screen_width / 2, self.screen_height / 2, align="center")
@@ -2406,6 +2422,7 @@ class Game:
             self.dialogue_menu.update()
 
     def change_right_equipped(self, slot):
+        self.player.empty_mags() # unloads old weapon
         self.player.hand_item = self.player.equipped[slot]
         if ('type' in self.player.hand_item) and (self.player.hand_item['type'] in WEAPON_TYPES):
             self.player.equipped['weapons'] = self.player.hand_item
@@ -2417,6 +2434,7 @@ class Game:
         self.player.lamp_check()
         self.player.human_body.update_animations()  # Updates animations for newly equipped or removed weapons etc.
         self.player.dragon_body.update_animations()
+        self.player.pre_reload() # reloads new weapon
 
     def use_item(self, slot):
         self.change_right_equipped(slot)

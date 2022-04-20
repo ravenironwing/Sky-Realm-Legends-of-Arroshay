@@ -16,9 +16,10 @@ WEAPON_SOUNDS = {'shovel': ['mace_swipe.ogg'], 'pistol': ['pistol.ogg'], 'laser'
                  'shotgun': ['shotgun.ogg'], 'rifle': ['assault rifle.ogg'], 'turret': ['turret.ogg'], 'sword': ['sword_swipe.ogg'], 'mace': ['mace_swipe.ogg'], 'dagger': ['sword_swipe.ogg'], 'shield': ['mace_swipe.ogg'], 'bow': ['arrow.ogg']}
 WEAPON_HIT_SOUNDS = {'pistol': ['gun_hit1.ogg'], 'laser': ['gun_hit1.ogg'], 'grenades': ['shotgun.ogg'], 'pickaxe': ['pickaxe.ogg'], 'axe': ['axe.ogg'], 'shovel': ['rock_hit.ogg'],
                  'shotgun': ['gun_hit1.ogg'], 'rifle': ['gun_hit1.ogg'], 'turret': ['turret_hit1.ogg'], 'sword': ['sword_hit1.ogg'], 'mace': ['mace_hit1.ogg', 'mace_hit2.ogg'], 'dagger': ['sword_hit1.ogg'], 'shield': ['punch1.ogg', 'punch2.ogg'], 'bow': ['punch1.ogg', 'punch2.ogg'], 'plasma': ['plasma_hit.ogg', 'plasma_hit2.ogg']}
-
-
+WEAPON_RELOAD_SOUNDS = {'axe': 'mace_swipe.ogg', 'sword': 'sword_draw.ogg', 'dagger': 'sword_swipe.ogg', 'pickaxe': 'mace_swipe.ogg', 'shotgun': 'gun_pickup.ogg', 'pistol': 'gun_pickup.ogg', 'rifle': 'gun_pickup.ogg', 'laser': 'gun_pickup.ogg', 'bow': 'sword_swipe.ogg'}
 WEAPON_TYPES = ['axe', 'sword', 'dagger', 'pickaxe', 'shotgun', 'pistol', 'rifle', 'laser', 'bow']
+
+
 SHARP_WEAPON_TYPES = ['axe', 'sword', 'dagger', 'pickaxe']
 EQUIP_TYPES = WEAPON_TYPES + ['head', 'torso', 'gloves', 'feet', 'bottom']
 WEAPON_GRIPS = {'axe': 'CP_SWORD_GRIP', 'sword': 'CP_SWORD_GRIP', 'dagger': 'CP_SWORD_GRIP', 'pickaxe': 'CP_SWORD_GRIP', 'shotgun': 'CP_SHOTGUN0', 'rifle': 'CP_SHOTGUN0', 'pistol': 'CP_PISTOL0', 'bow': 'BOWWALK0', 'laser': 'CP_PISTOL0'}

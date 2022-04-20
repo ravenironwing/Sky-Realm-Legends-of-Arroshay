@@ -127,3 +127,6 @@ https://opengameart.org/content/medieval-armor-pixel-art
 
 Book page turn animations:
 https://opengameart.org/content/old-pagesflip-with-sound
+
+Sword draw sound:
+modified from: Drawing a Sword Sound Effect from www.fesliyanstudios.com

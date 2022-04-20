@@ -319,6 +319,8 @@ class Picture_Icon(pg.sprite.Sprite):
 
 class MainMenu():  # used as the parent class for other menus.
     def __init__(self, game, character = 'player', menu_type = 'Crafting', container = [{}, {}, {}, {}, {}, {}, {}, {}, {}]):
+        if not pg.mouse.get_visible(): # Makes sure cursor is visible.
+            pg.mouse.set_visible(True)
         self.game = game
         self.over_minimap_image = pg.transform.scale(self.game.over_minimap_image, (self.game.screen_height - 80, self.game.screen_height - 80))
         if menu_type != 'Character':
@@ -335,6 +337,7 @@ class MainMenu():  # used as the parent class for other menus.
             self.recipes = RECIPIES[self.menu_type]
         else:
             self.recipes = {}
+        self.character.empty_mags() # unloads old weapon in case you change it.
         self.surface_width = self.surface_height = 128
         self.body_surface = pg.Surface((self.surface_width, self.surface_height)).convert_alpha()
         self.magic_dict = self.character.expanded_inventory['magic'].copy()
@@ -633,14 +636,14 @@ class MainMenu():  # used as the parent class for other menus.
                 if event.key == pg.K_ESCAPE:
                     #self.clear_menu()
                     self.running = False
-                if event.key == self.action_keys[0]: # use/buy
+                elif event.key == self.action_keys[0]: # use/buy
                     if self.selected_item:
                         self.use_item()
-                if event.key == self.action_keys[1]:  # drop/sell item
+                elif event.key == self.action_keys[1]:  # drop/sell item
                     if self.selected_item:
                         self.drop_item()
                         self.clear_item_info()
-                if self.selected_text and (self.selected_text.text in self.controls_menu_list) and event.key: # This part is used for remapping player controls.
+                elif self.selected_text and (self.selected_text.text in self.controls_menu_list) and event.key: # This part is used for remapping player controls.
                     if event.key != pg.K_ESCAPE:
                         old_key = self.game.key_map[self.selected_text.text]
                         for key, value in self.game.key_map.items():
@@ -649,6 +652,7 @@ class MainMenu():  # used as the parent class for other menus.
                         self.game.key_map[self.selected_text.text] = event.key
                         self.clear_menu()
                         self.list_items()
+
             if event.type == pg.MOUSEBUTTONDOWN:  # Clears off pictures and stats from previously clicked item when new item is clicked.
                 self.warning_message = None
                 self.last_click = pg.time.get_ticks()
@@ -682,7 +686,9 @@ class MainMenu():  # used as the parent class for other menus.
                                 dict = [self.crafted_item]
                             elif self.selected_item.dict == 'loot':
                                 dict = self.container
-                            if self.mouse_click == (1, 0, 0) and not use_item:
+                            if self.mouse_click == (1, 0, 0) and pg.key.get_mods() & pg.KMOD_SHIFT:
+                                self.quick_move(dict)
+                            elif self.mouse_click == (1, 0, 0) and not use_item:
                                 if self.moving_item and (self.selected_item.dict != 'crafted'):
                                     self.swap_item(dict)
                                 else:
@@ -857,6 +863,49 @@ class MainMenu():  # used as the parent class for other menus.
                 else:
                     dict[self.selected_item.slot]['number'] += count
                     decrease_num()
+
+    def quick_move(self, dict): # Used for shift clicking to quickly move items to next available slot.
+        if self.selected_item.dict == 'inventory':
+            if self.selected_heading.text == 'Looting':
+                if add_inventory(self.container, self.selected_item.item):
+                    dict[self.selected_item.slot] = {}
+            elif self.selected_heading.text == 'Inventory':
+                if self.selected_item.type in EQUIP_SLOT_LIST: # Used for quick swapping armor.
+                    swap_item = self.character.equipped[self.selected_item.item['type']]
+                    self.character.equipped[self.selected_item.item['type']] = dict[self.selected_item.slot]
+                    dict[self.selected_item.slot] = swap_item
+                else:
+                    free_slot = False
+                    if self.character.equipped[6] == {}:
+                        self.character.equipped[6] = self.selected_item.item
+                        free_slot = True
+                    else:
+                        for i in range(0, 6): # Finds a free numbered equip slot to stick item in.
+                            if self.character.equipped[i] == {}:
+                                self.character.equipped[i] = self.selected_item.item
+                                free_slot = True
+                                break
+                    if free_slot:
+                        dict[self.selected_item.slot] = {}
+
+        elif (self.selected_item.dict == 'equipped') and (self.selected_heading.text == 'Inventory') and (self.selected_item.type != 'magic'):
+            if add_inventory(self.character.inventory, self.selected_item.item):
+                dict[self.selected_item.slot] = {}
+
+        elif (self.selected_item.dict == 'equipped') and (self.selected_item.type == 'magic'):
+            if add_inventory(self.magic_dict, self.selected_item.item):
+                dict[self.selected_item.slot] = {}
+
+        elif (self.selected_item.dict == 'magic') and (self.selected_heading.text == 'Magic'):
+            if (self.character.equipped[6] == {}) or (self.character.equipped[6].type == 'magic'):
+                swap_item = self.character.equipped[6]
+                self.character.equipped[6] = dict[self.selected_item.slot]
+                dict[self.selected_item.slot] = swap_item
+
+        elif self.selected_item.dict == 'loot':
+            if self.selected_heading.text == 'Looting':
+                if add_inventory(self.character.inventory, self.selected_item.item):
+                    dict[self.selected_item.slot] = {}
 
     def swap_item(self, dict, count = 0):
         if not(((self.selected_item in self.inventory_icons) or (self.selected_item in self.loot_icons)) and (self.moving_item.item in self.character.expanded_inventory['magic'])) and not((self.selected_item in self.magic_icons) and (self.moving_item.item not in self.character.expanded_inventory['magic'])):
@@ -1626,6 +1675,7 @@ class MainMenu():  # used as the parent class for other menus.
             icon.y = icony
             icon.resize(HUD_ICON_SIZE)
         self.character.lamp_check()
+        self.character.pre_reload()
         self.game.selected_hud_item = None
         self.game.in_menu = False
         self.game.beg = perf_counter()  # resets the counter so dt doesn't get messed up.

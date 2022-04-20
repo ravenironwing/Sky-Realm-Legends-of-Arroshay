@@ -1467,7 +1467,7 @@ class Body(pg.sprite.Sprite):
                 elif i == 9:
                     weapon_pos = vec(part[0], part[1])
                     weapon_angle = part[2]
-                    if self.mother.hand_item != {}:
+                    if self.mother.hand_item != {} and not swimming:
                         if ('type' in self.mother.hand_item) and (self.mother.hand_item['type'] == 'block'):
                             gid = self.game.map.get_gid_by_prop_name(self.mother.hand_item['name'])
                             temp_img = self.game.map.tmxdata.get_tile_image_by_gid(gid).copy()
@@ -1487,7 +1487,7 @@ class Body(pg.sprite.Sprite):
                 elif i == 10:
                     weapon2_pos = vec(part[0], part[1])
                     weapon2_angle = part[2]
-                    if self.mother.hand2_item != {}:
+                    if self.mother.hand2_item != {} and not swimming:
                         if ('type' in self.mother.hand2_item) and (self.mother.hand2_item['type'] == 'block'):
                             gid = self.game.map.get_gid_by_prop_name(self.mother.hand2_item['name'])
                             temp_img = self.game.map.tmxdata.get_tile_image_by_gid(gid).copy()
@@ -1639,7 +1639,7 @@ class Body(pg.sprite.Sprite):
                 else:
                     self.swing_weapon2 = False
             # Default animaitons for duel wielding
-            if self.mother.equipped['weapons'] and self.mother.equipped['weapons2']:
+            if self.mother.hand_item and self.mother.hand2_item:
                 self.dual_reload_anim = self.render_animation(RELOAD + L_RELOAD)
                 self.stand_anim = self.render_animation(STAND)
                 self.shoot_anim = self.render_animation([CP_STANDING_ARMS_OUT0])
@@ -2735,7 +2735,7 @@ class Player(Character):  # Used for humanoid NPCs and Players
                     self.last_shot = pg.time.get_ticks()
 
         # Checks to see if it's execution the animation frame where the strike happens.
-        if self.body.frame > strike_frame:
+        if (self.body.frame > strike_frame) and (self.next_tile_props['wall'] != 'wall'):  # Makes it so you can't hit through walls.
             self.check_melee_hit()
 
     def check_melee_hit(self): # Checks to see if player melee strike hits anything.
@@ -3336,7 +3336,8 @@ class Player(Character):  # Used for humanoid NPCs and Players
             else:
                 pos = self.pos + (self.body.weapon2_pos + vec(self.equipped['weapons2']['offset'].x, -self.equipped['weapons2']['offset'].y)).rotate(-(self.rot + angle))
             for i in range(self.equipped[self.weapon_hand]['bullet_count']):
-                Bullet(self, self.game, pos, dir, self.rot, self.equipped[self.weapon_hand], False, self.in_flying_vehicle)
+                if (self.next_tile_props['wall'] != 'wall'):  # Makes it so you can't fire through walls.
+                    Bullet(self, self.game, pos, dir, self.rot, self.equipped[self.weapon_hand], False, self.in_flying_vehicle)
                 if self.weapon_hand == 'weapons':
                     self.use_ammo(1)
                 else:
@@ -3383,7 +3384,7 @@ class Player(Character):  # Used for humanoid NPCs and Players
         speed1 = 0
         speed2 = 0
         delay = 500
-        if self.equipped['weapons'] and ('bullet_count' in self.equipped['weapons']): # checks if you are holding a gun
+        if self.equipped['weapons'] and ('bullet_count' in self.equipped['weapons']): # checks if you are holding a gun or bow or enchanted weapon that fires.
             if self.is_moving():
                 self.animation_playing = self.body.walk_reload_anim
             else:
@@ -3451,11 +3452,9 @@ class Player(Character):  # Used for humanoid NPCs and Players
                                     self.ammo[self.equipped['weapons']['type']] -= (self.equipped['weapons']['magazine size'] - self.mag1)
                                     self.mag1 = self.equipped['weapons']['magazine size']
                                 self.ammo_cap1 = self.ammo[self.equipped['weapons']['type']]  # Used for HUD display value to improve frame rate by not looking up the value every cycle
-                        if self.equipped['weapons']['type'] != 'bow':
-                            play_relative_volume(self, 'gun_pickup')
-                        else:
-                            if self.mag1 > 0:
-                                Arrow(self.game, self, self.equipped['weapons'])
+                        play_relative_volume(self, self.game.weapon_reload_sounds[self.equipped['weapons']['type']], False)
+                        if self.equipped['weapons']['type'] == 'bow' and (self.mag1 > 0):
+                            Arrow(self.game, self, self.equipped['weapons'])
                     else:
                         self.mag1 = self.ammo_cap1 = 0
 
@@ -3499,11 +3498,9 @@ class Player(Character):  # Used for humanoid NPCs and Players
                                 if ('bullet_count' in self.equipped['weapons']) and ('bullet_count' in self.equipped['weapons2']):
                                     if self.ammo[self.equipped['weapons']['type']] == self.ammo[self.equipped['weapons2']['type']]:
                                         self.ammo_cap1 = self.ammo_cap2 # Makes sure if both your weapons use the same ammo they display the same ammo capacity.
-                        if self.equipped['weapons2']['type'] != 'bow':
-                            play_relative_volume(self, 'gun_pickup')
-                        else:
-                            if self.mag2 > 0:
-                                Arrow(self.game, self, self.equipped['weapons2'])
+                        play_relative_volume(self, self.game.weapon_reload_sounds[self.equipped['weapons2']['type']], False)
+                        if self.equipped['weapons2']['type'] == 'bow' and (self.mag2 > 0):
+                            Arrow(self.game, self, self.equipped['weapons2'])
                     else:
                         self.mag2 = self.ammo_cap2 = 0
                     self.is_reloading = False
@@ -3515,19 +3512,18 @@ class Player(Character):  # Used for humanoid NPCs and Players
             if 'enchanted' in self.equipped['weapons'] and (self.equipped['weapons']['type'] not in GUN_LIST):
                 if self.equipped['weapons'] and ('bullet_count' in self.equipped['weapons']):
                     self.ammo['crystals'] += self.mag1
-                    self.mag1 = 0
         if self.equipped['weapons2']:
             if 'enchanted' in self.equipped['weapons2'] and not (self.equipped['weapons2']['type'] not in GUN_LIST):
                 if self.equipped['weapons2'] and ('bullet_count' in self.equipped['weapons2']):
                     self.ammo['crystals'] += self.mag2
-                    self.mag2 = 0
         if self.equipped['weapons'] and (self.equipped['weapons']['type'] in GUN_LIST):
                 self.ammo[self.equipped['weapons']['type']] += self.mag1
-                self.mag1 = 0
         if self.equipped['weapons2'] and (self.equipped['weapons2']['type'] in GUN_LIST):
                 self.ammo[self.equipped['weapons2']['type']] += self.mag2
-                self.mag2 = 0
-        self.update_hud_stats('stats')
+        self.mag1 = 0
+        self.mag2 = 0
+        self.ammo_cap1 = self.ammo_cap2 = 0
+        self.update_hud_stats('ammo')
 
 class Animal(Character):
     def __init__(self, game, x=0, y=0, kind='rabbit', colors=None, animal = True):

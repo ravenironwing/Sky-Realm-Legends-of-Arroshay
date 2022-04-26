@@ -4328,6 +4328,8 @@ class Stationary_Animated(pg.sprite.Sprite): # Used for fires and other stationa
         self.pos = self.center
 
     def update(self):
+        # if self not in self.game.lights_on_screen:
+        #     self.add(self.game.lights_on_screen)
         now = pg.time.get_ticks()
         if now - self.last_move > self.animate_speed:
             self.animate(self.image_list)

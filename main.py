@@ -1730,8 +1730,6 @@ class Game:
                         self.dropped_items_on_screen.add(sprite)
                 elif sprite in self.npc_bodies:
                     self.npc_bodies_on_screen.add(sprite)
-                elif sprite in self.lights:
-                    self.lights_on_screen.add(sprite)
                 elif sprite in self.moving_targets:
                     self.moving_targets_on_screen.add(sprite)
                     if sprite in self.mobs:
@@ -2243,6 +2241,10 @@ class Game:
                 npc.aipath = None"""
 
     def render_lighting(self, underworld = False):
+        for sprite in self.sprites_on_screen:
+            if sprite in self.lights:
+                self.lights_on_screen.add(sprite)
+
         # draw the light mask (gradient) onto fog image
         if self.underworld:
             self.fog.fill((180, 180, 180))
@@ -2275,7 +2277,7 @@ class Game:
                 lightrect = self.camera.apply_rect(light.light_mask_rect)
                 self.fog.blit(light.light_mask, lightrect)
 
-        self.screen.blit(self.fog, (0, 0), special_flags=pg.BLEND_SUB)
+        self.screen.blit(self.fog, (0, 0), special_flags=pg.BLEND_RGB_SUB)
 
     def rot_center(self, image, angle):
         orig_rect = image.get_rect()

@@ -159,7 +159,7 @@ UPGRADE_FACTOR = 1.2 # This number determines how much item value increases when
 KEY_MAP = {'jump': pg.K_SPACE, 'sprint': pg.K_LSHIFT, 'forward': pg.K_w, 'back': pg.K_s, 'rot left': pg.K_a, 'rot right': pg.K_d, 'strafe left': pg.K_z, 'strafe right': pg.K_c, 'dismount': pg.K_x, 'interact': pg.K_e, 'reload': pg.K_r, 'fire': pg.K_f, 'climb': pg.K_q, 'lamp': pg.K_n, 'transform': pg.K_t, 'grenade': pg.K_g, 'place': pg.K_y, 'minimap': pg.K_m, 'pause': pg.K_p, 'up': pg.K_u, 'hitbox': pg.K_h, 'inventory': pg.K_i, 'melee': pg.K_TAB, 'block': pg.K_LALT}
 
 # Day/Night
-DAY_LENGTH = 15 * 60 * 1000
+DAY_LENGTH = 15 #* 60 * 1000
 NIGHT_LENGTH = 9 * 60 * 1000
 DAY_PERIOD = DAY_LENGTH + NIGHT_LENGTH
 NIGHTFALL_SPEED = 100 # The higher the slower. In ms.
@@ -409,8 +409,8 @@ NIGHT_COLOR = (20, 20, 20)
 LIGHT_RADIUS = (200, 200)
 FLAME_TILE_BRIGHTNESS = 500
 CANDLE_BRIGHTNESS = 150
-EXPLODE_LIGHT_RADIUS = (250, 250)
-FIRE_LIGHT_RADIUS = (225, 225)
+EXPLODE_LIGHT_RADIUS = (220, 220)
+FIRE_LIGHT_RADIUS = (200, 200)
 FIREBALL_LIGHT_RADIUS = (150, 150)
 LIGHT_MASK = "light_350_med.png"
 SQUARE_LIGHT_MASK = 'light_square.png'

@@ -1001,11 +1001,11 @@ class MainMenu():  # used as the parent class for other menus.
         list_rect = pg.Rect(10, 50, self.game.screen_width / 2 - 10, self.game.screen_height - 74)
         list_rect_fill = pg.Rect(20, 60, self.game.screen_width / 2 - 30, self.game.screen_height - 94)
         description_rect = pg.Rect(self.game.screen_width / 2 + 5, 50, 242, self.game.screen_height - 74)
-        description_rect_fill = pg.Rect(self.game.screen_width / 2 + 15, 60, 231, self.game.screen_height - 94)
+        description_rect_fill = pg.Rect(self.game.screen_width / 2 + 15, 60, 230, self.game.screen_height - 94)
         preview_rect = pg.Rect(732, 50, 220, 220)
-        preview_rect_fill = pg.Rect(self.game.screen_width / 2 + 15, 60, 231, self.game.screen_height - 94)
+        preview_rect_fill = pg.Rect(self.game.screen_width / 2 + 15, 60, 230, self.game.screen_height - 94)
         stats_rect = pg.Rect(732, 296, 220, 220)
-        stats_rect_fill = pg.Rect(self.game.screen_width / 2 + 15, 60, 231, self.game.screen_height - 94)
+        stats_rect_fill = pg.Rect(self.game.screen_width / 2 + 15, 60, 230, self.game.screen_height - 94)
         pg.draw.rect(self.game.screen, WHITE, list_rect, 2)
         pg.draw.rect(self.game.screen, BLACK, list_rect_fill)
         if self.selected_heading.text not in ['Inventory', 'Magic'] + WORKSTATIONS + self.character_heading_list:
@@ -1026,13 +1026,13 @@ class MainMenu():  # used as the parent class for other menus.
             self.game.screen.blit(pg.transform.scale(station_img, (226, 225)), (self.game.screen_width / 2 + 13, 57))
 
         if self.selected_item:
-            selected_rect = pg.Rect(self.selected_item.rect.x - 2, self.selected_item.rect.y - 2, self.selected_item.rect.width + 2, self.selected_item.size + 2)
+            selected_rect = pg.Rect(self.selected_item.rect.x - 2, self.selected_item.rect.y - 2, self.selected_item.rect.width + 4, self.selected_item.size + 4)
             pg.draw.rect(self.game.screen, YELLOW, selected_rect, 2)
         if self.selected_text:
-            selected_rect = pg.Rect(self.selected_text.rect.x - 2, self.selected_text.rect.y - 2, self.selected_text.rect.width + 2, self.selected_text.size + 2)
+            selected_rect = pg.Rect(self.selected_text.rect.x - 2, self.selected_text.rect.y - 2, self.selected_text.rect.width + 4, self.selected_text.size + 4)
             pg.draw.rect(self.game.screen, YELLOW, selected_rect, 2)
 
-        selected_heading_rect = pg.Rect(self.selected_heading.rect.x - 4, self.selected_heading.rect.y, self.selected_heading.rect.width + 8, self.selected_heading.size + 2)
+        selected_heading_rect = pg.Rect(self.selected_heading.rect.x - 4, self.selected_heading.rect.y, self.selected_heading.rect.width + 8, self.selected_heading.size + 4)
         pg.draw.rect(self.game.screen, YELLOW, selected_heading_rect, 2)
         self.menu_sprites.draw(self.game.screen)
         if self.selected_item:

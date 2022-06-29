@@ -18,8 +18,6 @@ import datetime
 from time import sleep, perf_counter
 import math
 from menu import Item_Icon
-
-
 from pygame.locals import *
 from pytmx.util_pygame import load_pygame
 import pyscroll
@@ -779,6 +777,7 @@ class Game:
         self.message_text = True
         self.message = ''
         self.map_type = None
+        self.ais = []
         self.group = PyscrollGroup(0) # 0 is the map base layer, but I set it later to self.map.map_layer.
         self.all_sprites = pg.sprite.LayeredUpdates() # Used for all non_static sprites
         self.all_static_sprites = pg.sprite.Group() # used for all static sprites
@@ -790,7 +789,7 @@ class Game:
         self.mobs_on_screen = pg.sprite.Group()
         self.npc_bodies = pg.sprite.Group()
         self.npc_bodies_on_screen = pg.sprite.Group()
-        self.npcs =  pg.sprite.Group()
+        self.npcs = pg.sprite.Group()
         self.npcs_on_screen = pg.sprite.Group()
         self.animals = pg.sprite.Group()
         self.animals_on_screen = pg.sprite.Group()
@@ -2348,6 +2347,14 @@ class Game:
         if self.draw_debug: # Draws hit rects for debugging
             #for wall_rect in self.map.walls_list:
             #    pg.draw.rect(self.screen, CYAN, self.camera.apply_rect(wall_rect), 1)
+            for ai in self.ais:
+                for i, path in enumerate(ai.found_path):
+                    pathrect = pg.Rect(path.pos[0] * self.map.tile_size, path.pos[1] * self.map.tile_size, self.map.tile_size, self.map.tile_size)
+                    pg.draw.rect(self.screen, RED, self.camera.apply_rect(pathrect), 1)
+                if ai.meander:
+                    pathrect = pg.Rect(ai.temp_target[0] * self.map.tile_size, ai.temp_target[1] * self.map.tile_size, self.map.tile_size,
+                                       self.map.tile_size)
+                    pg.draw.rect(self.screen, RED, self.camera.apply_rect(pathrect), 1)
             for vehicle in self.vehicles_on_screen:
                 pg.draw.rect(self.screen, CYAN, self.camera.apply_rect(vehicle.hit_rect), 1)
                 pg.draw.rect(self.screen, GREEN, self.camera.apply_rect(vehicle.hit_rect2), 1)

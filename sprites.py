@@ -9,6 +9,7 @@ from menu import *
 from vehicles import *
 from math import ceil
 from time import perf_counter, sleep
+from astar_pathfinding import TilePath
 
 vec = pg.math.Vector2
 last_channel = 1
@@ -95,7 +96,11 @@ def round_to_base(x, base=90):
     return base * round(x / base)
 
 def get_tile_pos(sprite, offset_x = 0, offset_y = 0):
-    return int((sprite.pos.x + offset_x) / sprite.game.map.tile_size), int((sprite.pos.y + offset_y)/ sprite.game.map.tile_size)
+    try:
+        return int((sprite.pos.x + offset_x) / sprite.game.map.tile_size), int((sprite.pos.y + offset_y)/ sprite.game.map.tile_size)
+    except:
+        return 0, 0
+        return 0, 0
 
 def get_next_tile_pos(sprite):
     pdir = vec(1, 0).rotate(-sprite.rot)
@@ -486,6 +491,17 @@ def get_surrounding_walls(sprite, x_off = 0, y_off = 0):
         if sprite.game.map.walls[tile_pos[1]][tile_pos[0]]:
             surrounding_tile_rects.append(sprite.game.map.walls[tile_pos[1]][tile_pos[0]])
     return surrounding_tile_rects
+
+def find_no_walls(sprite):
+    pos = get_tile_pos(sprite)
+    x = pos[0]
+    y = pos[1]
+    surrounding_tilesxy_list = [((x-1),(y-1)), (x,(y-1)), ((x+1),(y-1)), ((x-1),y), ((x+1),y), ((x-1),(y+1)), (x,(y+1)), ((x+1),(y+1))]
+    surrounding_openings = []
+    for tile_pos in surrounding_tilesxy_list: # Makes a list of surrounding openings.
+        if not sprite.game.map.walls[tile_pos[1]][tile_pos[0]]:
+            surrounding_openings.append((tile_pos[0], tile_pos[1]))
+    return surrounding_openings
 
 def collide_with_tile_walls(sprite):
     sprite.hit_rect.centerx = sprite.pos.x
@@ -2004,6 +2020,7 @@ class Character(pg.sprite.Sprite): # Used for things humanoid players and animal
         pass
 
     def death(self, silent = False):
+        self.ai.death()
         if self in self.game.companions:
             self.unfollow()
         if not silent:
@@ -3900,12 +3917,17 @@ class Arrow(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = self.mother.pos + self.offset.rotate(-self.mother.rot)
 
-
 class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
     def __init__(self, sprite):
         self.sprite = sprite
         self.game = self.sprite.game
-        self.target = choice(sprite.game.moving_targets.sprites()) # Makes sprites randomly pick another sprite to follow.
+        if self.sprite.kind != 'player':
+            self.target = self.game.player
+        else:
+            self.target = choice(self.game.moving_targets.sprites())
+        self.game.ais.append(self)
+        self.target_tile_pos = get_tile_pos(self.target)
+        self.temp_target = None
         self.target_dist = 0 # Distance to target
         self.avoid_radius = self.sprite.avoid_radius
         self.detect_radius = self.sprite.detect_radius
@@ -3913,21 +3935,77 @@ class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
         self.last_wall_hit = 0
         self.last_target_seek = 0
         self.hit_wall = False
+        self.meander = False
         self.approach_angle = 0
+        self.tile_paths = []
+        self.found_path = []
+        self.visited_tiles = []
+        self.recursions = 0
+        self.tile_pos = get_tile_pos(self.sprite)
+        self.updated = False
+        self.target_timer = 0
+        self.target_tile = (0, 0)
+        self.target_tile_timer = 0
+
+    def get_pos_from_tile_pos(self, tile_pos):
+        return tile_pos.x * self.game.map.tile_size + self.game.map.tile_size/2, tile_pos.y * self.game.map.tile_size + self.game.map.tile_size/2
 
     def update(self):
+        if not self.updated:
+            self.recalculate_paths()
+            self.updated = True
+        self.tile_pos = get_tile_pos(self.sprite)
+        self.target_tile_pos = get_tile_pos(self.target)
         self.target_dist = self.target.pos - self.sprite.pos
-        target_vec = self.target_dist.rotate(self.approach_angle)
-        self.sprite.rotate_to(target_vec)
-        self.sprite.accelerate()
+        now = pg.time.get_ticks()
+        if now - self.target_timer > 3000:
+            self.recalculate_paths()
+            self.target_timer = now
+            if self.recursions > MAX_RECURSIONS:
+                self.meander = True
+
+        if self.tile_pos == self.target_tile:
+            self.visited_tiles.append(self.target_tile)
+
+        # Temp targetting for pathfinding
+        if self.target_dist.length() > self.game.map.tile_size * 2:
+            if self.tile_pos == self.temp_target:
+                if not self.meander:
+                    self.recalculate_paths()
+                if self.recursions > MAX_RECURSIONS:
+                    self.meander = True
+                else:
+                    self.meander = False
+            if self.meander:
+                now = pg.time.get_ticks()
+                if now - self.target_tile_timer > 1000:
+                    self.target_tile_timer = now
+                    no_walls_list = [i for i in find_no_walls(self.sprite) if i not in self.visited_tiles]
+                    try:
+                        self.target_tile = choice(no_walls_list)
+                        self.temp_target = vec(self.target_tile)
+                    except: # Clears tile list
+                        self.visited_tiles = []
+
+            if self.temp_target:
+                self.temp_target_pos = self.get_pos_from_tile_pos(self.temp_target)
+                self.temp_target_dist = self.temp_target_pos - self.sprite.pos
+                temp_target_vec = self.temp_target_dist.rotate(self.approach_angle)
+                if self.tile_pos != self.temp_target:
+                    self.sprite.rotate_to(temp_target_vec)
+                self.sprite.accelerate()
+        else: # If in range and no path finding needed
+            target_vec = self.target_dist.rotate(self.approach_angle)
+            self.sprite.rotate_to(target_vec)
+            self.sprite.accelerate()
         #self.avoid_mobs()
 
-    def avoid_mobs(self):
-        for mob in self.game.mobs_on_screen:
-            if mob != self.sprite:
-                dist = self.sprite.pos - mob.pos
-                if 0 < dist.length() < self.avoid_radius:
-                    self.sprite.acc = dist.normalize() * self.sprite.acc.magnitude()
+    # def avoid_mobs(self):
+    #     for mob in self.game.mobs_on_screen:
+    #         if mob != self.sprite:
+    #             dist = self.sprite.pos - mob.pos
+    #             if 0 < dist.length() < self.avoid_radius:
+    #                 self.sprite.acc = dist.normalize() * self.sprite.acc.magnitude()
 
         # # Makes it so non aggressive mobs don't cling to you.
         # if not self.aggressive:
@@ -3958,6 +4036,27 @@ class AI(): # Used for assigning artificial intelligence to mobs/players, etc.
 
     def gets_hit(self, offender):
         self.target = offender
+
+    def deletePaths(self):
+        self.recursions = 0
+        self.found_path = []
+        for i in self.tile_paths: # Garbage collection
+            del (i)
+        self.tile_paths = []
+
+    def recalculate_paths(self):
+        self.deletePaths()
+        tp1 = TilePath(self)
+        tp1.close()
+
+    def getPath(self, pos):
+        for i in self.tile_paths:
+            if i.pos == pos:
+                return i
+
+    def death(self):
+        self.game.ais.remove(self)
+        del self
 
 class AI_Zombie(AI):
     def __init__(self, sprite):
@@ -4818,7 +4917,7 @@ class Detector(pg.sprite.Sprite): # Used to rest in
             self.game.people['catrina']['dialogue'] = 'CATRINA_DLG2'
 
 # This class generates random points for NPCs and animals to walk towards
-class Target(pg.sprite.Sprite): # Used for fires and other stationary animated sprites
+class Target(pg.sprite.Sprite): # Used for creating random targets for sprites to follow
     def __init__(self, game, x = 0, y = 0):
         self.game = game
         self._layer = self.game.map.items_layer
@@ -4830,6 +4929,7 @@ class Target(pg.sprite.Sprite): # Used for fires and other stationary animated s
             y = randrange(200, self.game.map.height - 200)
         self.rect = self.hit_rect = pg.Rect(x, y, self.rect_size, self.rect_size)
         self.pos = vec(self.rect.centerx, self.rect.centery)
+        self.tile_pos = get_tile_pos(self)
         self.vel = vec(0, 0)
         self.acc = vec(0, 0)
         self.living = True

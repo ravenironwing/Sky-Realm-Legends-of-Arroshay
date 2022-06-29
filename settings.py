@@ -1,4 +1,5 @@
 import pygame as pg
+import pygame as pg
 import os
 from os import path
 from hair import *
@@ -159,7 +160,7 @@ UPGRADE_FACTOR = 1.2 # This number determines how much item value increases when
 KEY_MAP = {'jump': pg.K_SPACE, 'sprint': pg.K_LSHIFT, 'forward': pg.K_w, 'back': pg.K_s, 'rot left': pg.K_a, 'rot right': pg.K_d, 'strafe left': pg.K_z, 'strafe right': pg.K_c, 'dismount': pg.K_x, 'interact': pg.K_e, 'reload': pg.K_r, 'fire': pg.K_f, 'climb': pg.K_q, 'lamp': pg.K_n, 'transform': pg.K_t, 'grenade': pg.K_g, 'place': pg.K_y, 'minimap': pg.K_m, 'pause': pg.K_p, 'up': pg.K_u, 'hitbox': pg.K_h, 'inventory': pg.K_i, 'melee': pg.K_TAB, 'block': pg.K_LALT}
 
 # Day/Night
-DAY_LENGTH = 15 #* 60 * 1000
+DAY_LENGTH = 15 * 60 * 1000
 NIGHT_LENGTH = 9 * 60 * 1000
 DAY_PERIOD = DAY_LENGTH + NIGHT_LENGTH
 NIGHTFALL_SPEED = 100 # The higher the slower. In ms.
@@ -182,6 +183,7 @@ RUN_INCREASE = 2 #speed multiplier when running.
 #PLAYER_CLIMB = 14
 CLIMB_TIME = 1000
 DEFAULT_FRICTION = 0.17
+MAX_RECURSIONS = 300
 
 PLAYER_ROT_SPEED = 200
 PLAYER_TUR = 'turret.png'
